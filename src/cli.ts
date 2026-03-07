@@ -353,8 +353,18 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       }
     }
 
+    // Deduplicate findings (same file, line, and ruleId)
+    const deduplicatedFindings = findings.filter((finding, index, self) => {
+      return index === self.findIndex(f =>
+        f.file === finding.file &&
+        f.line === finding.line &&
+        f.ruleId === finding.ruleId &&
+        f.message === finding.message
+      );
+    });
+
     // Sort findings by severity
-    const sortedFindings = findings.sort((a, b) => {
+    const sortedFindings = deduplicatedFindings.sort((a, b) => {
       const order = { error: 0, warn: 1, info: 2 };
       return order[a.severity] - order[b.severity];
     });

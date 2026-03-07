@@ -45,8 +45,8 @@ const NETWORK_PATTERNS: ConfigPattern[] = [
   {
     name: 'Production URL',
     pattern: /["']https?:\/\/(?!localhost|127\.0\.0\.1|example\.com)[a-zA-Z0-9][-a-zA-Z0-9]*\.[a-zA-Z]{2,}(?::\d+)?(?:\/[^"']*)?["']/g,
-    message: 'Hardcoded external URL should use environment variable',
-    severity: 'warn',
+    message: 'Hardcoded production URL will break across environments',
+    severity: 'error',
     suggestion: 'Use environment variable: process.env.SERVICE_URL',
   },
   // Hardcoded port numbers
@@ -61,8 +61,8 @@ const NETWORK_PATTERNS: ConfigPattern[] = [
   {
     name: 'Private IP',
     pattern: /["'](?:192\.168\.\d{1,3}\.\d{1,3}|10\.\d{1,3}\.\d{1,3}\.\d{1,3}|172\.(?:1[6-9]|2\d|3[01])\.\d{1,3}\.\d{1,3})["']/g,
-    message: 'Hardcoded private IP address',
-    severity: 'warn',
+    message: 'Hardcoded private IP address is environment-specific',
+    severity: 'error',
     suggestion: 'Use environment variable or service discovery',
   },
   // 0.0.0.0 binding
@@ -265,16 +265,16 @@ const AUTH_PATTERNS: ConfigPattern[] = [
   {
     name: 'Session Timeout',
     pattern: /(?:session_?timeout|sessionTimeout|session_?expir)\s*[:=]\s*\d+/gi,
-    message: 'Hardcoded session timeout',
-    severity: 'warn',
+    message: 'Hardcoded session timeout is a security configuration',
+    severity: 'error',
     suggestion: 'Use environment variable: process.env.SESSION_TIMEOUT_SECONDS',
   },
   // Token expiration
   {
     name: 'Token Expiration',
     pattern: /(?:token_?expir|tokenExpir|jwt_?expir|access_?token_?expir)\s*[:=]\s*\d+/gi,
-    message: 'Hardcoded token expiration',
-    severity: 'warn',
+    message: 'Hardcoded token expiration is a security configuration',
+    severity: 'error',
     suggestion: 'Use environment variable: process.env.TOKEN_EXPIRATION_SECONDS',
   },
   // Password requirements
@@ -311,16 +311,16 @@ const CLOUD_PATTERNS: ConfigPattern[] = [
   {
     name: 'AWS Region',
     pattern: /["'](?:us|eu|ap|sa|ca|me|af)-(?:east|west|south|north|central|northeast|southeast)-\d["']/g,
-    message: 'Hardcoded AWS region',
-    severity: 'warn',
+    message: 'Hardcoded AWS region is environment-specific',
+    severity: 'error',
     suggestion: 'Use environment variable: process.env.AWS_REGION',
   },
   // S3 bucket name pattern
   {
     name: 'S3 Bucket',
     pattern: /["']s3:\/\/[a-z0-9][-a-z0-9]*["']/gi,
-    message: 'Hardcoded S3 bucket URI',
-    severity: 'warn',
+    message: 'Hardcoded S3 bucket URI is environment-specific',
+    severity: 'error',
     suggestion: 'Use environment variable: process.env.S3_BUCKET',
   },
   // Azure region

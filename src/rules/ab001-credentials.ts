@@ -27,7 +27,7 @@ const CLOUD_PROVIDER_PATTERNS: CredentialPattern[] = [
   // AWS
   {
     name: 'AWS Access Key ID',
-    pattern: /(?:^|[^A-Z0-9])AKIA[0-9A-Z]{16}(?:[^A-Z0-9]|$)/g,
+    pattern: /["']?AKIA[0-9A-Z]{16}["']?/g,
     message: 'AWS Access Key ID detected',
     severity: 'error',
   },
@@ -114,10 +114,10 @@ const CLOUD_PROVIDER_PATTERNS: CredentialPattern[] = [
 // AI/ML SERVICE API KEYS
 // ============================================================================
 const AI_SERVICE_PATTERNS: CredentialPattern[] = [
-  // OpenAI
+  // OpenAI (supports sk-, sk-proj-, sk-xxx- formats)
   {
     name: 'OpenAI API Key',
-    pattern: /sk-[a-zA-Z0-9]{20,}/g,
+    pattern: /sk-(?:proj-)?[a-zA-Z0-9-]{20,}/g,
     message: 'OpenAI API key detected',
     severity: 'error',
   },
@@ -144,14 +144,14 @@ const AI_SERVICE_PATTERNS: CredentialPattern[] = [
   // Hugging Face
   {
     name: 'Hugging Face Token',
-    pattern: /hf_[a-zA-Z0-9]{34}/g,
+    pattern: /hf_[a-zA-Z0-9]{30,}/g,
     message: 'Hugging Face API token detected',
     severity: 'error',
   },
   // Replicate
   {
     name: 'Replicate API Token',
-    pattern: /r8_[a-zA-Z0-9]{37}/g,
+    pattern: /r8_[a-zA-Z0-9]{35,}/g,
     message: 'Replicate API token detected',
     severity: 'error',
   },
