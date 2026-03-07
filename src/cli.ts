@@ -18,9 +18,11 @@ import chalk from 'chalk';
 import ora from 'ora';
 import path from 'path';
 import fs from 'fs';
-import { getSessionDiff, isGitRepo, type GitDiff } from './git/index.js';
+import { getSessionDiff, isGitRepo, getFileContent, type GitDiff } from './git/index.js';
 import { formatDuration } from './utils/timespec.js';
 import { generateMarkdownReport } from './reporter/index.js';
+import { RuleRunner } from './rules/index.js';
+import type { RiskFinding } from './types.js';
 
 interface AnalyzeOptions {
   explain?: boolean;
@@ -40,9 +42,51 @@ program
   .version('0.1.0-beta');
 
 /**
+ * Display risk findings in terminal
+ */
+function displayRiskFindings(findings: RiskFinding[]): void {
+  const errors = findings.filter(f => f.severity === 'error');
+  const warnings = findings.filter(f => f.severity === 'warn');
+  const infos = findings.filter(f => f.severity === 'info');
+
+  if (findings.length === 0) {
+    console.log(chalk.green('  ✅ No issues detected'));
+    return;
+  }
+
+  // Display errors first
+  for (const finding of errors) {
+    console.log(`  ${chalk.red('❌')} ${chalk.red(finding.message)}`);
+    console.log(chalk.gray(`     ${finding.file}:${finding.line}`));
+    if (finding.snippet) {
+      console.log(chalk.gray(`     ${finding.snippet}`));
+    }
+  }
+
+  // Then warnings
+  for (const finding of warnings) {
+    console.log(`  ${chalk.yellow('⚠️')} ${chalk.yellow(finding.message)}`);
+    console.log(chalk.gray(`     ${finding.file}:${finding.line}`));
+    if (finding.snippet) {
+      console.log(chalk.gray(`     ${finding.snippet}`));
+    }
+  }
+
+  // Then info
+  for (const finding of infos) {
+    console.log(`  ${chalk.blue('ℹ️')} ${chalk.blue(finding.message)}`);
+    console.log(chalk.gray(`     ${finding.file}:${finding.line}`));
+  }
+
+  // Summary
+  console.log();
+  console.log(`  ${chalk.bold('Summary:')} ${chalk.red(`${errors.length} errors`)}, ${chalk.yellow(`${warnings.length} warnings`)}, ${chalk.blue(`${infos.length} info`)}`);
+}
+
+/**
  * Display session summary in terminal
  */
-function displaySessionSummary(diff: GitDiff, duration: number): void {
+function displaySessionSummary(diff: GitDiff, findings: RiskFinding[], duration: number): void {
   console.log();
   console.log(chalk.bold.cyan('═══════════════════════════════════════════════════════════'));
   console.log(chalk.bold.cyan('  AFTERBURN SESSION REPORT'));
@@ -125,11 +169,10 @@ function displaySessionSummary(diff: GitDiff, duration: number): void {
     console.log();
   }
 
-  // Placeholder for risk report (Phase 1 Sprint 2)
+  // Risk Report
   console.log(chalk.bold('Risk Report'));
   console.log(chalk.gray('─'.repeat(50)));
-  console.log(chalk.gray('  Static analysis rules not yet implemented.'));
-  console.log(chalk.gray('  Coming in Sprint 2: credential detection, error handling, type assertions.'));
+  displayRiskFindings(findings);
   console.log();
 
   // Placeholder for dependency audit (Phase 1 Sprint 3)
@@ -146,7 +189,7 @@ function displaySessionSummary(diff: GitDiff, duration: number): void {
 /**
  * Display JSON output
  */
-function displayJsonOutput(diff: GitDiff, duration: number): void {
+function displayJsonOutput(diff: GitDiff, findings: RiskFinding[], duration: number): void {
   const output = {
     version: '0.1.0-beta',
     timestamp: new Date().toISOString(),
@@ -159,7 +202,8 @@ function displayJsonOutput(diff: GitDiff, duration: number): void {
       date: c.date.toISOString(),
     })),
     files: diff.files,
-    risks: [], // Placeholder for Sprint 2
+    risks: findings,
+    riskSummary: RuleRunner.summarize(findings),
     dependencies: [], // Placeholder for Sprint 3
   };
 
@@ -203,9 +247,47 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
     const since = options.since ?? '4h';
     const diff = await getSessionDiff(absolutePath, since);
 
-    const duration = Date.now() - startTime;
+    if (spinner) {
+      spinner.text = 'Running static analysis...';
+    }
 
-    spinner?.succeed(`Analysis complete in ${formatDuration(duration)}`);
+    // Run rules on changed files
+    const ruleRunner = new RuleRunner();
+    const findings: RiskFinding[] = [];
+
+    for (const file of diff.files) {
+      // Skip deleted files
+      if (file.status === 'deleted') {
+        continue;
+      }
+
+      try {
+        const content = await getFileContent(absolutePath, file.path);
+        if (content) {
+          const fileFindings = ruleRunner.run(content, file.path);
+          findings.push(...fileFindings);
+        }
+      } catch {
+        // File couldn't be read, skip it
+      }
+    }
+
+    // Sort findings by severity
+    const sortedFindings = findings.sort((a, b) => {
+      const order = { error: 0, warn: 1, info: 2 };
+      return order[a.severity] - order[b.severity];
+    });
+
+    const duration = Date.now() - startTime;
+    const summary = RuleRunner.summarize(sortedFindings);
+
+    if (summary.errors > 0) {
+      spinner?.warn(`Analysis complete in ${formatDuration(duration)} - ${summary.errors} errors found`);
+    } else if (summary.warnings > 0) {
+      spinner?.succeed(`Analysis complete in ${formatDuration(duration)} - ${summary.warnings} warnings`);
+    } else {
+      spinner?.succeed(`Analysis complete in ${formatDuration(duration)}`);
+    }
 
     // Generate and write markdown report
     const baseOutputDir = options.output ? path.resolve(options.output) : absolutePath;
@@ -229,6 +311,7 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
 
     const markdownReport = generateMarkdownReport({
       diff,
+      findings: sortedFindings,
       analysisTime: duration,
       projectPath: absolutePath,
       since,
@@ -242,15 +325,16 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
 
     // Output results
     if (jsonOutput) {
-      displayJsonOutput(diff, duration);
+      displayJsonOutput(diff, sortedFindings, duration);
     } else if (!quiet) {
-      displaySessionSummary(diff, duration);
+      displaySessionSummary(diff, sortedFindings, duration);
     }
 
     // CI mode exit codes
     if (options.ci) {
-      // For now, always exit 0 since we don't have rules yet
-      // In Sprint 2+, this will exit 1 if errors are found
+      if (summary.errors > 0) {
+        process.exit(1); // Exit with error if any errors found
+      }
       process.exit(0);
     }
 

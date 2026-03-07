@@ -14,12 +14,22 @@
 
 ## Phase Overview
 
-| Phase | Name | Sprints | Focus |
-|-------|------|---------|-------|
-| 1 | Foundation | Sprint 1-4 | Core CLI, Git parsing, basic rules, npm registry |
-| 2 | Rule Engine | Sprint 5-8 | Full rule catalog, config system, multi-language AST |
-| 3 | LLM Layer | Sprint 9-12 | BYOK integration, Pro features, billing |
-| 4 | Teams & Dashboard | Sprint 13-16 | Web dashboard, team features, v1.0 launch |
+| Phase | Name | Sprints | Focus | Status |
+|-------|------|---------|-------|--------|
+| 1 | Foundation | Sprint 1-4 | Core CLI, Git parsing, basic rules, npm registry | 🟡 In Progress (Sprint 1-2 ✅) |
+| 2 | Rule Engine | Sprint 5-8 | Full rule catalog, config system, multi-language AST | ⬜ Not Started |
+| 3 | LLM Layer | Sprint 9-12 | BYOK integration, Pro features, billing | ⬜ Not Started |
+| 4 | Teams & Dashboard | Sprint 13-16 | Web dashboard, team features, v1.0 launch | ⬜ Not Started |
+
+---
+
+## Current Progress
+
+### Phase 1: Foundation
+- **Sprint 1: Git Integration & CLI Core** ✅ Complete
+- **Sprint 2: Core Static Analysis Rules** ✅ Complete
+- **Sprint 3: npm Registry & Dependency Audit** ⬜ Next Up
+- **Sprint 4: Report Generation & npm Publishing** ⬜ Pending
 
 ---
 
@@ -35,13 +45,13 @@
 
 A task is considered "done" when:
 
-- [ ] Code is written and compiles without errors
-- [ ] Unit tests pass (>80% coverage for new code)
-- [ ] ESLint passes with no errors
-- [ ] Code is reviewed (self-review for solo dev)
-- [ ] Feature is manually tested with real-world scenarios
+- [x] Code is written and compiles without errors
+- [x] Unit tests pass (>80% coverage for new code)
+- [x] ESLint passes with no errors
+- [x] Code is reviewed (self-review for solo dev)
+- [x] Feature is manually tested with real-world scenarios
 - [ ] Documentation updated if user-facing
-- [ ] Changes committed with descriptive message
+- [x] Changes committed with descriptive message
 
 ---
 
@@ -94,7 +104,7 @@ afterburn ./ --sync
 
 ### Phase 1 Complete
 - [ ] CLI generates report for 50-file TypeScript project in <30 seconds
-- [ ] 4 core rules produce accurate results
+- [x] 4 core rules produce accurate results
 - [ ] npm registry checker has zero false positives on hallucinated packages
 - [ ] Published to npm as v0.1.0-beta
 
@@ -126,7 +136,7 @@ afterburn ./ --sync
 ```
 docs/tasks/
 ├── overview.md              # This file
-├── phase-1-foundation.md    # Sprints 1-4
+├── phase-1-foundation.md    # Sprints 1-4 (Sprint 1-2 ✅)
 ├── phase-2-rule-engine.md   # Sprints 5-8
 ├── phase-3-llm-layer.md     # Sprints 9-12
 └── phase-4-dashboard.md     # Sprints 13-16

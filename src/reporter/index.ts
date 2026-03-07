@@ -3,10 +3,12 @@
  */
 
 import type { GitDiff, GitFileDiff } from '../git/index.js';
+import type { RiskFinding } from '../types.js';
 import { formatDuration } from '../utils/timespec.js';
 
 export interface ReportData {
   diff: GitDiff;
+  findings?: RiskFinding[];
   analysisTime: number;
   projectPath: string;
   since?: string;
@@ -85,10 +87,56 @@ export function generateMarkdownReport(data: ReportData): string {
     md += `\n`;
   }
 
-  // Risk Report (placeholder)
+  // Risk Report
   md += `## Risk Report\n\n`;
-  md += `> Static analysis rules not yet implemented.\n`;
-  md += `> Coming soon: credential detection, error handling analysis, type assertion warnings.\n\n`;
+
+  const findings = data.findings ?? [];
+  if (findings.length === 0) {
+    md += `✅ **No issues detected**\n\n`;
+  } else {
+    const errors = findings.filter(f => f.severity === 'error');
+    const warnings = findings.filter(f => f.severity === 'warn');
+    const infos = findings.filter(f => f.severity === 'info');
+
+    md += `| Severity | Count |\n`;
+    md += `|----------|-------|\n`;
+    md += `| ❌ Errors | ${errors.length} |\n`;
+    md += `| ⚠️ Warnings | ${warnings.length} |\n`;
+    md += `| ℹ️ Info | ${infos.length} |\n`;
+    md += `\n`;
+
+    if (errors.length > 0) {
+      md += `### Errors\n\n`;
+      for (const finding of errors) {
+        md += `- **${finding.message}**\n`;
+        md += `  - File: \`${finding.file}:${finding.line}\`\n`;
+        if (finding.snippet) {
+          md += `  - Code: \`${escapeMarkdown(finding.snippet)}\`\n`;
+        }
+      }
+      md += `\n`;
+    }
+
+    if (warnings.length > 0) {
+      md += `### Warnings\n\n`;
+      for (const finding of warnings) {
+        md += `- **${finding.message}**\n`;
+        md += `  - File: \`${finding.file}:${finding.line}\`\n`;
+        if (finding.snippet) {
+          md += `  - Code: \`${escapeMarkdown(finding.snippet)}\`\n`;
+        }
+      }
+      md += `\n`;
+    }
+
+    if (infos.length > 0) {
+      md += `### Info\n\n`;
+      for (const finding of infos) {
+        md += `- ${finding.message} (\`${finding.file}:${finding.line}\`)\n`;
+      }
+      md += `\n`;
+    }
+  }
 
   // Dependency Audit (placeholder)
   md += `## Dependency Audit\n\n`;
