@@ -39,12 +39,16 @@ import {
   formatLLMAnalysisForReport,
   resolveApiKey,
   formatCost,
+  estimateTokenCount,
+  estimateCost,
   type LLMConfig,
   type LLMAnalysisResult,
 } from './llm/index.js';
+import * as readline from 'readline';
 
 interface AnalyzeOptions {
   explain?: boolean;
+  yes?: boolean;  // Auto-confirm LLM cost
   since?: string;
   output?: string;
   json?: boolean;
@@ -55,6 +59,23 @@ interface AnalyzeOptions {
   failOnWarnings?: boolean;
   maxErrors?: number;
   stagedOnly?: boolean;
+}
+
+/**
+ * Prompt user for confirmation
+ */
+async function confirm(message: string): Promise<boolean> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    rl.question(`${message} (y/N) `, (answer) => {
+      rl.close();
+      resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+    });
+  });
 }
 
 /**
@@ -513,45 +534,110 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
           console.warn(chalk.yellow('⚠️  --explain requires LLM configuration. Set llm.apiKey in .afterburnrc'));
         }
       } else {
-        if (spinner) {
-          spinner.text = 'Generating AI summary...';
-        }
+        // Get diff content for LLM
+        const diffContent = diff.files
+          .filter(f => f.status !== 'deleted' && f.diff)
+          .map(f => `--- ${f.path}\n${f.diff}`)
+          .join('\n\n');
 
-        try {
-          // Get diff content for LLM
-          const diffContent = diff.files
-            .filter(f => f.status !== 'deleted' && f.diff)
-            .map(f => `--- ${f.path}\n${f.diff}`)
-            .join('\n\n');
+        // Estimate cost before calling LLM
+        const estimatedInputTokens = estimateTokenCount(diffContent) + 500; // +500 for prompts
+        const estimatedOutputTokens = 1500; // Approximate for summary + changelog + ADR
+        const estimatedCostUsd = estimateCost(llmConfig.model, estimatedInputTokens, estimatedOutputTokens);
 
-          llmAnalysis = await analyzeWithLLM(
-            { ...llmConfig, apiKey: resolvedApiKey },
-            {
-              diff: diffContent,
-              fileList: diff.files.map(f => f.path),
-              commitMessages: diff.commits.map(c => c.message),
-              projectName: path.basename(absolutePath),
-              newDependencies: auditResult?.dependencies
-                .filter(d => d.status === 'verified')
-                .map(d => d.name),
-            },
-            {
-              includeChangelog: true,
-              includeADR: true,
-              includeTradeoffs: false,
-              onProgress: spinner ? (step) => { spinner.text = step; } : undefined,
-            }
-          );
+        // Show cost estimate and confirm (unless --yes, CI, or quiet)
+        const autoConfirm = options.yes || inCI || quiet || jsonOutput;
 
-          if (spinner) {
-            spinner.text = `AI analysis complete (${formatCost(llmAnalysis.usage.estimatedCost)})`;
+        if (!autoConfirm && estimatedCostUsd > 0) {
+          spinner?.stop();
+          console.log();
+          console.log(chalk.cyan(`📊 LLM Analysis Cost Estimate:`));
+          console.log(`   Model: ${chalk.white(llmConfig.model)}`);
+          console.log(`   Input: ~${chalk.yellow(estimatedInputTokens.toLocaleString())} tokens`);
+          console.log(`   Output: ~${chalk.yellow(estimatedOutputTokens.toLocaleString())} tokens`);
+          console.log(`   Estimated cost: ${chalk.green(formatCost(estimatedCostUsd))}`);
+          console.log();
+
+          const confirmed = await confirm('Proceed with LLM analysis?');
+          if (!confirmed) {
+            console.log(chalk.gray('LLM analysis skipped.'));
+            spinner?.start();
+          } else {
+            spinner?.start();
+            spinner && (spinner.text = 'Generating AI summary...');
           }
-        } catch (error) {
-          const errMsg = error instanceof Error ? error.message : 'Unknown error';
+
+          if (!confirmed) {
+            // Skip LLM analysis
+          } else {
+            try {
+              llmAnalysis = await analyzeWithLLM(
+                { ...llmConfig, apiKey: resolvedApiKey },
+                {
+                  diff: diffContent,
+                  fileList: diff.files.map(f => f.path),
+                  commitMessages: diff.commits.map(c => c.message),
+                  projectName: path.basename(absolutePath),
+                  newDependencies: auditResult?.dependencies
+                    .filter(d => d.status === 'verified')
+                    .map(d => d.name),
+                },
+                {
+                  includeChangelog: true,
+                  includeADR: true,
+                  includeTradeoffs: false,
+                  onProgress: spinner ? (step) => { spinner.text = step; } : undefined,
+                }
+              );
+
+              if (spinner) {
+                spinner.text = `AI analysis complete (${formatCost(llmAnalysis.usage.estimatedCost)})`;
+              }
+            } catch (error) {
+              const errMsg = error instanceof Error ? error.message : 'Unknown error';
+              if (spinner) {
+                spinner.warn(`LLM analysis failed: ${errMsg}`);
+              } else if (!quiet && !jsonOutput) {
+                console.warn(chalk.yellow(`⚠️  LLM analysis failed: ${errMsg}`));
+              }
+            }
+          }
+        } else {
+          // Auto-confirm mode (CI, --yes, free model, etc.)
           if (spinner) {
-            spinner.warn(`LLM analysis failed: ${errMsg}`);
-          } else if (!quiet && !jsonOutput) {
-            console.warn(chalk.yellow(`⚠️  LLM analysis failed: ${errMsg}`));
+            spinner.text = 'Generating AI summary...';
+          }
+
+          try {
+            llmAnalysis = await analyzeWithLLM(
+              { ...llmConfig, apiKey: resolvedApiKey },
+              {
+                diff: diffContent,
+                fileList: diff.files.map(f => f.path),
+                commitMessages: diff.commits.map(c => c.message),
+                projectName: path.basename(absolutePath),
+                newDependencies: auditResult?.dependencies
+                  .filter(d => d.status === 'verified')
+                  .map(d => d.name),
+              },
+              {
+                includeChangelog: true,
+                includeADR: true,
+                includeTradeoffs: false,
+                onProgress: spinner ? (step) => { spinner.text = step; } : undefined,
+              }
+            );
+
+            if (spinner) {
+              spinner.text = `AI analysis complete (${formatCost(llmAnalysis.usage.estimatedCost)})`;
+            }
+          } catch (error) {
+            const errMsg = error instanceof Error ? error.message : 'Unknown error';
+            if (spinner) {
+              spinner.warn(`LLM analysis failed: ${errMsg}`);
+            } else if (!quiet && !jsonOutput) {
+              console.warn(chalk.yellow(`⚠️  LLM analysis failed: ${errMsg}`));
+            }
           }
         }
       }
@@ -686,6 +772,7 @@ program
   .description('Analyze a directory for AI coding session changes')
   .argument('[path]', 'Path to analyze', './')
   .option('--explain', 'Include LLM-powered explanations (requires API key)')
+  .option('-y, --yes', 'Auto-confirm LLM cost (skip confirmation prompt)')
   .option('--since <timespec>', 'Scope analysis to changes since timespec', '4h')
   .option('--output <path>', 'Output path for report', './')
   .option('--json', 'Output in JSON format')
@@ -883,6 +970,7 @@ program
 program
   .argument('[path]', 'Path to analyze')
   .option('--explain', 'Include LLM-powered explanations')
+  .option('-y, --yes', 'Auto-confirm LLM cost')
   .option('--since <timespec>', 'Scope analysis to changes since timespec', '4h')
   .option('--output <path>', 'Output path for report', './')
   .option('--json', 'Output in JSON format')

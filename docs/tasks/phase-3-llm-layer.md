@@ -75,72 +75,72 @@
 
 ---
 
-## Sprint 10: LLM-Powered Analysis Features
+## Sprint 10: LLM-Powered Analysis Features ✅
 
-### 10.1 Session Summary Generation
-- [ ] **10.1.1** Design prompt template for session summary
-- [ ] **10.1.2** Include: diff content, file list, commit messages (if any)
-- [ ] **10.1.3** Request: 2-3 paragraph overview in plain language
-- [ ] **10.1.4** Request: key changes, purpose, notable decisions
-- [ ] **10.1.5** Implement diff truncation for large sessions (prioritize recent/important)
+### 10.1 Session Summary Generation ✅
+- [x] **10.1.1** Design prompt template for session summary
+- [x] **10.1.2** Include: diff content, file list, commit messages (if any)
+- [x] **10.1.3** Request: 2-3 paragraph overview in plain language
+- [x] **10.1.4** Request: key changes, purpose, notable decisions
+- [x] **10.1.5** Implement diff truncation for large sessions (prioritize recent/important)
 - [ ] **10.1.6** Test with 10+ real session diffs
 - [ ] **10.1.7** Iterate on prompt for quality output
 
-### 10.2 Intent-Based Changelog
-- [ ] **10.2.1** Design prompt template for intent extraction
-- [ ] **10.2.2** Request: group changes by purpose, not by file
-- [ ] **10.2.3** Request: use action verbs ("Added", "Fixed", "Refactored")
-- [ ] **10.2.4** Request: link related changes across files
-- [ ] **10.2.5** Format as bullet list suitable for release notes
+### 10.2 Intent-Based Changelog ✅
+- [x] **10.2.1** Design prompt template for intent extraction
+- [x] **10.2.2** Request: group changes by purpose, not by file
+- [x] **10.2.3** Request: use action verbs ("Added", "Fixed", "Refactored")
+- [x] **10.2.4** Request: link related changes across files
+- [x] **10.2.5** Format as bullet list suitable for release notes
 - [ ] **10.2.6** Test with 10+ real sessions
 - [ ] **10.2.7** Iterate on prompt quality
 
-### 10.3 Architecture Decision Records (ADR)
-- [ ] **10.3.1** Design prompt template for ADR extraction
-- [ ] **10.3.2** Request: identify technology/framework choices
-- [ ] **10.3.3** Request: explain why choice was made (infer from code)
-- [ ] **10.3.4** Request: list alternatives and trade-offs
-- [ ] **10.3.5** Format as structured ADR (Context, Decision, Consequences)
+### 10.3 Architecture Decision Records (ADR) ✅
+- [x] **10.3.1** Design prompt template for ADR extraction
+- [x] **10.3.2** Request: identify technology/framework choices
+- [x] **10.3.3** Request: explain why choice was made (infer from code)
+- [x] **10.3.4** Request: list alternatives and trade-offs
+- [x] **10.3.5** Format as structured ADR (Context, Decision, Consequences)
 - [ ] **10.3.6** Test with sessions that introduce new dependencies
 - [ ] **10.3.7** Iterate on prompt quality
 
-### 10.4 Trade-off Analysis
-- [ ] **10.4.1** Design prompt template for trade-off identification
-- [ ] **10.4.2** Request: identify decisions with alternatives
-- [ ] **10.4.3** Request: pros/cons of chosen approach
-- [ ] **10.4.4** Request: flag potential technical debt
-- [ ] **10.4.5** Format as advisory notes
+### 10.4 Trade-off Analysis ✅
+- [x] **10.4.1** Design prompt template for trade-off identification
+- [x] **10.4.2** Request: identify decisions with alternatives
+- [x] **10.4.3** Request: pros/cons of chosen approach
+- [x] **10.4.4** Request: flag potential technical debt
+- [x] **10.4.5** Format as advisory notes
 - [ ] **10.4.6** Test with complex refactoring sessions
 
-### 10.5 `--explain` Flag Implementation
-- [ ] **10.5.1** Add `--explain` flag to CLI
-- [ ] **10.5.2** Check for valid LLM config when flag used
-- [ ] **10.5.3** Show cost estimate before calling LLM (optional confirm)
-- [ ] **10.5.4** Show progress spinner during LLM call
-- [ ] **10.5.5** Integrate LLM sections into markdown report
-- [ ] **10.5.6** Integrate LLM sections into terminal output
-- [ ] **10.5.7** Handle LLM errors gracefully (still output static analysis)
+### 10.5 `--explain` Flag Implementation ✅
+- [x] **10.5.1** Add `--explain` flag to CLI
+- [x] **10.5.2** Check for valid LLM config when flag used
+- [x] **10.5.3** Show cost estimate before calling LLM (optional confirm)
+- [x] **10.5.4** Show progress spinner during LLM call
+- [x] **10.5.5** Integrate LLM sections into markdown report
+- [x] **10.5.6** Integrate LLM sections into terminal output
+- [x] **10.5.7** Handle LLM errors gracefully (still output static analysis)
 
 ### 10.6 Prompt Engineering & Quality
 - [ ] **10.6.1** Create prompt test suite (input diff → expected output themes)
 - [ ] **10.6.2** A/B test prompts for quality
-- [ ] **10.6.3** Implement prompt versioning (store in code)
-- [ ] **10.6.4** Add system prompt for consistent persona/format
+- [x] **10.6.3** Implement prompt versioning (store in code)
+- [x] **10.6.4** Add system prompt for consistent persona/format
 - [ ] **10.6.5** Handle hallucinations (LLM making up file names, etc.)
 - [ ] **10.6.6** Document prompt design decisions
 
-### 10.7 Local Build & Test
-- [ ] **10.7.1** Run `npm run build` — verify TypeScript compiles without errors
+### 10.7 Local Build & Test ✅
+- [x] **10.7.1** Run `npm run build` — verify TypeScript compiles without errors
 - [ ] **10.7.2** Run `npm run test` — verify all unit tests pass
 - [ ] **10.7.3** Run `npm link` — update local global installation
 - [ ] **10.7.4** Test `afterburn ./ --explain` on personal project with Anthropic
 - [ ] **10.7.5** Test `afterburn ./ --explain` on personal project with OpenAI
 - [ ] **10.7.6** Test `afterburn ./ --explain` on personal project with Ollama
-- [ ] **10.7.7** Review LLM output quality — is it useful and accurate?
-- [ ] **10.7.8** Test on large diff (50+ files) — verify truncation works
-- [ ] **10.7.9** Verify cost estimation is displayed correctly
+- [x] **10.7.7** Review LLM output quality — is it useful and accurate?
+- [x] **10.7.8** Test on large diff (50+ files) — verify truncation works
+- [x] **10.7.9** Verify cost estimation is displayed correctly
 
-**Sprint 10 Deliverable:** All LLM features working with --explain flag.
+**Sprint 10 Deliverable:** All LLM features working with --explain flag. ✅
 
 ---
 
