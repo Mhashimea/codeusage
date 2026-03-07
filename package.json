@@ -1,0 +1,63 @@
+{
+  "name": "afterburn",
+  "version": "0.1.0-beta",
+  "description": "Post-session intelligence for AI-assisted coding. The documentation that vibe coding never produces.",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "afterburn": "./dist/cli.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli.js",
+    "lint": "eslint src --ext .ts",
+    "lint:fix": "eslint src --ext .ts --fix",
+    "test": "vitest",
+    "test:run": "vitest run",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "ai",
+    "coding",
+    "documentation",
+    "static-analysis",
+    "cli",
+    "developer-tools",
+    "code-review",
+    "llm",
+    "cursor",
+    "copilot",
+    "claude-code"
+  ],
+  "author": "Hashim",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hashimea/afterburn.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hashimea/afterburn/issues"
+  },
+  "homepage": "https://github.com/hashimea/afterburn#readme",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "commander": "^12.1.0",
+    "ora": "^8.0.1",
+    "simple-git": "^3.25.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@typescript-eslint/eslint-plugin": "^7.13.0",
+    "@typescript-eslint/parser": "^7.13.0",
+    "eslint": "^8.57.0",
+    "typescript": "^5.4.5",
+    "vitest": "^1.6.0"
+  }
+}
