@@ -1,0 +1,30 @@
+{
+  "rules": {
+    "AB004": "info",
+    "AB008": "off"
+  },
+  "ignore": [
+    "node_modules/**",
+    "dist/**",
+    "build/**",
+    "coverage/**",
+    ".git/**",
+    "*.min.js",
+    "package-lock.json",
+    "src/rules/ab*.ts"
+  ],
+  "include": [],
+  "session": {
+    "window": "4h",
+    "outputDir": ".afterburn"
+  },
+  "output": {
+    "format": "markdown",
+    "includeAIProvider": true
+  },
+  "ci": {
+    "failOnWarnings": false,
+    "maxErrors": 0,
+    "maxWarnings": 0
+  }
+}

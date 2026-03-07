@@ -334,19 +334,59 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
     }
 
     if (spinner) {
+      spinner.text = 'Loading configuration...';
+    }
+
+    // Load configuration
+    const { config, configPath, errors: configErrors } = await loadConfig(absolutePath);
+    if (configErrors.length > 0 && !quiet) {
+      for (const err of configErrors) {
+        console.warn(chalk.yellow(`Config warning: ${err}`));
+      }
+    }
+    if (configPath && options.verbose) {
+      console.log(chalk.gray(`Using config: ${configPath}`));
+    }
+
+    if (spinner) {
       spinner.text = 'Reading git history...';
     }
 
-    // Get session diff
-    const since = options.since ?? '4h';
+    // Get session diff - use config session window if not overridden
+    const since = options.since ?? config.session?.window ?? '4h';
     const diff = await getSessionDiff(absolutePath, since);
 
     if (spinner) {
       spinner.text = 'Running static analysis...';
     }
 
+    // Build severity overrides from config
+    const severityOverrides: Record<string, 'error' | 'warn' | 'info'> = {};
+    if (config.rules) {
+      for (const [ruleId, ruleConfig] of Object.entries(config.rules)) {
+        const severity = typeof ruleConfig === 'string' ? ruleConfig : ruleConfig.severity;
+        if (severity && severity !== 'off') {
+          severityOverrides[ruleId] = severity as 'error' | 'warn' | 'info';
+        }
+      }
+    }
+
+    // Get disabled rules
+    const disabledRules = new Set<string>();
+    if (config.rules) {
+      for (const [ruleId, ruleConfig] of Object.entries(config.rules)) {
+        const severity = typeof ruleConfig === 'string' ? ruleConfig : ruleConfig.severity;
+        if (severity === 'off') {
+          disabledRules.add(ruleId);
+        }
+      }
+    }
+
     // Run rules on changed files
-    const ruleRunner = new RuleRunner();
+    const ruleRunner = new RuleRunner({
+      ignorePatterns: config.ignore,
+      severityOverrides,
+    });
     const findings: RiskFinding[] = [];
 
     for (const file of diff.files) {
@@ -366,8 +406,11 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       }
     }
 
+    // Filter out disabled rules
+    const enabledFindings = findings.filter(f => !disabledRules.has(f.ruleId));
+
     // Deduplicate findings (same file, line, and ruleId)
-    const deduplicatedFindings = findings.filter((finding, index, self) => {
+    const deduplicatedFindings = enabledFindings.filter((finding, index, self) => {
       return index === self.findIndex(f =>
         f.file === finding.file &&
         f.line === finding.line &&
