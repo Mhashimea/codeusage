@@ -34,6 +34,14 @@ import {
   type AfterburnerConfig,
 } from './config/index.js';
 import type { RiskFinding } from './types.js';
+import {
+  analyzeWithLLM,
+  formatLLMAnalysisForReport,
+  resolveApiKey,
+  formatCost,
+  type LLMConfig,
+  type LLMAnalysisResult,
+} from './llm/index.js';
 
 interface AnalyzeOptions {
   explain?: boolean;
@@ -302,6 +310,7 @@ function displayJsonOutput(
     projectPath?: string;
     configPath?: string;
     aiProvider?: { provider: string | null; sessionId: string | null };
+    llmAnalysis?: LLMAnalysisResult;
   }
 ): void {
   const summary = RuleRunner.summarize(findings);
@@ -324,6 +333,14 @@ function displayJsonOutput(
     riskSummary: summary,
     dependencies: auditResult?.dependencies ?? [],
     dependencySummary: auditResult?.summary ?? null,
+    llmAnalysis: options?.llmAnalysis ? {
+      summary: options.llmAnalysis.summary,
+      changelog: options.llmAnalysis.changelog,
+      architectureDecisions: options.llmAnalysis.architectureDecisions,
+      tradeoffs: options.llmAnalysis.tradeoffs,
+      usage: options.llmAnalysis.usage,
+      latencyMs: options.llmAnalysis.latencyMs,
+    } : null,
     exitCode: summary.errors > 0 || (auditResult?.summary.hallucinated ?? 0) > 0 ? 1 : 0,
   };
 
@@ -481,6 +498,65 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       // Dependency audit failed (offline, etc.) - continue without it
     }
 
+    // LLM Analysis (if --explain flag is set)
+    let llmAnalysis: LLMAnalysisResult | null = null;
+
+    if (options.explain) {
+      // Check for LLM config
+      const llmConfig = config.llm as LLMConfig | undefined;
+      const resolvedApiKey = llmConfig?.apiKey ? resolveApiKey(llmConfig.apiKey) : undefined;
+
+      if (!llmConfig || !resolvedApiKey) {
+        if (spinner) {
+          spinner.warn('LLM analysis skipped: No API key configured');
+        } else if (!quiet && !jsonOutput) {
+          console.warn(chalk.yellow('⚠️  --explain requires LLM configuration. Set llm.apiKey in .afterburnrc'));
+        }
+      } else {
+        if (spinner) {
+          spinner.text = 'Generating AI summary...';
+        }
+
+        try {
+          // Get diff content for LLM
+          const diffContent = diff.files
+            .filter(f => f.status !== 'deleted' && f.diff)
+            .map(f => `--- ${f.path}\n${f.diff}`)
+            .join('\n\n');
+
+          llmAnalysis = await analyzeWithLLM(
+            { ...llmConfig, apiKey: resolvedApiKey },
+            {
+              diff: diffContent,
+              fileList: diff.files.map(f => f.path),
+              commitMessages: diff.commits.map(c => c.message),
+              projectName: path.basename(absolutePath),
+              newDependencies: auditResult?.dependencies
+                .filter(d => d.status === 'verified')
+                .map(d => d.name),
+            },
+            {
+              includeChangelog: true,
+              includeADR: true,
+              includeTradeoffs: false,
+              onProgress: spinner ? (step) => { spinner.text = step; } : undefined,
+            }
+          );
+
+          if (spinner) {
+            spinner.text = `AI analysis complete (${formatCost(llmAnalysis.usage.estimatedCost)})`;
+          }
+        } catch (error) {
+          const errMsg = error instanceof Error ? error.message : 'Unknown error';
+          if (spinner) {
+            spinner.warn(`LLM analysis failed: ${errMsg}`);
+          } else if (!quiet && !jsonOutput) {
+            console.warn(chalk.yellow(`⚠️  LLM analysis failed: ${errMsg}`));
+          }
+        }
+      }
+    }
+
     const duration = Date.now() - startTime;
     const summary = RuleRunner.summarize(sortedFindings);
     const hasHallucinated = auditResult?.summary.hallucinated ?? 0;
@@ -516,7 +592,7 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       fs.mkdirSync(sessionDir, { recursive: true });
     }
 
-    const markdownReport = generateMarkdownReport({
+    let markdownReport = generateMarkdownReport({
       diff,
       findings: sortedFindings,
       dependencies: auditResult?.dependencies,
@@ -525,6 +601,11 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       since,
       aiProvider,
     });
+
+    // Append LLM analysis to report if available
+    if (llmAnalysis) {
+      markdownReport += '\n\n' + formatLLMAnalysisForReport(llmAnalysis);
+    }
 
     fs.writeFileSync(reportPath, markdownReport, 'utf-8');
 
@@ -538,9 +619,20 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
         projectPath: absolutePath,
         configPath: configPath ?? undefined,
         aiProvider,
+        llmAnalysis: llmAnalysis ?? undefined,
       });
     } else if (!quiet) {
       displaySessionSummary(diff, sortedFindings, auditResult, duration);
+
+      // Display LLM summary if available
+      if (llmAnalysis) {
+        console.log(chalk.bold('AI Summary'));
+        console.log(chalk.gray('─'.repeat(50)));
+        console.log(llmAnalysis.summary);
+        console.log();
+        console.log(chalk.gray(`  Tokens: ${llmAnalysis.usage.totalTokens} | Cost: ${formatCost(llmAnalysis.usage.estimatedCost)} | Time: ${(llmAnalysis.latencyMs / 1000).toFixed(1)}s`));
+        console.log();
+      }
     }
 
     // CI mode exit codes

@@ -1,24 +1,62 @@
 /**
- * LLM integration module - BYOK (Bring Your Own Key) LLM calls
+ * LLM Module
+ * Multi-provider LLM integration for Afterburn
  */
 
-import type { LLMConfig } from '../types.js';
+// Types
+export {
+  LLMProviderName,
+  LLMOptions,
+  LLMResponse,
+  LLMConfig,
+  LLMProvider,
+  LLMError,
+  LLMErrorCode,
+  createLLMError,
+  MODEL_PRICING,
+  DEFAULT_MODELS,
+} from './types.js';
 
-export interface LLMAnalysisResult {
-  summary: string;
-  architectureDecisions: string[];
-  intentChangelog: string[];
-  tradeoffs?: string[];
-}
+// Utilities
+export {
+  estimateTokenCount,
+  estimateCost,
+  formatCost,
+  truncateToTokenLimit,
+  resolveApiKey,
+  maskApiKey,
+  withRetry,
+  withTimeout,
+  sleep,
+} from './utils.js';
 
-export function analyzeDiffWithLLM(
-  _diff: string,
-  _context: string,
-  _config: LLMConfig
-): LLMAnalysisResult {
-  // TODO: Implement LLM analysis using user's API key
-  // - Support Anthropic (Claude)
-  // - Support OpenAI
-  // - Support Ollama (local)
-  throw new Error('Not implemented');
-}
+// Providers
+export {
+  createProvider,
+  detectProvider,
+  validateProviderConfig,
+  getProviderDisplayName,
+  AnthropicProvider,
+  OpenAIProvider,
+  OpenRouterProvider,
+  OllamaProvider,
+  isOllamaRunning,
+  getOllamaModels,
+} from './providers/index.js';
+
+// Prompts
+export {
+  SYSTEM_PROMPT,
+  createSessionSummaryPrompt,
+  createChangelogPrompt,
+  createADRPrompt,
+  createTradeoffPrompt,
+} from './prompts.js';
+
+// Analyzer
+export {
+  analyzeWithLLM,
+  formatLLMAnalysisForReport,
+  type LLMAnalysisResult,
+  type AnalyzerOptions,
+} from './analyzer.js';

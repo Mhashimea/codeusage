@@ -26,5 +26,10 @@
     "failOnWarnings": false,
     "maxErrors": 0,
     "maxWarnings": 0
+  },
+  "llm": {
+    "provider": "openrouter",
+    "model": "openai/gpt-4o-mini",
+    "apiKey": "env:OPENROUTER_API_KEY"
   }
 }

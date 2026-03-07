@@ -12,18 +12,16 @@ export interface RuleConfig {
   optimisticTypes: Severity;
 }
 
-export interface LLMConfig {
-  provider: 'anthropic' | 'openai' | 'ollama';
-  model: string;
-  apiKey: string;
-}
+// Import and re-export LLMConfig from llm module
+import type { LLMConfig as LLMConfigType } from './llm/types.js';
+export type LLMConfig = LLMConfigType;
 
 export interface AfterBurnConfig {
   language: 'auto' | 'typescript' | 'javascript' | 'python';
   sessionWindow: string;
   rules: RuleConfig;
   ignore: string[];
-  llm?: LLMConfig;
+  llm?: LLMConfigType;
 }
 
 export interface RiskFinding {
