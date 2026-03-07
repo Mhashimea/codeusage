@@ -24,6 +24,15 @@ import { generateMarkdownReport } from './reporter/index.js';
 import { RuleRunner } from './rules/index.js';
 import { runDependencyAudit, type DependencyAuditResult } from './registry/index.js';
 import { detectAIProvider } from './ai-provider.js';
+import {
+  loadConfig,
+  findConfigFile,
+  writeConfigFile,
+  setConfigValue,
+  getConfigValue,
+  DEFAULT_CONFIG,
+  type AfterburnerConfig,
+} from './config/index.js';
 import type { RiskFinding } from './types.js';
 
 interface AnalyzeOptions {
@@ -497,9 +506,80 @@ program
 program
   .command('init')
   .description('Create a .afterburnrc configuration file')
-  .action(() => {
-    console.log(chalk.yellow('Not implemented yet - coming in Sprint 6'));
-    process.exit(0);
+  .option('--force', 'Overwrite existing config file')
+  .option('--format <format>', 'Config format: json or js', 'json')
+  .action((options: { force?: boolean; format?: string }) => {
+    const cwd = process.cwd();
+    const existingConfig = findConfigFile(cwd);
+
+    if (existingConfig && !options.force) {
+      console.log(chalk.yellow(`Config file already exists: ${existingConfig}`));
+      console.log(chalk.gray('Use --force to overwrite'));
+      process.exit(1);
+    }
+
+    // Detect project type
+    const hasPackageJson = fs.existsSync(path.join(cwd, 'package.json'));
+    const hasRequirements = fs.existsSync(path.join(cwd, 'requirements.txt'));
+    const hasPyproject = fs.existsSync(path.join(cwd, 'pyproject.toml'));
+
+    // Create initial config
+    const config: Partial<AfterburnerConfig> = {
+      rules: {
+        // All rules enabled by default, user can customize
+      },
+      ignore: [
+        'node_modules/**',
+        'dist/**',
+        'build/**',
+        'coverage/**',
+        '.git/**',
+        '*.min.js',
+      ],
+      session: {
+        window: '4h',
+        outputDir: '.afterburn',
+      },
+      output: {
+        format: 'markdown',
+        includeAIProvider: true,
+      },
+    };
+
+    // Add language-specific ignores
+    if (hasPackageJson) {
+      config.ignore?.push('package-lock.json', 'yarn.lock', 'pnpm-lock.yaml');
+    }
+    if (hasRequirements || hasPyproject) {
+      config.ignore?.push('__pycache__/**', '*.pyc', '.venv/**', 'venv/**');
+    }
+
+    // Determine file name and write
+    const fileName = options.format === 'js' ? 'afterburn.config.js' : '.afterburnrc';
+    const configPath = path.join(cwd, fileName);
+
+    writeConfigFile(configPath, config);
+
+    console.log(chalk.green(`✓ Created ${fileName}`));
+    console.log();
+    console.log(chalk.gray('Configuration options:'));
+    console.log(chalk.gray('  rules     - Configure rule severities (error, warn, info, off)'));
+    console.log(chalk.gray('  ignore    - Glob patterns for files to skip'));
+    console.log(chalk.gray('  session   - Session detection settings'));
+    console.log(chalk.gray('  output    - Report output settings'));
+    console.log();
+    console.log(chalk.gray('Example rule configuration:'));
+    console.log(chalk.cyan('  "rules": { "AB001": "error", "AB004": "off" }'));
+    console.log();
+
+    // Suggest adding to .gitignore
+    const gitignorePath = path.join(cwd, '.gitignore');
+    if (fs.existsSync(gitignorePath)) {
+      const gitignore = fs.readFileSync(gitignorePath, 'utf-8');
+      if (!gitignore.includes('.afterburn')) {
+        console.log(chalk.yellow('Tip: Add .afterburn/ to your .gitignore'));
+      }
+    }
   });
 
 // Config command
@@ -507,11 +587,98 @@ program
   .command('config')
   .description('Manage configuration')
   .argument('<action>', 'Action: set, get, list')
-  .argument('[key]', 'Configuration key')
+  .argument('[key]', 'Configuration key (dot notation: rules.AB001)')
   .argument('[value]', 'Configuration value')
-  .action((_action: string, _key?: string, _value?: string) => {
-    console.log(chalk.yellow('Not implemented yet - coming in Sprint 6'));
-    process.exit(0);
+  .action(async (action: string, key?: string, value?: string) => {
+    const cwd = process.cwd();
+    const configPath = findConfigFile(cwd);
+
+    if (action === 'list') {
+      // List all configuration
+      const { config, configPath: foundPath } = await loadConfig(cwd);
+
+      if (foundPath) {
+        console.log(chalk.gray(`Config file: ${foundPath}`));
+      } else {
+        console.log(chalk.gray('No config file found, using defaults'));
+      }
+      console.log();
+      console.log(JSON.stringify(config, null, 2));
+      return;
+    }
+
+    if (action === 'get') {
+      if (!key) {
+        console.error(chalk.red('Error: key is required for get'));
+        process.exit(1);
+      }
+
+      const { config } = await loadConfig(cwd);
+      const configValue = getConfigValue(config, key);
+
+      if (configValue === undefined) {
+        console.log(chalk.gray('(not set)'));
+      } else {
+        console.log(typeof configValue === 'object'
+          ? JSON.stringify(configValue, null, 2)
+          : String(configValue)
+        );
+      }
+      return;
+    }
+
+    if (action === 'set') {
+      if (!key) {
+        console.error(chalk.red('Error: key is required for set'));
+        process.exit(1);
+      }
+      if (value === undefined) {
+        console.error(chalk.red('Error: value is required for set'));
+        process.exit(1);
+      }
+
+      // Load existing config or use defaults
+      let config: AfterburnerConfig;
+      let targetPath: string;
+
+      if (configPath) {
+        const result = await loadConfig(cwd);
+        config = result.config;
+        targetPath = configPath;
+      } else {
+        config = { ...DEFAULT_CONFIG };
+        targetPath = path.join(cwd, '.afterburnrc');
+      }
+
+      // Parse value (handle JSON, booleans, numbers)
+      let parsedValue: unknown = value;
+      if (value === 'true') parsedValue = true;
+      else if (value === 'false') parsedValue = false;
+      else if (value === 'null') parsedValue = null;
+      else if (/^-?\d+$/.test(value)) parsedValue = parseInt(value, 10);
+      else if (/^-?\d*\.\d+$/.test(value)) parsedValue = parseFloat(value);
+      else {
+        try {
+          parsedValue = JSON.parse(value);
+        } catch {
+          // Keep as string
+        }
+      }
+
+      // Update config
+      const updatedConfig = setConfigValue(config, key, parsedValue);
+
+      // Write back
+      writeConfigFile(targetPath, updatedConfig);
+
+      console.log(chalk.green(`✓ Set ${key} = ${JSON.stringify(parsedValue)}`));
+      console.log(chalk.gray(`  in ${targetPath}`));
+      return;
+    }
+
+    console.error(chalk.red(`Unknown action: ${action}`));
+    console.log(chalk.gray('Available actions: set, get, list'));
+    process.exit(1);
   });
 
 // Default action: if path is provided without command, run analyze

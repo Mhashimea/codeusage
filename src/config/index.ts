@@ -1,33 +1,32 @@
 /**
- * Configuration module - loads and validates .afterburnrc
+ * Configuration Module
+ *
+ * Handles loading, parsing, and managing afterburn configuration.
  */
 
-import type { AfterBurnConfig } from '../types.js';
+export {
+  type AfterburnerConfig,
+  type RuleConfig,
+  DEFAULT_CONFIG,
+  CONFIG_FILE_NAMES,
+  validateConfig,
+  mergeConfig,
+} from './schema.js';
 
-export const DEFAULT_CONFIG: AfterBurnConfig = {
-  language: 'auto',
-  sessionWindow: '4h',
-  rules: {
-    hardcodedCredentials: 'error',
-    missingErrorHandling: 'warn',
-    duplicateLogic: 'warn',
-    hallucinatedPackages: 'error',
-    optimisticTypes: 'info',
-  },
-  ignore: ['*.test.ts', '*.spec.js', 'node_modules/**'],
-};
+export {
+  type ConfigLoadResult,
+  findConfigFile,
+  loadConfigFile,
+  loadConfig,
+  getRuleSeverity,
+  shouldIgnoreFile,
+  writeConfigFile,
+  setConfigValue,
+  getConfigValue,
+} from './loader.js';
 
-export function loadConfig(projectPath: string): AfterBurnConfig {
-  // TODO: Implement config loading
-  // - Look for .afterburnrc in projectPath
-  // - Merge with defaults
-  // - Resolve env: prefixed values for API keys
-  void projectPath;
-  return DEFAULT_CONFIG;
-}
-
-export function initConfig(projectPath: string): void {
-  // TODO: Create .afterburnrc file with defaults
-  void projectPath;
-  throw new Error('Not implemented');
-}
+export {
+  parseInlineDirectives,
+  shouldDisableLine,
+  type InlineDirective,
+} from './inline-directives.js';
