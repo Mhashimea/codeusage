@@ -22,6 +22,7 @@ import { getSessionDiff, isGitRepo, getFileContent, type GitDiff } from './git/i
 import { formatDuration } from './utils/timespec.js';
 import { generateMarkdownReport } from './reporter/index.js';
 import { RuleRunner } from './rules/index.js';
+import { runDependencyAudit, type DependencyAuditResult } from './registry/index.js';
 import type { RiskFinding } from './types.js';
 
 interface AnalyzeOptions {
@@ -84,9 +85,79 @@ function displayRiskFindings(findings: RiskFinding[]): void {
 }
 
 /**
+ * Display dependency audit results in terminal
+ */
+function displayDependencyAudit(auditResult: DependencyAuditResult): void {
+  const { dependencies, summary } = auditResult;
+
+  if (dependencies.length === 0) {
+    console.log(chalk.gray('  No dependencies to audit.'));
+    return;
+  }
+
+  // Display hallucinated packages first (most critical)
+  const hallucinated = dependencies.filter(d => d.status === 'hallucinated');
+  const warnings = dependencies.filter(d => d.status === 'warning');
+  const verified = dependencies.filter(d => d.status === 'verified');
+  const unknown = dependencies.filter(d => d.status === 'unknown');
+
+  // Hallucinated packages
+  for (const dep of hallucinated) {
+    console.log(`  ${chalk.red('❌')} ${chalk.red(dep.name)} ${chalk.red('— PACKAGE NOT FOUND')}`);
+    if (dep.message) {
+      console.log(chalk.gray(`     ${dep.message}`));
+    }
+  }
+
+  // Warnings
+  for (const dep of warnings) {
+    const version = dep.version ? `@${dep.version}` : '';
+    console.log(`  ${chalk.yellow('⚠️')} ${chalk.yellow(dep.name)}${chalk.gray(version)}`);
+    if (dep.message) {
+      console.log(chalk.gray(`     ${dep.message}`));
+    }
+  }
+
+  // Verified (show summary if many)
+  if (verified.length > 5) {
+    console.log(`  ${chalk.green('✅')} ${chalk.green(`${verified.length} packages verified`)}`);
+  } else {
+    for (const dep of verified) {
+      const version = dep.version ? `@${dep.version}` : '';
+      const downloads = dep.weeklyDownloads
+        ? chalk.gray(` — ${formatDownloads(dep.weeklyDownloads)} weekly downloads`)
+        : '';
+      console.log(`  ${chalk.green('✅')} ${chalk.white(dep.name)}${chalk.gray(version)}${downloads}`);
+    }
+  }
+
+  // Unknown (errors)
+  if (unknown.length > 0) {
+    console.log(`  ${chalk.gray('?')} ${chalk.gray(`${unknown.length} packages could not be verified`)}`);
+  }
+
+  // Summary
+  console.log();
+  console.log(`  ${chalk.bold('Summary:')} ${chalk.red(`${summary.hallucinated} hallucinated`)}, ${chalk.yellow(`${summary.warnings} warnings`)}, ${chalk.green(`${summary.verified} verified`)}`);
+}
+
+/**
+ * Format download count for display
+ */
+function formatDownloads(downloads: number): string {
+  if (downloads >= 1_000_000) {
+    return `${(downloads / 1_000_000).toFixed(1)}M`;
+  }
+  if (downloads >= 1_000) {
+    return `${(downloads / 1_000).toFixed(1)}K`;
+  }
+  return downloads.toString();
+}
+
+/**
  * Display session summary in terminal
  */
-function displaySessionSummary(diff: GitDiff, findings: RiskFinding[], duration: number): void {
+function displaySessionSummary(diff: GitDiff, findings: RiskFinding[], auditResult: DependencyAuditResult | null, duration: number): void {
   console.log();
   console.log(chalk.bold.cyan('═══════════════════════════════════════════════════════════'));
   console.log(chalk.bold.cyan('  AFTERBURN SESSION REPORT'));
@@ -175,11 +246,14 @@ function displaySessionSummary(diff: GitDiff, findings: RiskFinding[], duration:
   displayRiskFindings(findings);
   console.log();
 
-  // Placeholder for dependency audit (Phase 1 Sprint 3)
+  // Dependency Audit
   console.log(chalk.bold('Dependency Audit'));
   console.log(chalk.gray('─'.repeat(50)));
-  console.log(chalk.gray('  Dependency checking not yet implemented.'));
-  console.log(chalk.gray('  Coming in Sprint 3: npm registry verification, hallucinated package detection.'));
+  if (auditResult) {
+    displayDependencyAudit(auditResult);
+  } else {
+    console.log(chalk.gray('  Dependency audit skipped.'));
+  }
   console.log();
 
   console.log(chalk.bold.cyan('═══════════════════════════════════════════════════════════'));
@@ -189,7 +263,7 @@ function displaySessionSummary(diff: GitDiff, findings: RiskFinding[], duration:
 /**
  * Display JSON output
  */
-function displayJsonOutput(diff: GitDiff, findings: RiskFinding[], duration: number): void {
+function displayJsonOutput(diff: GitDiff, findings: RiskFinding[], auditResult: DependencyAuditResult | null, duration: number): void {
   const output = {
     version: '0.1.0-beta',
     timestamp: new Date().toISOString(),
@@ -204,7 +278,8 @@ function displayJsonOutput(diff: GitDiff, findings: RiskFinding[], duration: num
     files: diff.files,
     risks: findings,
     riskSummary: RuleRunner.summarize(findings),
-    dependencies: [], // Placeholder for Sprint 3
+    dependencies: auditResult?.dependencies ?? [],
+    dependencySummary: auditResult?.summary ?? null,
   };
 
   console.log(JSON.stringify(output, null, 2));
@@ -278,11 +353,34 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       return order[a.severity] - order[b.severity];
     });
 
+    // Run dependency audit
+    if (spinner) {
+      spinner.text = 'Auditing dependencies...';
+    }
+
+    let auditResult: DependencyAuditResult | null = null;
+    try {
+      auditResult = await runDependencyAudit({
+        projectPath: absolutePath,
+        changedFiles: diff.files.map(f => ({ path: f.path })),
+        checkAllDependencies: true,
+        onProgress: spinner ? (current, total, pkg) => {
+          spinner.text = `Auditing dependencies... (${current}/${total}) ${pkg}`;
+        } : undefined,
+      });
+    } catch {
+      // Dependency audit failed (offline, etc.) - continue without it
+    }
+
     const duration = Date.now() - startTime;
     const summary = RuleRunner.summarize(sortedFindings);
+    const hasHallucinated = auditResult?.summary.hallucinated ?? 0;
 
-    if (summary.errors > 0) {
-      spinner?.warn(`Analysis complete in ${formatDuration(duration)} - ${summary.errors} errors found`);
+    if (summary.errors > 0 || hasHallucinated > 0) {
+      const msg = hasHallucinated > 0
+        ? `${summary.errors} errors, ${hasHallucinated} hallucinated packages`
+        : `${summary.errors} errors`;
+      spinner?.warn(`Analysis complete in ${formatDuration(duration)} - ${msg}`);
     } else if (summary.warnings > 0) {
       spinner?.succeed(`Analysis complete in ${formatDuration(duration)} - ${summary.warnings} warnings`);
     } else {
@@ -312,6 +410,7 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
     const markdownReport = generateMarkdownReport({
       diff,
       findings: sortedFindings,
+      dependencies: auditResult?.dependencies,
       analysisTime: duration,
       projectPath: absolutePath,
       since,
@@ -325,15 +424,15 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
 
     // Output results
     if (jsonOutput) {
-      displayJsonOutput(diff, sortedFindings, duration);
+      displayJsonOutput(diff, sortedFindings, auditResult, duration);
     } else if (!quiet) {
-      displaySessionSummary(diff, sortedFindings, duration);
+      displaySessionSummary(diff, sortedFindings, auditResult, duration);
     }
 
     // CI mode exit codes
     if (options.ci) {
-      if (summary.errors > 0) {
-        process.exit(1); // Exit with error if any errors found
+      if (summary.errors > 0 || hasHallucinated > 0) {
+        process.exit(1); // Exit with error if any errors or hallucinated packages
       }
       process.exit(0);
     }

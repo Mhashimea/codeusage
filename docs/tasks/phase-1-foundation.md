@@ -102,48 +102,48 @@
 
 ---
 
-## Sprint 3: npm Registry Integration & Dependency Audit
+## Sprint 3: npm Registry Integration & Dependency Audit ✅
 
 ### 3.1 Dependency Extraction
-- [ ] **3.1.1** Parse `package.json` for dependencies and devDependencies
-- [ ] **3.1.2** Detect new dependencies added in session (diff old vs new package.json)
-- [ ] **3.1.3** Parse import/require statements from changed files
-- [ ] **3.1.4** Identify imports that aren't in package.json (potential hallucinations)
-- [ ] **3.1.5** Handle monorepo structures (multiple package.json files)
-- [ ] **3.1.6** Support yarn.lock and pnpm-lock.yaml detection
+- [x] **3.1.1** Parse `package.json` for dependencies and devDependencies
+- [ ] **3.1.2** Detect new dependencies added in session (diff old vs new package.json) _(deferred)_
+- [x] **3.1.3** Parse import/require statements from changed files
+- [x] **3.1.4** Identify imports that aren't in package.json (potential hallucinations)
+- [ ] **3.1.5** Handle monorepo structures (multiple package.json files) _(deferred)_
+- [x] **3.1.6** Support yarn.lock and pnpm-lock.yaml detection
 
 ### 3.2 npm Registry API Integration
-- [ ] **3.2.1** Implement `fetchPackageInfo(name: string)` — calls registry.npmjs.org
-- [ ] **3.2.2** Extract: exists, version, weekly downloads, last publish date, deprecated flag
-- [ ] **3.2.3** Implement rate limiting (avoid hitting npm API limits)
-- [ ] **3.2.4** Implement caching (don't re-fetch same package in single run)
-- [ ] **3.2.5** Handle network errors gracefully (offline mode)
-- [ ] **3.2.6** Add timeout handling (5 second max per request)
+- [x] **3.2.1** Implement `fetchPackageInfo(name: string)` — calls registry.npmjs.org
+- [x] **3.2.2** Extract: exists, version, weekly downloads, last publish date, deprecated flag
+- [x] **3.2.3** Implement rate limiting (avoid hitting npm API limits)
+- [x] **3.2.4** Implement caching (don't re-fetch same package in single run)
+- [x] **3.2.5** Handle network errors gracefully (offline mode)
+- [x] **3.2.6** Add timeout handling (5 second max per request)
 
 ### 3.3 Hallucinated Package Detection
-- [ ] **3.3.1** Cross-reference imports with npm registry existence
-- [ ] **3.3.2** Flag packages that return 404 from registry as "hallucinated"
-- [ ] **3.3.3** Flag packages with <100 weekly downloads as "low adoption warning"
-- [ ] **3.3.4** Flag packages not updated in >12 months as "unmaintained warning"
-- [ ] **3.3.5** Flag deprecated packages as "deprecated warning"
-- [ ] **3.3.6** Generate dependency audit section in report
+- [x] **3.3.1** Cross-reference imports with npm registry existence
+- [x] **3.3.2** Flag packages that return 404 from registry as "hallucinated"
+- [x] **3.3.3** Flag packages with <100 weekly downloads as "low adoption warning"
+- [x] **3.3.4** Flag packages not updated in >12 months as "unmaintained warning"
+- [x] **3.3.5** Flag deprecated packages as "deprecated warning"
+- [x] **3.3.6** Generate dependency audit section in report
 
 ### 3.4 Dependency Report Section
-- [ ] **3.4.1** Format: `✅ package@version — X weekly downloads, updated Y ago`
-- [ ] **3.4.2** Format: `⚠️ package@version — low adoption / unmaintained`
-- [ ] **3.4.3** Format: `❌ package — PACKAGE NOT FOUND (hallucinated?)`
-- [ ] **3.4.4** Sort by status: errors first, then warnings, then verified
+- [x] **3.4.1** Format: `✅ package@version — X weekly downloads, updated Y ago`
+- [x] **3.4.2** Format: `⚠️ package@version — low adoption / unmaintained`
+- [x] **3.4.3** Format: `❌ package — PACKAGE NOT FOUND (hallucinated?)`
+- [x] **3.4.4** Sort by status: errors first, then warnings, then verified
 
 ### 3.5 Local Build & Test
-- [ ] **3.5.1** Run `npm run build` — verify TypeScript compiles without errors
-- [ ] **3.5.2** Run `npm run test` — verify all unit tests pass
-- [ ] **3.5.3** Run `npm link` — update local global installation
-- [ ] **3.5.4** Test on project with new dependencies — verify registry lookup works
-- [ ] **3.5.5** Test with fake/hallucinated import — verify detection works
-- [ ] **3.5.6** Test offline mode — verify graceful degradation
-- [ ] **3.5.7** Verify dependency audit section appears in output
+- [x] **3.5.1** Run `npm run build` — verify TypeScript compiles without errors
+- [x] **3.5.2** Run `npm run test` — verify all unit tests pass
+- [x] **3.5.3** Run `npm link` — update local global installation
+- [x] **3.5.4** Test on project with new dependencies — verify registry lookup works
+- [x] **3.5.5** Test with fake/hallucinated import — verify detection works
+- [x] **3.5.6** Test offline mode — verify graceful degradation
+- [x] **3.5.7** Verify dependency audit section appears in output
 
-**Sprint 3 Deliverable:** Dependency audit with hallucinated package detection working end-to-end.
+**Sprint 3 Deliverable:** Dependency audit with hallucinated package detection working end-to-end. ✅
 
 ---
 
@@ -202,7 +202,7 @@
 - [x] CLI runs with `afterburn ./` command
 - [x] Git diff parsing works for uncommitted changes and recent commits
 - [x] 4 rules implemented: AB001, AB002, AB003, AB006
-- [ ] npm registry integration detects hallucinated packages
+- [x] npm registry integration detects hallucinated packages
 - [x] Markdown report generated to `.afterburn.md`
 - [x] Terminal output with colors and progress
 - [ ] Published to npm as v0.1.0-beta

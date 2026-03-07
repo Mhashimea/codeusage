@@ -16,7 +16,7 @@
 
 | Phase | Name | Sprints | Focus | Status |
 |-------|------|---------|-------|--------|
-| 1 | Foundation | Sprint 1-4 | Core CLI, Git parsing, basic rules, npm registry | 🟡 In Progress (Sprint 1-2 ✅) |
+| 1 | Foundation | Sprint 1-4 | Core CLI, Git parsing, basic rules, npm registry | 🟡 In Progress (Sprint 1-3 ✅) |
 | 2 | Rule Engine | Sprint 5-8 | Full rule catalog, config system, multi-language AST | ⬜ Not Started |
 | 3 | LLM Layer | Sprint 9-12 | BYOK integration, Pro features, billing | ⬜ Not Started |
 | 4 | Teams & Dashboard | Sprint 13-16 | Web dashboard, team features, v1.0 launch | ⬜ Not Started |
@@ -28,8 +28,8 @@
 ### Phase 1: Foundation
 - **Sprint 1: Git Integration & CLI Core** ✅ Complete
 - **Sprint 2: Core Static Analysis Rules** ✅ Complete
-- **Sprint 3: npm Registry & Dependency Audit** ⬜ Next Up
-- **Sprint 4: Report Generation & npm Publishing** ⬜ Pending
+- **Sprint 3: npm Registry & Dependency Audit** ✅ Complete
+- **Sprint 4: Report Generation & npm Publishing** ⬜ Next Up
 
 ---
 
@@ -105,7 +105,7 @@ afterburn ./ --sync
 ### Phase 1 Complete
 - [ ] CLI generates report for 50-file TypeScript project in <30 seconds
 - [x] 4 core rules produce accurate results
-- [ ] npm registry checker has zero false positives on hallucinated packages
+- [x] npm registry checker has zero false positives on hallucinated packages
 - [ ] Published to npm as v0.1.0-beta
 
 ### Phase 2 Complete

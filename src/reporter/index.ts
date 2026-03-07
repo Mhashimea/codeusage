@@ -3,12 +3,13 @@
  */
 
 import type { GitDiff, GitFileDiff } from '../git/index.js';
-import type { RiskFinding } from '../types.js';
+import type { RiskFinding, DependencyInfo } from '../types.js';
 import { formatDuration } from '../utils/timespec.js';
 
 export interface ReportData {
   diff: GitDiff;
   findings?: RiskFinding[];
+  dependencies?: DependencyInfo[];
   analysisTime: number;
   projectPath: string;
   since?: string;
@@ -138,10 +139,61 @@ export function generateMarkdownReport(data: ReportData): string {
     }
   }
 
-  // Dependency Audit (placeholder)
+  // Dependency Audit
   md += `## Dependency Audit\n\n`;
-  md += `> Dependency checking not yet implemented.\n`;
-  md += `> Coming soon: npm registry verification, hallucinated package detection.\n\n`;
+
+  const dependencies = data.dependencies ?? [];
+  if (dependencies.length === 0) {
+    md += `> No dependencies to audit.\n\n`;
+  } else {
+    const hallucinated = dependencies.filter(d => d.status === 'hallucinated');
+    const warnings = dependencies.filter(d => d.status === 'warning');
+    const verified = dependencies.filter(d => d.status === 'verified');
+    const unknown = dependencies.filter(d => d.status === 'unknown');
+
+    md += `| Status | Count |\n`;
+    md += `|--------|-------|\n`;
+    md += `| ❌ Hallucinated | ${hallucinated.length} |\n`;
+    md += `| ⚠️ Warnings | ${warnings.length} |\n`;
+    md += `| ✅ Verified | ${verified.length} |\n`;
+    if (unknown.length > 0) {
+      md += `| ❓ Unknown | ${unknown.length} |\n`;
+    }
+    md += `\n`;
+
+    if (hallucinated.length > 0) {
+      md += `### Hallucinated Packages\n\n`;
+      md += `> These packages were not found on npm. They may have been hallucinated by an AI.\n\n`;
+      for (const dep of hallucinated) {
+        md += `- **${dep.name}** — ${dep.message || 'Not found on npm'}\n`;
+      }
+      md += `\n`;
+    }
+
+    if (warnings.length > 0) {
+      md += `### Warnings\n\n`;
+      for (const dep of warnings) {
+        const version = dep.version ? `@${dep.version}` : '';
+        md += `- **${dep.name}${version}** — ${dep.message || 'Warning'}\n`;
+      }
+      md += `\n`;
+    }
+
+    if (verified.length > 0 && verified.length <= 10) {
+      md += `### Verified Packages\n\n`;
+      for (const dep of verified) {
+        const version = dep.version ? `@${dep.version}` : '';
+        const downloads = dep.weeklyDownloads
+          ? ` (${formatDownloads(dep.weeklyDownloads)} weekly downloads)`
+          : '';
+        md += `- ✅ ${dep.name}${version}${downloads}\n`;
+      }
+      md += `\n`;
+    } else if (verified.length > 10) {
+      md += `### Verified Packages\n\n`;
+      md += `✅ ${verified.length} packages verified on npm registry.\n\n`;
+    }
+  }
 
   // Footer
   md += `---\n\n`;
@@ -197,6 +249,19 @@ function truncate(str: string, maxLength: number): string {
  */
 function escapeMarkdown(str: string): string {
   return str.replace(/[|\\`*_{}[\]()#+\-.!]/g, '\\$&');
+}
+
+/**
+ * Format download count for display
+ */
+function formatDownloads(downloads: number): string {
+  if (downloads >= 1_000_000) {
+    return `${(downloads / 1_000_000).toFixed(1)}M`;
+  }
+  if (downloads >= 1_000) {
+    return `${(downloads / 1_000).toFixed(1)}K`;
+  }
+  return downloads.toString();
 }
 
 /**
