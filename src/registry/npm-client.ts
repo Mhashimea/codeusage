@@ -67,7 +67,7 @@ async function fetchWithTimeout(url: string, timeout: number): Promise<Response>
       signal: controller.signal,
       headers: {
         'Accept': 'application/json',
-        'User-Agent': 'afterburn-cli/0.1.0',
+        'User-Agent': 'afterburn-cli/0.2.0',
       },
     });
     return response;

@@ -4,6 +4,7 @@
 
 Afterburn analyzes your AI coding sessions and generates comprehensive reports with:
 
+- **LLM-powered summaries** - Human-readable session analysis with changelogs
 - Session summaries with file changes and commit history
 - Static analysis for AI-specific anti-patterns (10 rules)
 - Hallucinated package detection via npm/PyPI registry verification
@@ -30,6 +31,70 @@ afterburn init
 # Run with CI mode
 afterburn --ci
 ```
+
+## LLM-Powered Analysis
+
+Generate human-readable summaries, changelogs, and architecture decision records using AI:
+
+```bash
+# Analyze with AI explanations
+afterburn --explain
+
+# Auto-confirm cost (for scripts/CI)
+afterburn --explain --yes
+```
+
+### Supported Providers
+
+| Provider | Models | API Key Env Var |
+|----------|--------|-----------------|
+| Anthropic | Claude Sonnet, Opus, Haiku | `ANTHROPIC_API_KEY` |
+| OpenAI | GPT-4o, GPT-4o-mini | `OPENAI_API_KEY` |
+| OpenRouter | Any model via OpenRouter | `OPENROUTER_API_KEY` |
+| Ollama | Llama 3, Mistral, etc. | (none - local) |
+
+### LLM Configuration
+
+Add to your `.afterburnrc`:
+
+```json
+{
+  "llm": {
+    "provider": "openrouter",
+    "model": "openai/gpt-4o-mini",
+    "apiKey": "env:OPENROUTER_API_KEY"
+  }
+}
+```
+
+Or use environment variables directly:
+
+```bash
+export ANTHROPIC_API_KEY=sk-ant-...
+afterburn --explain
+```
+
+### What LLM Analysis Provides
+
+- **Session Summary** - 2-3 paragraph overview of what was accomplished
+- **Changelog** - Intent-based changelog grouped by purpose (Added/Changed/Fixed)
+- **Architecture Decisions** - Identifies technology choices and trade-offs
+
+### Cost Estimation
+
+Before making LLM calls, Afterburn shows estimated cost and asks for confirmation:
+
+```
+📊 LLM Analysis Cost Estimate:
+   Model: openai/gpt-4o-mini
+   Input: ~2,500 tokens
+   Output: ~1,500 tokens
+   Estimated cost: <$0.01
+
+Proceed with LLM analysis? (y/N)
+```
+
+Use `--yes` or `-y` to skip confirmation (auto-confirms in CI mode).
 
 ## Usage
 
@@ -225,6 +290,8 @@ repos:
 
 | Option | Description | Default |
 |--------|-------------|---------|
+| `--explain` | Include LLM-powered analysis (requires API key) | `false` |
+| `-y, --yes` | Auto-confirm LLM cost (skip confirmation) | `false` |
 | `--since <timespec>` | Scope analysis to changes since timespec | `4h` |
 | `--output <path>` | Output path for report | `./` |
 | `--ci` | CI mode - exit with error code based on findings | `false` |

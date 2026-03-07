@@ -99,7 +99,7 @@ const program = new Command();
 program
   .name('afterburn')
   .description('Post-session intelligence for AI-assisted coding')
-  .version('0.1.0');
+  .version('0.2.0');
 
 /**
  * Display risk findings in terminal
@@ -336,7 +336,7 @@ function displayJsonOutput(
 ): void {
   const summary = RuleRunner.summarize(findings);
   const output = {
-    version: '0.1.0',
+    version: '0.2.0',
     timestamp: new Date().toISOString(),
     analysisDuration: duration,
     projectPath: options?.projectPath,

@@ -1,6 +1,6 @@
 {
   "name": "afterburn",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Post-session intelligence for AI-assisted coding. The documentation that vibe coding never produces.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
