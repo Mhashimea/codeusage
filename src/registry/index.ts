@@ -4,7 +4,7 @@
 
 import type { DependencyInfo } from '../types.js';
 
-export async function checkNpmPackage(packageName: string): Promise<DependencyInfo> {
+export function checkNpmPackage(packageName: string): DependencyInfo {
   // TODO: Implement npm registry API check
   // - Verify package exists
   // - Get weekly downloads
@@ -13,15 +13,15 @@ export async function checkNpmPackage(packageName: string): Promise<DependencyIn
   throw new Error('Not implemented: ' + packageName);
 }
 
-export async function checkPyPiPackage(packageName: string): Promise<DependencyInfo> {
+export function checkPyPiPackage(packageName: string): DependencyInfo {
   // TODO: Implement PyPI JSON API check
   throw new Error('Not implemented: ' + packageName);
 }
 
-export async function verifyDependencies(
+export function verifyDependencies(
   _dependencies: string[],
   _registry: 'npm' | 'pypi'
-): Promise<DependencyInfo[]> {
+): DependencyInfo[] {
   // TODO: Batch verify all dependencies
   throw new Error('Not implemented');
 }

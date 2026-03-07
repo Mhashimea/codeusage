@@ -4,10 +4,10 @@
 
 import type { AfterBurnConfig, AnalysisResult } from '../types.js';
 
-export async function analyze(
+export function analyze(
   _path: string,
   _config: AfterBurnConfig
-): Promise<AnalysisResult> {
+): AnalysisResult {
   // TODO: Implement analysis orchestration
   // 1. Parse git diff
   // 2. Run static analysis rules

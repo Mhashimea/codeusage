@@ -26,8 +26,8 @@ npm-debug.log*
 # Test coverage
 coverage/
 
-# Afterburn output (for testing)
-.afterburn.md
+# Afterburn output
+.afterburn/
 
 # Lock files (optional - remove if you want to commit)
 # package-lock.json

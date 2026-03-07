@@ -22,5 +22,13 @@
     "@typescript-eslint/no-explicit-any": "error",
     "no-console": ["warn", { "allow": ["warn", "error"] }]
   },
-  "ignorePatterns": ["dist", "node_modules", "*.js"]
+  "overrides": [
+    {
+      "files": ["src/cli.ts"],
+      "rules": {
+        "no-console": "off"
+      }
+    }
+  ],
+  "ignorePatterns": ["dist", "node_modules", "*.js", "**/*.test.ts"]
 }

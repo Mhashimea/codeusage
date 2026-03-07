@@ -11,11 +11,11 @@ export interface LLMAnalysisResult {
   tradeoffs?: string[];
 }
 
-export async function analyzeDiffWithLLM(
+export function analyzeDiffWithLLM(
   _diff: string,
   _context: string,
   _config: LLMConfig
-): Promise<LLMAnalysisResult> {
+): LLMAnalysisResult {
   // TODO: Implement LLM analysis using user's API key
   // - Support Anthropic (Claude)
   // - Support OpenAI
