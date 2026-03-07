@@ -33,6 +33,7 @@ interface AnalyzeOptions {
   ci?: boolean;
   verbose?: boolean;
   quiet?: boolean;
+  noColor?: boolean;
 }
 
 const program = new Command();
@@ -289,6 +290,11 @@ function displayJsonOutput(diff: GitDiff, findings: RiskFinding[], auditResult: 
  * Run the analyze command
  */
 async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<void> {
+  // Disable colors if --no-color flag is set
+  if (options.noColor) {
+    chalk.level = 0;
+  }
+
   const startTime = Date.now();
 
   // Resolve absolute path
@@ -467,6 +473,7 @@ program
   .option('--ci', 'CI mode - exit with error code based on findings')
   .option('--verbose', 'Show verbose output including errors')
   .option('--quiet', 'Suppress all output except errors')
+  .option('--no-color', 'Disable colored output (for CI environments)')
   .action(async (targetPath: string, options: AnalyzeOptions) => {
     await runAnalyze(targetPath, options);
   });
@@ -502,6 +509,7 @@ program
   .option('--ci', 'CI mode')
   .option('--verbose', 'Show verbose output')
   .option('--quiet', 'Suppress output')
+  .option('--no-color', 'Disable colored output')
   .action(async (targetPath: string | undefined, options: AnalyzeOptions) => {
     // If a path is provided (and it's not a subcommand), run analyze
     if (targetPath && !['analyze', 'init', 'config', 'help'].includes(targetPath)) {

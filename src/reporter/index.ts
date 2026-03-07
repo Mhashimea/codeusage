@@ -2,14 +2,16 @@
  * Report generator module - produces markdown and terminal output
  */
 
-import type { GitDiff, GitFileDiff } from '../git/index.js';
-import type { RiskFinding, DependencyInfo } from '../types.js';
+import type { GitDiff } from '../git/index.js';
+import type { RiskFinding, DependencyInfo, FileChange } from '../types.js';
 import { formatDuration } from '../utils/timespec.js';
+import { categorizeFiles, sortByImpact, getCategoryIcon, getCategoryLabel } from '../analyzer/file-categorizer.js';
 
 export interface ReportData {
   diff: GitDiff;
   findings?: RiskFinding[];
   dependencies?: DependencyInfo[];
+  fileChanges?: FileChange[];
   analysisTime: number;
   projectPath: string;
   since?: string;
@@ -66,26 +68,44 @@ export function generateMarkdownReport(data: ReportData): string {
     md += `\n`;
   }
 
-  // Files Changed
+  // Files Changed with Categorization
   if (files.length > 0) {
-    md += `## Files Changed\n\n`;
-    md += `| Status | File | Changes |\n`;
-    md += `|--------|------|--------|\n`;
+    // Generate categorized file changes
+    const categorizedFiles = data.fileChanges ?? categorizeFiles(files, commits);
+    const sortedFiles = sortByImpact(categorizedFiles);
 
-    // Sort by status: added, modified, deleted, renamed
-    const sortedFiles = [...files].sort((a, b) => {
-      const order = { added: 0, modified: 1, renamed: 2, deleted: 3, copied: 4 };
-      return order[a.status] - order[b.status];
-    });
+    md += `## Files Changed\n\n`;
+    md += `| Category | File | Changes | Complexity |\n`;
+    md += `|----------|------|---------|------------|\n`;
 
     for (const file of sortedFiles) {
-      const statusIcon = getStatusIcon(file.status);
-      const changes = file.additions + file.deletions > 0
-        ? `+${file.additions}/-${file.deletions}`
+      const icon = getCategoryIcon(file.category);
+      const label = getCategoryLabel(file.category);
+      const changes = file.linesAdded + file.linesRemoved > 0
+        ? `+${file.linesAdded}/-${file.linesRemoved}`
         : '-';
-      md += `| ${statusIcon} | \`${file.path}\` | ${changes} |\n`;
+      const complexity = file.complexityDelta
+        ? '●'.repeat(Math.min(file.complexityDelta, 5))
+        : '-';
+      md += `| ${icon} ${label} | \`${file.path}\` | ${changes} | ${complexity} |\n`;
     }
     md += `\n`;
+
+    // Summary by category
+    const categoryCount = new Map<string, number>();
+    for (const file of categorizedFiles) {
+      const label = getCategoryLabel(file.category);
+      categoryCount.set(label, (categoryCount.get(label) || 0) + 1);
+    }
+
+    if (categoryCount.size > 1) {
+      md += `**Summary:** `;
+      const summaryParts: string[] = [];
+      for (const [label, count] of categoryCount) {
+        summaryParts.push(`${count} ${label.toLowerCase()}`);
+      }
+      md += summaryParts.join(', ') + `\n\n`;
+    }
   }
 
   // Risk Report
@@ -202,25 +222,6 @@ export function generateMarkdownReport(data: ReportData): string {
   return md;
 }
 
-/**
- * Get status icon for file status
- */
-function getStatusIcon(status: GitFileDiff['status']): string {
-  switch (status) {
-    case 'added':
-      return '🟢 Added';
-    case 'modified':
-      return '🟡 Modified';
-    case 'deleted':
-      return '🔴 Deleted';
-    case 'renamed':
-      return '🔵 Renamed';
-    case 'copied':
-      return '⚪ Copied';
-    default:
-      return '⚪ Unknown';
-  }
-}
 
 /**
  * Format ISO timestamp to readable format

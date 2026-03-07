@@ -154,10 +154,10 @@
 - [x] **4.1.2** Generate header: timestamp, session duration, file count
 - [x] **4.1.3** Generate session summary: files changed, lines +/-, new dependencies
 - [x] **4.1.4** Generate risk report section with severity icons (❌ ⚠️ ℹ️)
-- [ ] **4.1.5** Generate dependency audit section
-- [ ] **4.1.6** Generate changes by file table: file, category, +/-, complexity
+- [x] **4.1.5** Generate dependency audit section
+- [x] **4.1.6** Generate changes by file table: file, category, +/-, complexity
 - [x] **4.1.7** Write report to `.afterburn.md` in project root (or --output path)
-- [ ] **4.1.8** Handle overwriting existing report (with timestamp in filename option)
+- [x] **4.1.8** Handle overwriting existing report (with timestamp in filename option)
 
 ### 4.2 Terminal Output
 - [x] **4.2.1** Design terminal output layout (summary → errors → warnings → info)
@@ -165,23 +165,23 @@
 - [x] **4.2.3** Implement file path + line number clickable format (for IDE integration)
 - [x] **4.2.4** Show progress during analysis (file count, rule count)
 - [x] **4.2.5** Show summary statistics at end (X errors, Y warnings, Z info)
-- [ ] **4.2.6** Add `--no-color` flag for CI environments
+- [x] **4.2.6** Add `--no-color` flag for CI environments
 
 ### 4.3 File Change Categorization
-- [ ] **4.3.1** Implement heuristics for change type detection:
+- [x] **4.3.1** Implement heuristics for change type detection:
   - New file in `src/` → "new-feature"
   - Modified test file → "test"
   - Modified config file → "config"
   - File with "fix" in recent commit → "bugfix"
   - Large structural changes → "refactor"
-- [ ] **4.3.2** Calculate complexity delta (line count based for v0.1, cyclomatic later)
-- [ ] **4.3.3** Sort files by impact (most lines changed first)
+- [x] **4.3.2** Calculate complexity delta (line count based for v0.1, cyclomatic later)
+- [x] **4.3.3** Sort files by impact (most lines changed first)
 
 ### 4.4 npm Publishing Preparation
-- [ ] **4.4.1** Verify package.json metadata is complete (description, keywords, repository)
-- [ ] **4.4.2** Add LICENSE file (MIT)
-- [ ] **4.4.3** Create README.md with installation, usage, and examples
-- [ ] **4.4.4** Test global installation locally: `npm link` and run `afterburn`
+- [x] **4.4.1** Verify package.json metadata is complete (description, keywords, repository)
+- [x] **4.4.2** Add LICENSE file (MIT)
+- [x] **4.4.3** Create README.md with installation, usage, and examples
+- [x] **4.4.4** Test global installation locally: `npm link` and run `afterburn`
 - [ ] **4.4.5** Test on fresh machine / clean environment
 - [ ] **4.4.6** Publish to npm as `afterburn@0.1.0-beta`
 - [ ] **4.4.7** Verify installation works: `npm install -g afterburn`
@@ -206,7 +206,7 @@
 - [x] Markdown report generated to `.afterburn.md`
 - [x] Terminal output with colors and progress
 - [ ] Published to npm as v0.1.0-beta
-- [ ] README with basic documentation
+- [x] README with basic documentation
 - [x] All unit tests passing
 - [x] Tested on 3+ real-world projects
 

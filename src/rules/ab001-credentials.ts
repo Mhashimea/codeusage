@@ -634,6 +634,7 @@ const EXCLUDE_FILE_PATTERNS = [
   /mock/i,
   /\.md$/,
   /\.txt$/,
+  /ab\d{3}-.*\.ts$/,  // Afterburn rule files (contain detection patterns)
 ];
 
 // Content patterns to exclude (env var references, placeholders)
@@ -657,6 +658,9 @@ const EXCLUDE_CONTENT_PATTERNS = [
   /dummy/i,
   /fake/i,
   /mock/i,
+  /git\+https?:\/\/github\.com/i,  // Git repository URLs
+  /git\+https?:\/\/gitlab\.com/i,
+  /git\+https?:\/\/bitbucket\.org/i,
 ];
 
 function shouldExcludeFile(filePath: string): boolean {
