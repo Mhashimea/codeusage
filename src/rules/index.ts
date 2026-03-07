@@ -104,6 +104,9 @@ export class RuleRunner {
       /package-lock\.json$/,
       /yarn\.lock$/,
       /pnpm-lock\.yaml$/,
+      // Ignore afterburn's own rule files (they contain pattern definitions that trigger false positives)
+      /[\/\\]?src[\/\\]rules[\/\\]ab\d{3}-.*\.ts$/,
+      /[\/\\]?src[\/\\]rules[\/\\]index\.ts$/,
     ];
 
     for (const pattern of [...defaultIgnores, ...this.ignorePatterns]) {
