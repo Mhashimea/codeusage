@@ -6,7 +6,13 @@ import type { RiskFinding, Severity } from '../types.js';
 import { ab001HardcodedCredentials } from './ab001-credentials.js';
 import { ab002ErrorSwallowing } from './ab002-error-swallowing.js';
 import { ab003TypeAssertions } from './ab003-type-assertions.js';
+import { ab004DuplicateLogic } from './ab004-duplicate-logic.js';
+import { ab005NullChecks } from './ab005-null-checks.js';
 import { ab006HardcodedConfig } from './ab006-hardcoded-config.js';
+import { ab007Security } from './ab007-security.js';
+import { ab008OverAbstraction } from './ab008-over-abstraction.js';
+import { ab009Timeouts } from './ab009-timeouts.js';
+import { ab010AiTodos } from './ab010-ai-todos.js';
 
 export interface Rule {
   id: string;
@@ -47,7 +53,13 @@ const ALL_RULES: Rule[] = [
   ab001HardcodedCredentials,
   ab002ErrorSwallowing,
   ab003TypeAssertions,
+  ab004DuplicateLogic,
+  ab005NullChecks,
   ab006HardcodedConfig,
+  ab007Security,
+  ab008OverAbstraction,
+  ab009Timeouts,
+  ab010AiTodos,
 ];
 
 /**
@@ -215,4 +227,10 @@ export function runRules(
 export { ab001HardcodedCredentials } from './ab001-credentials.js';
 export { ab002ErrorSwallowing } from './ab002-error-swallowing.js';
 export { ab003TypeAssertions } from './ab003-type-assertions.js';
+export { ab004DuplicateLogic } from './ab004-duplicate-logic.js';
+export { ab005NullChecks } from './ab005-null-checks.js';
 export { ab006HardcodedConfig } from './ab006-hardcoded-config.js';
+export { ab007Security } from './ab007-security.js';
+export { ab008OverAbstraction } from './ab008-over-abstraction.js';
+export { ab009Timeouts } from './ab009-timeouts.js';
+export { ab010AiTodos } from './ab010-ai-todos.js';
