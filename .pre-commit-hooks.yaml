@@ -1,0 +1,22 @@
+# Pre-commit hooks for Afterburn
+# See https://pre-commit.com for more information
+
+- id: afterburn
+  name: Afterburn AI Code Analysis
+  description: Analyze code for AI-generated anti-patterns and hallucinated packages
+  entry: afterburn
+  args: ['--ci', '--staged-only']
+  language: node
+  types: [file]
+  pass_filenames: false
+  always_run: true
+
+- id: afterburn-strict
+  name: Afterburn Strict Mode
+  description: Fail on warnings (stricter analysis)
+  entry: afterburn
+  args: ['--ci', '--staged-only', '--fail-on-warnings']
+  language: node
+  types: [file]
+  pass_filenames: false
+  always_run: true

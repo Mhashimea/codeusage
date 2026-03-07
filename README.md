@@ -5,9 +5,10 @@
 Afterburn analyzes your AI coding sessions and generates comprehensive reports with:
 
 - Session summaries with file changes and commit history
-- Static analysis for AI-specific anti-patterns
-- Hallucinated package detection via npm registry verification
-- Risk findings with severity levels
+- Static analysis for AI-specific anti-patterns (10 rules)
+- Hallucinated package detection via npm/PyPI registry verification
+- Multi-language support (TypeScript, JavaScript, Python)
+- CI/CD integration with configurable exit codes
 
 ## Installation
 
@@ -17,10 +18,23 @@ npm install -g afterburn
 
 Requires Node.js 18.0.0 or higher.
 
-## Usage
+## Quick Start
 
 ```bash
 # Analyze current directory (last 4 hours by default)
+afterburn
+
+# Initialize configuration
+afterburn init
+
+# Run with CI mode
+afterburn --ci
+```
+
+## Usage
+
+```bash
+# Analyze current directory
 afterburn ./
 
 # Scope to recent changes
@@ -33,23 +47,233 @@ afterburn ./ --output ./reports/
 # CI mode (exits with error code on findings)
 afterburn ./ --ci
 
-# Disable colors for CI environments
-afterburn ./ --no-color
+# Fail on warnings too
+afterburn ./ --ci --fail-on-warnings
+
+# Allow up to 3 errors before failing
+afterburn ./ --ci --max-errors 3
 
 # JSON output for machine processing
 afterburn ./ --json
+
+# Analyze only staged changes (for pre-commit hooks)
+afterburn ./ --staged-only
 ```
+
+## Configuration
+
+Create a `.afterburnrc` file in your project root:
+
+```bash
+afterburn init
+```
+
+Example configuration:
+
+```json
+{
+  "rules": {
+    "AB001": "error",
+    "AB004": "info",
+    "AB008": "off"
+  },
+  "ignore": [
+    "node_modules/**",
+    "dist/**",
+    "**/*.test.ts"
+  ],
+  "session": {
+    "window": "4h",
+    "outputDir": ".afterburn"
+  },
+  "output": {
+    "format": "markdown",
+    "includeAIProvider": true
+  },
+  "ci": {
+    "failOnWarnings": false,
+    "maxErrors": 0
+  }
+}
+```
+
+### Inline Disable Comments
+
+Disable rules inline in your code:
+
+```typescript
+// afterburn-disable-next-line AB001
+const apiKey = "sk-1234567890";
+
+// afterburn-disable AB001, AB002
+// ... code block ...
+// afterburn-enable AB001, AB002
+```
+
+## Static Analysis Rules
+
+| Rule | Description | Default |
+|------|-------------|---------|
+| AB001 | Hardcoded credentials (API keys, passwords, tokens, secrets) | Error |
+| AB002 | Generic error swallowing (empty catch blocks) | Warning |
+| AB003 | Optimistic type assertions (`as any`, non-null `!`) | Info |
+| AB004 | Duplicate logic detection (repeated code blocks) | Info |
+| AB005 | Missing null/undefined checks | Warning |
+| AB006 | Hardcoded config values (localhost URLs, ports) | Warning |
+| AB007 | Security anti-patterns (eval, SQL injection, XSS) | Error |
+| AB008 | Over-abstraction (wrapper functions, single-impl interfaces) | Info |
+| AB009 | Missing timeout configuration (fetch, DB queries) | Warning |
+| AB010 | AI TODO/FIXME detection (incomplete implementations) | Info |
+
+### Python-Specific Rules
+
+For Python files, additional checks are performed:
+
+- Bare `except:` clauses (should specify exception type)
+- `pass` in except blocks (silent error swallowing)
+- `eval()` / `exec()` usage (code injection risk)
+- `pickle` with untrusted data
+- SQL string formatting (injection risk)
+- `subprocess` with `shell=True`
+
+## Dependency Audit
+
+### npm (JavaScript/TypeScript)
+
+Afterburn verifies all imported packages against the npm registry:
+
+- **Hallucinated**: Package not found on npm (may have been invented by AI)
+- **Low Adoption**: Less than 100 weekly downloads
+- **Unmaintained**: Not updated in over 12 months
+- **Deprecated**: Marked as deprecated on npm
+
+### PyPI (Python)
+
+For Python projects, Afterburn parses:
+- `requirements.txt`
+- `pyproject.toml` (PEP 621 / Poetry)
+- `setup.py`
+- `Pipfile`
+
+And verifies packages against the PyPI registry.
+
+## CI Integration
+
+### Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| `0` | No errors found |
+| `1` | Errors detected (hallucinated packages or error-severity findings) |
+| `2` | Execution error (not a git repo, config error, etc.) |
+
+### GitHub Actions
+
+```yaml
+name: Afterburn Analysis
+on: [pull_request]
+
+jobs:
+  afterburn:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - run: npm install -g afterburn
+
+      - run: afterburn --ci --json > report.json
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: afterburn-report
+          path: report.json
+```
+
+### Pre-commit Hook
+
+Add to `.pre-commit-config.yaml`:
+
+```yaml
+repos:
+  - repo: https://github.com/hashimea/afterburn
+    rev: v0.1.0
+    hooks:
+      - id: afterburn
+```
+
+Or use a local hook:
+
+```yaml
+repos:
+  - repo: local
+    hooks:
+      - id: afterburn
+        name: Afterburn Analysis
+        entry: afterburn --ci --staged-only
+        language: node
+        pass_filenames: false
+        always_run: true
+```
+
+## CLI Options
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--since <timespec>` | Scope analysis to changes since timespec | `4h` |
+| `--output <path>` | Output path for report | `./` |
+| `--ci` | CI mode - exit with error code based on findings | `false` |
+| `--fail-on-warnings` | Fail CI if warnings are found | `false` |
+| `--max-errors <n>` | Maximum allowed errors before failing | `0` |
+| `--staged-only` | Analyze only staged changes | `false` |
+| `--json` | Output in JSON format | `false` |
+| `--no-color` | Disable colored output | `false` |
+| `--verbose` | Show verbose output | `false` |
+| `--quiet` | Suppress all output except errors | `false` |
+
+## Commands
+
+| Command | Description |
+|---------|-------------|
+| `afterburn [path]` | Analyze a directory |
+| `afterburn init` | Create `.afterburnrc` config file |
+| `afterburn config list` | Show current configuration |
+| `afterburn config get <key>` | Get a config value |
+| `afterburn config set <key> <value>` | Set a config value |
+
+## Timespec Format
+
+The `--since` flag supports various formats:
+
+- `30m`, `2h`, `1d` - Relative time shorthand
+- `"2 hours ago"`, `"30 minutes ago"` - Natural language
+- `"1 day ago"`, `"3 days ago"` - Days
+- ISO 8601 dates - Absolute timestamps
+
+## AI Provider Detection
+
+Afterburn automatically detects when you're using AI coding assistants:
+
+- **Claude Code** - Detects sessions via `~/.claude/projects/`
+- **Cursor** - Detects via `.cursor/` directory
+- **GitHub Copilot** - Detects via VS Code extensions
+- **Windsurf** - Detects via Codeium integration
+
+Session IDs are included in reports for traceability.
 
 ## Output
 
-Afterburn generates a markdown report saved to `.afterburn/YYYY-MM-DD/session-HH-MM-SS.md`:
+Reports are saved to `.afterburn/YYYY-MM-DD/session-HH-MM-SS.md`:
 
 ```
 # Afterburn Session Report
 
-_Generated: Mar 7, 2026, 08:31 PM | Project: my-app | Analysis: 4s_
-
----
+_Generated: Mar 7, 2026 | Project: my-app | AI: Claude Code_
 
 ## Session Summary
 
@@ -59,15 +283,6 @@ _Generated: Mar 7, 2026, 08:31 PM | Project: my-app | Analysis: 4s_
 | Lines Added | +313 |
 | Lines Removed | -35 |
 | Commits | 4 |
-| Uncommitted Changes | Yes |
-
-## Files Changed
-
-| Category | File | Changes | Complexity |
-|----------|------|---------|------------|
-| New Feature | `src/auth/login.ts` | +120/-0 | |
-| Bug Fix | `src/api/users.ts` | +15/-8 | |
-| Refactor | `src/utils/helpers.ts` | +45/-30 | |
 
 ## Risk Report
 
@@ -86,66 +301,10 @@ _Generated: Mar 7, 2026, 08:31 PM | Project: my-app | Analysis: 4s_
 | Verified | 10 |
 ```
 
-## Static Analysis Rules
-
-Afterburn includes rules designed to catch common AI coding pitfalls:
-
-| Rule | Description | Severity |
-|------|-------------|----------|
-| AB001 | Hardcoded credentials (API keys, passwords, tokens) | Error |
-| AB002 | Generic error swallowing (empty catch blocks) | Warning |
-| AB003 | Optimistic type assertions (`as any`, non-null `!`) | Info |
-| AB006 | Hardcoded config values (localhost URLs, ports) | Warning |
-
-## Hallucinated Package Detection
-
-Afterburn verifies all imported packages against the npm registry:
-
-- **Hallucinated**: Package not found on npm (may have been invented by AI)
-- **Low Adoption**: Less than 100 weekly downloads
-- **Unmaintained**: Not updated in over 12 months
-- **Deprecated**: Marked as deprecated on npm
-
-## CI Integration
-
-Use Afterburn in your CI pipeline to catch issues before merging:
-
-```yaml
-# GitHub Actions example
-- name: Run Afterburn
-  run: npx afterburn ./ --ci --no-color
-```
-
-Exit codes:
-- `0`: No errors found
-- `1`: Errors detected (hallucinated packages or error-severity findings)
-- `2`: Execution error (not a git repo, etc.)
-
-## Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--since <timespec>` | Scope analysis to changes since timespec | `4h` |
-| `--output <path>` | Output path for report | `./` |
-| `--ci` | CI mode - exit with error code based on findings | `false` |
-| `--no-color` | Disable colored output | `false` |
-| `--json` | Output in JSON format | `false` |
-| `--verbose` | Show verbose output | `false` |
-| `--quiet` | Suppress all output except errors | `false` |
-
-## Timespec Format
-
-The `--since` flag supports various formats:
-
-- `30m`, `2h`, `1d` - Relative time shorthand
-- `"2 hours ago"`, `"30 minutes ago"` - Natural language
-- `"1 day ago"`, `"3 days ago"` - Days
-- ISO 8601 dates - Absolute timestamps
-
 ## Requirements
 
 - Node.js >= 18.0.0
-- Git repository (uncommitted changes and recent commits are analyzed)
+- Git repository
 
 ## License
 

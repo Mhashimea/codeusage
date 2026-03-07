@@ -1,7 +1,7 @@
 /**
  * Package Registry Module
  *
- * Verifies dependencies against npm registry and detects:
+ * Verifies dependencies against npm/PyPI registry and detects:
  * - Hallucinated packages (non-existent)
  * - Low adoption packages
  * - Unmaintained packages
@@ -28,6 +28,24 @@ export {
   isOffline,
   type NpmPackageInfo,
 } from './npm-client.js';
+
+// PyPI (Python) support
+export {
+  fetchPackageInfo as fetchPyPIPackageInfo,
+  fetchPackagesBatch as fetchPyPIPackagesBatch,
+  clearCache as clearPyPICache,
+  isOffline as isPyPIOffline,
+  type PyPIPackageInfo,
+} from './pypi-client.js';
+
+export {
+  parseRequirementsTxt,
+  parsePyprojectToml,
+  parseSetupPy,
+  parsePipfile,
+  getPythonDependencies,
+  type PythonDependency,
+} from './python-deps.js';
 
 export {
   analyzePackage,

@@ -13,6 +13,8 @@ import { ab007Security } from './ab007-security.js';
 import { ab008OverAbstraction } from './ab008-over-abstraction.js';
 import { ab009Timeouts } from './ab009-timeouts.js';
 import { ab010AiTodos } from './ab010-ai-todos.js';
+import { runPythonRules } from './python/index.js';
+import { createAstContext, resetAstContext, type AstContext } from '../parser/context.js';
 
 export interface Rule {
   id: string;
@@ -21,8 +23,10 @@ export interface Rule {
   defaultSeverity: Severity;
   /** File extensions this rule applies to (e.g., ['.ts', '.js']) */
   appliesTo?: string[];
-  /** Check file content and return findings */
+  /** Check file content and return findings (sync) */
   check: (content: string, filePath: string) => RiskFinding[];
+  /** Optional AST-aware check (async, for improved accuracy) */
+  checkWithAst?: (content: string, filePath: string, ast: AstContext) => RiskFinding[];
 }
 
 export interface RuleRunnerOptions {
@@ -32,6 +36,8 @@ export interface RuleRunnerOptions {
   ignorePatterns?: string[];
   /** Override severity levels */
   severityOverrides?: Record<string, Severity>;
+  /** Enable AST-based analysis for improved accuracy */
+  useAst?: boolean;
 }
 
 // Rule IDs as defined in PRD
@@ -69,12 +75,14 @@ export class RuleRunner {
   private rules: Rule[];
   private ignorePatterns: RegExp[];
   private severityOverrides: Record<string, Severity>;
+  private useAst: boolean;
 
   constructor(options: RuleRunnerOptions = {}) {
     const enabledRuleIds = options.enabledRules ?? ALL_RULES.map(r => r.id);
     this.rules = ALL_RULES.filter(r => enabledRuleIds.includes(r.id));
     this.ignorePatterns = (options.ignorePatterns ?? []).map(p => this.patternToRegex(p));
     this.severityOverrides = options.severityOverrides ?? {};
+    this.useAst = options.useAst ?? false;
   }
 
   /**
@@ -161,6 +169,100 @@ export class RuleRunner {
       }
     }
 
+    // Run Python-specific rules for Python files
+    if (filePath.endsWith('.py') || filePath.endsWith('.pyw')) {
+      try {
+        const pythonFindings = runPythonRules(content, filePath);
+        for (const finding of pythonFindings) {
+          if (this.severityOverrides[finding.ruleId]) {
+            finding.severity = this.severityOverrides[finding.ruleId];
+          }
+          findings.push(finding);
+        }
+      } catch (error) {
+        console.warn(`Python rules failed on ${filePath}:`, error);
+      }
+    }
+
+    return findings;
+  }
+
+  /**
+   * Run all enabled rules with AST support for improved accuracy
+   */
+  async runWithAst(content: string, filePath: string): Promise<RiskFinding[]> {
+    if (this.shouldIgnore(filePath)) {
+      return [];
+    }
+
+    // Create AST context for this file
+    let astContext: AstContext | null = null;
+    if (this.useAst) {
+      try {
+        astContext = await createAstContext(filePath, content);
+      } catch (error) {
+        // AST parsing failed, will fall back to regex-only analysis
+        console.warn(`AST parsing failed for ${filePath}:`, error);
+      }
+    }
+
+    const findings: RiskFinding[] = [];
+
+    for (const rule of this.rules) {
+      if (!this.ruleAppliesToFile(rule, filePath)) {
+        continue;
+      }
+
+      try {
+        let ruleFindings: RiskFinding[];
+
+        // Use AST-aware check if available and AST was parsed
+        if (astContext && rule.checkWithAst) {
+          ruleFindings = rule.checkWithAst(content, filePath, astContext);
+        } else {
+          ruleFindings = rule.check(content, filePath);
+        }
+
+        // If we have AST, filter out findings in comments
+        if (astContext) {
+          ruleFindings = ruleFindings.filter(finding => {
+            // Keep finding if line is not in a comment
+            return !astContext!.isLineInComment(finding.line);
+          });
+        }
+
+        // Apply severity overrides
+        for (const finding of ruleFindings) {
+          if (this.severityOverrides[rule.id]) {
+            finding.severity = this.severityOverrides[rule.id];
+          }
+          findings.push(finding);
+        }
+      } catch (error) {
+        // Rule execution failed, skip this rule
+        console.warn(`Rule ${rule.id} failed on ${filePath}:`, error);
+      }
+    }
+
+    // Run Python-specific rules for Python files
+    if (filePath.endsWith('.py') || filePath.endsWith('.pyw')) {
+      try {
+        const pythonFindings = runPythonRules(content, filePath);
+        for (const finding of pythonFindings) {
+          if (this.severityOverrides[finding.ruleId]) {
+            finding.severity = this.severityOverrides[finding.ruleId];
+          }
+          // Filter out findings in comments if AST is available
+          if (astContext && astContext.isLineInComment(finding.line)) {
+            continue;
+          }
+          findings.push(finding);
+        }
+      } catch (error) {
+        console.warn(`Python rules failed on ${filePath}:`, error);
+      }
+    }
+
     return findings;
   }
 
@@ -174,6 +276,26 @@ export class RuleRunner {
       const findings = this.run(file.content, file.path);
       allFindings.push(...findings);
     }
+
+    return this.aggregateFindings(allFindings);
+  }
+
+  /**
+   * Run rules against multiple files with AST support
+   */
+  async runOnFilesWithAst(files: Array<{ path: string; content: string }>): Promise<RiskFinding[]> {
+    const allFindings: RiskFinding[] = [];
+
+    // Reset AST cache before batch processing
+    resetAstContext();
+
+    for (const file of files) {
+      const findings = await this.runWithAst(file.content, file.path);
+      allFindings.push(...findings);
+    }
+
+    // Clear AST cache after batch processing
+    resetAstContext();
 
     return this.aggregateFindings(allFindings);
   }
@@ -237,3 +359,6 @@ export { ab007Security } from './ab007-security.js';
 export { ab008OverAbstraction } from './ab008-over-abstraction.js';
 export { ab009Timeouts } from './ab009-timeouts.js';
 export { ab010AiTodos } from './ab010-ai-todos.js';
+
+// Re-export AST context for rules that want to use it
+export type { AstContext } from '../parser/context.js';

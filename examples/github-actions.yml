@@ -1,0 +1,91 @@
+# Afterburn CI Workflow
+# Add this to .github/workflows/afterburn.yml in your repository
+
+name: Afterburn Analysis
+
+on:
+  pull_request:
+    branches: [main, master]
+  push:
+    branches: [main, master]
+
+jobs:
+  afterburn:
+    name: AI Code Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git diff analysis
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install Afterburn
+        run: npm install -g afterburn
+
+      - name: Run Afterburn Analysis
+        run: |
+          afterburn ./ --ci --json > afterburn-report.json
+        continue-on-error: true
+        id: afterburn
+
+      - name: Upload Report
+        uses: actions/upload-artifact@v4
+        with:
+          name: afterburn-report
+          path: afterburn-report.json
+        if: always()
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request' && always()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const report = JSON.parse(fs.readFileSync('afterburn-report.json', 'utf8'));
+
+            const { riskSummary, dependencySummary } = report;
+            const errors = riskSummary?.errors || 0;
+            const warnings = riskSummary?.warnings || 0;
+            const hallucinated = dependencySummary?.hallucinated || 0;
+
+            let status = '✅ Passed';
+            if (errors > 0 || hallucinated > 0) {
+              status = '❌ Failed';
+            } else if (warnings > 0) {
+              status = '⚠️ Warnings';
+            }
+
+            const body = `## Afterburn Analysis ${status}
+
+            | Metric | Count |
+            |--------|-------|
+            | Errors | ${errors} |
+            | Warnings | ${warnings} |
+            | Hallucinated Packages | ${hallucinated} |
+
+            <details>
+            <summary>View Details</summary>
+
+            \`\`\`json
+            ${JSON.stringify(report.riskSummary, null, 2)}
+            \`\`\`
+
+            </details>
+            `;
+
+            github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: body
+            });
+
+      - name: Fail on Errors
+        if: steps.afterburn.outcome == 'failure'
+        run: exit 1

@@ -44,6 +44,25 @@ interface AnalyzeOptions {
   verbose?: boolean;
   quiet?: boolean;
   noColor?: boolean;
+  failOnWarnings?: boolean;
+  maxErrors?: number;
+  stagedOnly?: boolean;
+}
+
+/**
+ * Detect if running in a CI environment
+ */
+function isCI(): boolean {
+  return !!(
+    process.env.CI ||
+    process.env.GITHUB_ACTIONS ||
+    process.env.GITLAB_CI ||
+    process.env.CIRCLECI ||
+    process.env.TRAVIS ||
+    process.env.JENKINS_URL ||
+    process.env.BUILDKITE ||
+    process.env.TF_BUILD  // Azure Pipelines
+  );
 }
 
 const program = new Command();
@@ -51,7 +70,7 @@ const program = new Command();
 program
   .name('afterburn')
   .description('Post-session intelligence for AI-assisted coding')
-  .version('0.1.0-beta');
+  .version('0.1.0');
 
 /**
  * Display risk findings in terminal
@@ -274,11 +293,25 @@ function displaySessionSummary(diff: GitDiff, findings: RiskFinding[], auditResu
 /**
  * Display JSON output
  */
-function displayJsonOutput(diff: GitDiff, findings: RiskFinding[], auditResult: DependencyAuditResult | null, duration: number): void {
+function displayJsonOutput(
+  diff: GitDiff,
+  findings: RiskFinding[],
+  auditResult: DependencyAuditResult | null,
+  duration: number,
+  options?: {
+    projectPath?: string;
+    configPath?: string;
+    aiProvider?: { provider: string | null; sessionId: string | null };
+  }
+): void {
+  const summary = RuleRunner.summarize(findings);
   const output = {
-    version: '0.1.0-beta',
+    version: '0.1.0',
     timestamp: new Date().toISOString(),
     analysisDuration: duration,
+    projectPath: options?.projectPath,
+    configPath: options?.configPath,
+    aiProvider: options?.aiProvider,
     stats: diff.stats,
     commits: diff.commits.map(c => ({
       hash: c.hash,
@@ -288,9 +321,10 @@ function displayJsonOutput(diff: GitDiff, findings: RiskFinding[], auditResult: 
     })),
     files: diff.files,
     risks: findings,
-    riskSummary: RuleRunner.summarize(findings),
+    riskSummary: summary,
     dependencies: auditResult?.dependencies ?? [],
     dependencySummary: auditResult?.summary ?? null,
+    exitCode: summary.errors > 0 || (auditResult?.summary.hallucinated ?? 0) > 0 ? 1 : 0,
   };
 
   console.log(JSON.stringify(output, null, 2));
@@ -300,8 +334,11 @@ function displayJsonOutput(diff: GitDiff, findings: RiskFinding[], auditResult: 
  * Run the analyze command
  */
 async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<void> {
-  // Disable colors if --no-color flag is set
-  if (options.noColor) {
+  // Auto-detect CI environment
+  const inCI = isCI() || options.ci;
+
+  // Disable colors if --no-color flag is set or in CI
+  if (options.noColor || inCI) {
     chalk.level = 0;
   }
 
@@ -317,8 +354,8 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
   const quiet = options.quiet ?? false;
   const jsonOutput = options.json ?? false;
 
-  // Create spinner (only if not quiet and not json)
-  const spinner = !quiet && !jsonOutput
+  // Create spinner (only if not quiet, not json, and not in CI)
+  const spinner = !quiet && !jsonOutput && !inCI
     ? ora({ text: 'Analyzing session...', color: 'cyan' }).start()
     : null;
 
@@ -497,15 +534,38 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
 
     // Output results
     if (jsonOutput) {
-      displayJsonOutput(diff, sortedFindings, auditResult, duration);
+      displayJsonOutput(diff, sortedFindings, auditResult, duration, {
+        projectPath: absolutePath,
+        configPath: configPath ?? undefined,
+        aiProvider,
+      });
     } else if (!quiet) {
       displaySessionSummary(diff, sortedFindings, auditResult, duration);
     }
 
     // CI mode exit codes
-    if (options.ci) {
-      if (summary.errors > 0 || hasHallucinated > 0) {
-        process.exit(1); // Exit with error if any errors or hallucinated packages
+    if (options.ci || inCI) {
+      const maxErrors = options.maxErrors ?? 0;
+      const failOnWarnings = options.failOnWarnings ?? false;
+
+      // Exit code 1: errors exceed threshold or hallucinated packages
+      if (summary.errors > maxErrors || hasHallucinated > 0) {
+        if (!quiet && !jsonOutput) {
+          console.log(chalk.red(`\n❌ CI check failed: ${summary.errors} errors, ${hasHallucinated} hallucinated packages`));
+        }
+        process.exit(1);
+      }
+
+      // Exit code 1 if --fail-on-warnings and warnings exist
+      if (failOnWarnings && summary.warnings > 0) {
+        if (!quiet && !jsonOutput) {
+          console.log(chalk.red(`\n❌ CI check failed: ${summary.warnings} warnings (--fail-on-warnings enabled)`));
+        }
+        process.exit(1);
+      }
+
+      if (!quiet && !jsonOutput) {
+        console.log(chalk.green('\n✅ CI check passed'));
       }
       process.exit(0);
     }
@@ -538,6 +598,9 @@ program
   .option('--output <path>', 'Output path for report', './')
   .option('--json', 'Output in JSON format')
   .option('--ci', 'CI mode - exit with error code based on findings')
+  .option('--fail-on-warnings', 'Fail CI if warnings are found')
+  .option('--max-errors <n>', 'Maximum allowed errors before failing (default: 0)', parseInt)
+  .option('--staged-only', 'Analyze only staged changes (for pre-commit hooks)')
   .option('--verbose', 'Show verbose output including errors')
   .option('--quiet', 'Suppress all output except errors')
   .option('--no-color', 'Disable colored output (for CI environments)')
@@ -732,6 +795,9 @@ program
   .option('--output <path>', 'Output path for report', './')
   .option('--json', 'Output in JSON format')
   .option('--ci', 'CI mode')
+  .option('--fail-on-warnings', 'Fail CI if warnings are found')
+  .option('--max-errors <n>', 'Maximum allowed errors', parseInt)
+  .option('--staged-only', 'Analyze only staged changes')
   .option('--verbose', 'Show verbose output')
   .option('--quiet', 'Suppress output')
   .option('--no-color', 'Disable colored output')
