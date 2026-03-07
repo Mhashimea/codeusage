@@ -23,6 +23,7 @@ import { formatDuration } from './utils/timespec.js';
 import { generateMarkdownReport } from './reporter/index.js';
 import { RuleRunner } from './rules/index.js';
 import { runDependencyAudit, type DependencyAuditResult } from './registry/index.js';
+import { detectAIProvider } from './ai-provider.js';
 import type { RiskFinding } from './types.js';
 
 interface AnalyzeOptions {
@@ -300,6 +301,9 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
   // Resolve absolute path
   const absolutePath = path.resolve(targetPath);
 
+  // Detect AI provider (Claude Code, Cursor, etc.)
+  const aiProvider = detectAIProvider(absolutePath);
+
   // Check if quiet mode
   const quiet = options.quiet ?? false;
   const jsonOutput = options.json ?? false;
@@ -430,6 +434,7 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       analysisTime: duration,
       projectPath: absolutePath,
       since,
+      aiProvider,
     });
 
     fs.writeFileSync(reportPath, markdownReport, 'utf-8');

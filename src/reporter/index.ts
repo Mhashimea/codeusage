@@ -4,6 +4,7 @@
 
 import type { GitDiff } from '../git/index.js';
 import type { RiskFinding, DependencyInfo, FileChange } from '../types.js';
+import type { AIProviderInfo } from '../ai-provider.js';
 import { formatDuration } from '../utils/timespec.js';
 import { categorizeFiles, sortByImpact, getCategoryIcon, getCategoryLabel } from '../analyzer/file-categorizer.js';
 
@@ -15,6 +16,7 @@ export interface ReportData {
   analysisTime: number;
   projectPath: string;
   since?: string;
+  aiProvider?: AIProviderInfo;
 }
 
 export interface ReportOptions {
@@ -47,6 +49,14 @@ export function generateMarkdownReport(data: ReportData): string {
   md += `| Lines Removed | -${stats.deletions} |\n`;
   md += `| Commits | ${stats.commitCount} |\n`;
   md += `| Uncommitted Changes | ${stats.hasUncommittedChanges ? 'Yes' : 'No'} |\n`;
+
+  // AI Provider info
+  if (data.aiProvider?.provider) {
+    md += `| AI Provider | ${data.aiProvider.provider} |\n`;
+    if (data.aiProvider.sessionId) {
+      md += `| AI Session ID | \`${data.aiProvider.sessionId}\` |\n`;
+    }
+  }
   md += `\n`;
 
   // Recent Commits
