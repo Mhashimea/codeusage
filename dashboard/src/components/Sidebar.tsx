@@ -6,6 +6,7 @@ import {
   LayoutDashboard,
   FileText,
   TrendingUp,
+  Shield,
   Users,
   Settings,
   LogOut,
@@ -17,6 +18,7 @@ const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Reports', href: '/dashboard/reports', icon: FileText },
   { name: 'Trends', href: '/dashboard/trends', icon: TrendingUp },
+  { name: 'Rules', href: '/dashboard/rules', icon: Shield },
   { name: 'Teams', href: '/dashboard/teams', icon: Users },
   { name: 'Settings', href: '/dashboard/settings', icon: Settings },
 ];
