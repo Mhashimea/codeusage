@@ -4,7 +4,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    include: ['src/**/*.test.ts', 'test/**/*.test.ts'],
     pool: 'forks', // Use forks instead of threads for process.chdir support
     coverage: {
       provider: 'v8',

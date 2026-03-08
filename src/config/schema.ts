@@ -15,6 +15,57 @@ export type RuleConfig = Severity | 'off' | {
 };
 
 /**
+ * Custom rule definition for user-defined rules
+ */
+export interface CustomRuleDefinition {
+  /**
+   * Rule ID (must start with "CUSTOM-")
+   */
+  id: string;
+
+  /**
+   * Human-readable rule name
+   */
+  name: string;
+
+  /**
+   * Description of what this rule checks
+   */
+  description: string;
+
+  /**
+   * Severity level
+   */
+  severity: Severity;
+
+  /**
+   * Regex pattern to match (string format, will be compiled)
+   */
+  pattern: string;
+
+  /**
+   * Regex flags (e.g., "gi" for global case-insensitive)
+   */
+  flags?: string;
+
+  /**
+   * Message to display when pattern is found
+   */
+  message: string;
+
+  /**
+   * Optional suggestion for fixing the issue
+   */
+  suggestion?: string;
+
+  /**
+   * File extensions this rule applies to (e.g., [".ts", ".js"])
+   * If not specified, applies to all files
+   */
+  appliesTo?: string[];
+}
+
+/**
  * Main configuration interface
  */
 export interface AfterburnerConfig {
@@ -104,6 +155,11 @@ export interface AfterburnerConfig {
      */
     maxWarnings?: number;
   };
+
+  /**
+   * Custom rules defined by the user
+   */
+  customRules?: CustomRuleDefinition[];
 }
 
 /**
@@ -217,7 +273,68 @@ export function validateConfig(config: unknown): { valid: boolean; errors: strin
     } else {
       const output = cfg.output as Record<string, unknown>;
       if (output.format && !['markdown', 'json'].includes(output.format as string)) {
-        errors.push(`Invalid output format: ${output.format}`);
+        errors.push(`Invalid output format: ${output.format}. Use "markdown" or "json"`);
+      }
+    }
+  }
+
+  // Validate LLM config
+  if (cfg.llm !== undefined) {
+    if (typeof cfg.llm !== 'object' || cfg.llm === null) {
+      errors.push('llm must be an object');
+    } else {
+      const llm = cfg.llm as Record<string, unknown>;
+      const validProviders = ['anthropic', 'openai', 'openrouter', 'ollama'];
+      if (llm.provider && !validProviders.includes(llm.provider as string)) {
+        errors.push(`Invalid LLM provider: ${llm.provider}. Use one of: ${validProviders.join(', ')}`);
+      }
+    }
+  }
+
+  // Validate custom rules
+  if (cfg.customRules !== undefined) {
+    if (!Array.isArray(cfg.customRules)) {
+      errors.push('customRules must be an array');
+    } else {
+      for (let i = 0; i < cfg.customRules.length; i++) {
+        const rule = cfg.customRules[i] as Record<string, unknown>;
+
+        if (!rule.id || typeof rule.id !== 'string') {
+          errors.push(`customRules[${i}]: id is required and must be a string`);
+        } else if (!rule.id.startsWith('CUSTOM-')) {
+          errors.push(`customRules[${i}]: id must start with "CUSTOM-" (got: ${rule.id})`);
+        }
+
+        if (!rule.name || typeof rule.name !== 'string') {
+          errors.push(`customRules[${i}]: name is required and must be a string`);
+        }
+
+        if (!rule.pattern || typeof rule.pattern !== 'string') {
+          errors.push(`customRules[${i}]: pattern is required and must be a regex string`);
+        } else {
+          // Test if pattern is valid regex
+          try {
+            new RegExp(rule.pattern as string, (rule.flags as string) || 'g');
+          } catch (e) {
+            errors.push(`customRules[${i}]: invalid regex pattern: ${(e as Error).message}`);
+          }
+        }
+
+        if (!rule.message || typeof rule.message !== 'string') {
+          errors.push(`customRules[${i}]: message is required and must be a string`);
+        }
+
+        if (rule.severity && !['error', 'warn', 'info'].includes(rule.severity as string)) {
+          errors.push(`customRules[${i}]: invalid severity: ${rule.severity}`);
+        }
+
+        if (rule.appliesTo !== undefined) {
+          if (!Array.isArray(rule.appliesTo)) {
+            errors.push(`customRules[${i}]: appliesTo must be an array of file extensions`);
+          } else if (!rule.appliesTo.every((ext: unknown) => typeof ext === 'string' && ext.startsWith('.'))) {
+            errors.push(`customRules[${i}]: appliesTo must contain file extensions starting with "."`);
+          }
+        }
       }
     }
   }
@@ -237,5 +354,6 @@ export function mergeConfig(userConfig: Partial<AfterburnerConfig>): Afterburner
     output: { ...DEFAULT_CONFIG.output, ...userConfig.output },
     llm: userConfig.llm,
     ci: { ...DEFAULT_CONFIG.ci, ...userConfig.ci },
+    customRules: userConfig.customRules,
   };
 }

@@ -32,6 +32,7 @@ export interface RiskFinding {
   column?: number;
   message: string;
   snippet?: string;
+  suggestion?: string;
 }
 
 export interface DependencyInfo {

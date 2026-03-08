@@ -3,6 +3,7 @@
  */
 
 import type { RiskFinding, Severity } from '../types.js';
+import type { CustomRuleDefinition } from '../config/index.js';
 import { ab001HardcodedCredentials } from './ab001-credentials.js';
 import { ab002ErrorSwallowing } from './ab002-error-swallowing.js';
 import { ab003TypeAssertions } from './ab003-type-assertions.js';
@@ -38,6 +39,8 @@ export interface RuleRunnerOptions {
   severityOverrides?: Record<string, Severity>;
   /** Enable AST-based analysis for improved accuracy */
   useAst?: boolean;
+  /** Custom rules from configuration */
+  customRules?: CustomRuleDefinition[];
 }
 
 // Rule IDs as defined in PRD
@@ -54,7 +57,7 @@ export const RULE_IDS = {
   AB010: 'AB010',
 } as const;
 
-// All available rules
+// All available built-in rules
 const ALL_RULES: Rule[] = [
   ab001HardcodedCredentials,
   ab002ErrorSwallowing,
@@ -69,6 +72,48 @@ const ALL_RULES: Rule[] = [
 ];
 
 /**
+ * Convert a custom rule definition to a Rule object
+ */
+function createCustomRule(def: CustomRuleDefinition): Rule {
+  const pattern = new RegExp(def.pattern, def.flags || 'g');
+
+  return {
+    id: def.id,
+    name: def.name,
+    description: def.description,
+    defaultSeverity: def.severity,
+    appliesTo: def.appliesTo,
+    check(content: string, filePath: string): RiskFinding[] {
+      const findings: RiskFinding[] = [];
+      const lines = content.split('\n');
+
+      // Reset regex state
+      pattern.lastIndex = 0;
+
+      let match;
+      while ((match = pattern.exec(content)) !== null) {
+        // Find line number
+        const beforeMatch = content.substring(0, match.index);
+        const lineNum = beforeMatch.split('\n').length;
+        const line = lines[lineNum - 1] || '';
+
+        findings.push({
+          ruleId: def.id,
+          severity: def.severity,
+          file: filePath,
+          line: lineNum,
+          message: def.message,
+          snippet: line.trim().substring(0, 80) + (line.length > 80 ? '...' : ''),
+          suggestion: def.suggestion,
+        });
+      }
+
+      return findings;
+    },
+  };
+}
+
+/**
  * RuleRunner - executes rules against file content
  */
 export class RuleRunner {
@@ -76,13 +121,45 @@ export class RuleRunner {
   private ignorePatterns: RegExp[];
   private severityOverrides: Record<string, Severity>;
   private useAst: boolean;
+  // Pre-computed rule cache by file extension for fast lookup
+  private rulesByExtension: Map<string, Rule[]>;
+  private universalRules: Rule[]; // Rules that apply to all files
 
   constructor(options: RuleRunnerOptions = {}) {
     const enabledRuleIds = options.enabledRules ?? ALL_RULES.map(r => r.id);
     this.rules = ALL_RULES.filter(r => enabledRuleIds.includes(r.id));
+
+    // Add custom rules
+    if (options.customRules && options.customRules.length > 0) {
+      for (const customDef of options.customRules) {
+        try {
+          const customRule = createCustomRule(customDef);
+          this.rules.push(customRule);
+        } catch (error) {
+          console.warn(`Failed to create custom rule ${customDef.id}:`, error);
+        }
+      }
+    }
+
     this.ignorePatterns = (options.ignorePatterns ?? []).map(p => this.patternToRegex(p));
     this.severityOverrides = options.severityOverrides ?? {};
     this.useAst = options.useAst ?? false;
+
+    // Pre-compute rule applicability by extension
+    this.rulesByExtension = new Map();
+    this.universalRules = [];
+
+    for (const rule of this.rules) {
+      if (!rule.appliesTo || rule.appliesTo.length === 0) {
+        this.universalRules.push(rule);
+      } else {
+        for (const ext of rule.appliesTo) {
+          const existing = this.rulesByExtension.get(ext) ?? [];
+          existing.push(rule);
+          this.rulesByExtension.set(ext, existing);
+        }
+      }
+    }
   }
 
   /**
@@ -127,15 +204,12 @@ export class RuleRunner {
   }
 
   /**
-   * Check if a rule applies to a file based on extension
+   * Get applicable rules for a file (uses pre-computed cache)
    */
-  private ruleAppliesToFile(rule: Rule, filePath: string): boolean {
-    if (!rule.appliesTo || rule.appliesTo.length === 0) {
-      return true; // Rule applies to all files
-    }
-
+  private getApplicableRules(filePath: string): Rule[] {
     const ext = filePath.substring(filePath.lastIndexOf('.'));
-    return rule.appliesTo.includes(ext);
+    const extensionRules = this.rulesByExtension.get(ext) ?? [];
+    return [...this.universalRules, ...extensionRules];
   }
 
   /**
@@ -148,11 +222,10 @@ export class RuleRunner {
 
     const findings: RiskFinding[] = [];
 
-    for (const rule of this.rules) {
-      if (!this.ruleAppliesToFile(rule, filePath)) {
-        continue;
-      }
+    // Use pre-computed applicable rules for this file extension
+    const applicableRules = this.getApplicableRules(filePath);
 
+    for (const rule of applicableRules) {
       try {
         const ruleFindings = rule.check(content, filePath);
 
@@ -208,11 +281,10 @@ export class RuleRunner {
 
     const findings: RiskFinding[] = [];
 
-    for (const rule of this.rules) {
-      if (!this.ruleAppliesToFile(rule, filePath)) {
-        continue;
-      }
+    // Use pre-computed applicable rules for this file extension
+    const applicableRules = this.getApplicableRules(filePath);
 
+    for (const rule of applicableRules) {
       try {
         let ruleFindings: RiskFinding[];
 

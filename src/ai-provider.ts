@@ -71,8 +71,8 @@ function detectClaudeCode(projectPath: string): AIProviderInfo | null {
 /**
  * Detect Cursor IDE
  */
-function detectCursor(): AIProviderInfo | null {
-  // Cursor sets CURSOR_TRACE_ID or similar
+function detectCursor(projectPath: string): AIProviderInfo | null {
+  // Cursor sets CURSOR_TRACE_ID or similar env vars
   if (process.env.CURSOR_TRACE_ID || process.env.TERM_PROGRAM === 'Cursor') {
     return {
       provider: 'Cursor',
@@ -80,6 +80,42 @@ function detectCursor(): AIProviderInfo | null {
       sessionPath: null
     };
   }
+
+  // Check for .cursor directory (Cursor workspace settings)
+  const cursorDir = path.join(projectPath, '.cursor');
+  if (fs.existsSync(cursorDir)) {
+    // Try to find recent conversation files
+    try {
+      const composerDir = path.join(cursorDir, 'composer');
+      if (fs.existsSync(composerDir)) {
+        const files = fs.readdirSync(composerDir)
+          .filter(f => f.endsWith('.json'))
+          .map(f => ({
+            name: f,
+            path: path.join(composerDir, f),
+            mtime: fs.statSync(path.join(composerDir, f)).mtime.getTime()
+          }))
+          .sort((a, b) => b.mtime - a.mtime);
+
+        if (files.length > 0) {
+          return {
+            provider: 'Cursor',
+            sessionId: files[0].name.replace('.json', ''),
+            sessionPath: files[0].path
+          };
+        }
+      }
+    } catch {
+      // Ignore errors
+    }
+
+    return {
+      provider: 'Cursor',
+      sessionId: null,
+      sessionPath: null
+    };
+  }
+
   return null;
 }
 
@@ -114,14 +150,125 @@ function detectWindsurf(): AIProviderInfo | null {
 }
 
 /**
+ * Detect Aider (AI pair programming)
+ */
+function detectAider(projectPath: string): AIProviderInfo | null {
+  // Check for .aider directory or recent aider chat history
+  const aiderDir = path.join(projectPath, '.aider');
+  const aiderHistory = path.join(projectPath, '.aider.chat.history.md');
+
+  if (fs.existsSync(aiderDir) || fs.existsSync(aiderHistory)) {
+    // Check for recent modifications
+    try {
+      const historyPath = fs.existsSync(aiderHistory) ? aiderHistory : null;
+      if (historyPath) {
+        const stat = fs.statSync(historyPath);
+        const hourAgo = Date.now() - (60 * 60 * 1000);
+        if (stat.mtime.getTime() > hourAgo) {
+          return {
+            provider: 'Aider',
+            sessionId: null,
+            sessionPath: historyPath
+          };
+        }
+      }
+    } catch {
+      // Ignore errors
+    }
+
+    return {
+      provider: 'Aider',
+      sessionId: null,
+      sessionPath: null
+    };
+  }
+
+  // Check for AIDER env vars
+  if (process.env.AIDER_MODEL || process.env.AIDER_API_KEY) {
+    return {
+      provider: 'Aider',
+      sessionId: null,
+      sessionPath: null
+    };
+  }
+
+  return null;
+}
+
+/**
+ * Detect Cody (Sourcegraph)
+ */
+function detectCody(): AIProviderInfo | null {
+  // Cody sets specific env vars
+  if (process.env.CODY_API_ENDPOINT || process.env.SRC_ACCESS_TOKEN) {
+    return {
+      provider: 'Cody (Sourcegraph)',
+      sessionId: null,
+      sessionPath: null
+    };
+  }
+  return null;
+}
+
+/**
+ * Detect Continue.dev
+ */
+function detectContinue(projectPath: string): AIProviderInfo | null {
+  // Check for .continue directory
+  const continueDir = path.join(projectPath, '.continue');
+  const globalContinue = path.join(os.homedir(), '.continue');
+
+  if (fs.existsSync(continueDir) || fs.existsSync(globalContinue)) {
+    // Try to find session files
+    const searchDir = fs.existsSync(continueDir) ? continueDir : globalContinue;
+    try {
+      const sessionsDir = path.join(searchDir, 'sessions');
+      if (fs.existsSync(sessionsDir)) {
+        const files = fs.readdirSync(sessionsDir)
+          .filter(f => f.endsWith('.json'))
+          .map(f => ({
+            name: f,
+            path: path.join(sessionsDir, f),
+            mtime: fs.statSync(path.join(sessionsDir, f)).mtime.getTime()
+          }))
+          .sort((a, b) => b.mtime - a.mtime);
+
+        if (files.length > 0) {
+          return {
+            provider: 'Continue',
+            sessionId: files[0].name.replace('.json', ''),
+            sessionPath: files[0].path
+          };
+        }
+      }
+    } catch {
+      // Ignore errors
+    }
+
+    return {
+      provider: 'Continue',
+      sessionId: null,
+      sessionPath: null
+    };
+  }
+
+  return null;
+}
+
+/**
  * Detect the AI provider being used for the current session
  */
 export function detectAIProvider(projectPath: string = '.'): AIProviderInfo {
+  const absolutePath = path.resolve(projectPath);
+
   // Try each provider in order of specificity
   const detectors = [
-    () => detectClaudeCode(projectPath),
-    detectCursor,
+    () => detectClaudeCode(absolutePath),
+    () => detectCursor(absolutePath),
     detectWindsurf,
+    () => detectAider(absolutePath),
+    () => detectContinue(absolutePath),
+    detectCody,
     detectCopilot,
   ];
 

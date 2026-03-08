@@ -300,9 +300,10 @@ const CORS_PATTERNS: SecurityPattern[] = [
 // ============================================================================
 const DATA_EXPOSURE_PATTERNS: SecurityPattern[] = [
   // Logging sensitive data
+  // Note: Excludes common false positives like "totalTokens", "tokenCount" (LLM usage metrics)
   {
     name: 'Log Password',
-    pattern: /console\.(?:log|info|debug)\s*\([^)]*(?:password|passwd|pwd|secret|token|apiKey)/gi,
+    pattern: /console\.(?:log|info|debug)\s*\([^)]*(?:password|passwd|pwd|(?<!total|input|output|estimated|num|max|min)secret|(?<![a-zA-Z])token(?![sC])|apiKey)/gi,
     message: 'Logging sensitive data (password/secret/token)',
     severity: 'error',
     suggestion: 'Never log sensitive information',

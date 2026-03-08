@@ -7,6 +7,7 @@
 export {
   type AfterburnerConfig,
   type RuleConfig,
+  type CustomRuleDefinition,
   DEFAULT_CONFIG,
   CONFIG_FILE_NAMES,
   validateConfig,
