@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import Link from 'next/link';
 import {
   FileText,
   AlertTriangle,
@@ -8,7 +9,13 @@ import {
   TrendingUp,
   Clock,
   GitCommit,
+  ArrowRight,
+  Code,
+  Package,
 } from 'lucide-react';
+import IssuesTrendChart from '@/components/charts/IssuesTrendChart';
+import RuleDistributionChart from '@/components/charts/RuleDistributionChart';
+import ActivityChart from '@/components/charts/ActivityChart';
 
 interface ReportWithProject {
   id: string;
@@ -16,16 +23,32 @@ interface ReportWithProject {
   errorCount: number;
   warningCount: number;
   commitCount: number;
+  filesChanged: number;
+  linesAdded: number;
+  linesRemoved: number;
   project: { name: string } | null;
 }
 
-async function getStats(userId: string): Promise<{
-  recentReports: ReportWithProject[];
-  totalReports: number;
-  totalErrors: number;
-  totalWarnings: number;
-}> {
-  const [recentReports, totalReports, totalErrors, totalWarnings] = await Promise.all([
+interface FullReport {
+  findings?: Array<{ ruleId: string }>;
+}
+
+async function getStats(userId: string) {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+  const sevenDaysAgo = new Date();
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  const [
+    recentReports,
+    totalReports,
+    totalErrors,
+    totalWarnings,
+    reportsThisWeek,
+    linesChanged,
+    trendData,
+  ] = await Promise.all([
     prisma.report.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
@@ -43,13 +66,101 @@ async function getStats(userId: string): Promise<{
       where: { userId },
       _sum: { warningCount: true },
     }),
+    prisma.report.count({
+      where: {
+        userId,
+        createdAt: { gte: sevenDaysAgo },
+      },
+    }),
+    prisma.report.aggregate({
+      where: { userId },
+      _sum: { linesAdded: true, linesRemoved: true },
+    }),
+    prisma.report.findMany({
+      where: {
+        userId,
+        createdAt: { gte: thirtyDaysAgo },
+      },
+      select: {
+        createdAt: true,
+        errorCount: true,
+        warningCount: true,
+        filesChanged: true,
+        fullReport: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    }),
   ]);
 
+  // Group trend data by date
+  const trendByDate = new Map<string, { errors: number; warnings: number; reports: number }>();
+  for (const report of trendData) {
+    const date = report.createdAt.toISOString().split('T')[0];
+    const existing = trendByDate.get(date) ?? { errors: 0, warnings: 0, reports: 0 };
+    trendByDate.set(date, {
+      errors: existing.errors + report.errorCount,
+      warnings: existing.warnings + report.warningCount,
+      reports: existing.reports + 1,
+    });
+  }
+
+  const issuesTrend = Array.from(trendByDate.entries()).map(([date, data]) => ({
+    date,
+    errors: data.errors,
+    warnings: data.warnings,
+  }));
+
+  const activityData = Array.from(trendByDate.entries()).map(([date, data]) => ({
+    date,
+    reports: data.reports,
+    filesChanged: 0, // Would need to aggregate
+  }));
+
+  // Count rule violations
+  const ruleCounts = new Map<string, number>();
+  for (const report of trendData) {
+    const fullReport = report.fullReport as FullReport;
+    if (fullReport?.findings) {
+      for (const finding of fullReport.findings) {
+        const count = ruleCounts.get(finding.ruleId) ?? 0;
+        ruleCounts.set(finding.ruleId, count + 1);
+      }
+    }
+  }
+
+  const ruleColors: Record<string, string> = {
+    AB001: '#EF4444', // Credentials - red
+    AB002: '#F59E0B', // Error swallowing - yellow
+    AB003: '#3B82F6', // Type assertions - blue
+    AB004: '#8B5CF6', // Duplicate logic - purple
+    AB005: '#EC4899', // Null checks - pink
+    AB006: '#06B6D4', // Hardcoded config - cyan
+    AB007: '#DC2626', // Security - dark red
+    AB008: '#10B981', // Over abstraction - green
+    AB009: '#6366F1', // Timeouts - indigo
+    AB010: '#F97316', // AI TODOs - orange
+  };
+
+  const ruleDistribution = Array.from(ruleCounts.entries())
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 6)
+    .map(([name, value]) => ({
+      name,
+      value,
+      color: ruleColors[name] ?? '#6B7280',
+    }));
+
   return {
-    recentReports,
+    recentReports: recentReports as ReportWithProject[],
     totalReports,
     totalErrors: totalErrors._sum.errorCount ?? 0,
     totalWarnings: totalWarnings._sum.warningCount ?? 0,
+    reportsThisWeek,
+    totalLinesAdded: linesChanged._sum.linesAdded ?? 0,
+    totalLinesRemoved: linesChanged._sum.linesRemoved ?? 0,
+    issuesTrend,
+    activityData,
+    ruleDistribution,
   };
 }
 
@@ -86,18 +197,90 @@ export default async function DashboardPage() {
         />
         <StatCard
           title="This Week"
-          value={stats.recentReports.length}
+          value={stats.reportsThisWeek}
           icon={TrendingUp}
           color="green"
         />
       </div>
 
+      {/* Additional Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-green-100 dark:bg-green-900/30 rounded-lg">
+              <Code className="w-6 h-6 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Lines Added</p>
+              <p className="text-2xl font-bold text-green-600">+{stats.totalLinesAdded.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-lg">
+              <Code className="w-6 h-6 text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Lines Removed</p>
+              <p className="text-2xl font-bold text-red-600">-{stats.totalLinesRemoved.toLocaleString()}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+              <Package className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Net Change</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {(stats.totalLinesAdded - stats.totalLinesRemoved).toLocaleString()}
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Charts Row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Issues Trend */}
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Issues Trend (30 days)
+          </h2>
+          <IssuesTrendChart data={stats.issuesTrend} />
+        </div>
+
+        {/* Rule Distribution */}
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+            Top Rule Violations
+          </h2>
+          <RuleDistributionChart data={stats.ruleDistribution} />
+        </div>
+      </div>
+
+      {/* Activity Chart */}
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+          Activity (30 days)
+        </h2>
+        <ActivityChart data={stats.activityData} />
+      </div>
+
       {/* Recent Reports */}
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             Recent Reports
           </h2>
+          <Link
+            href="/dashboard/reports"
+            className="text-sm text-orange-600 hover:text-orange-500 flex items-center gap-1"
+          >
+            View all <ArrowRight className="w-4 h-4" />
+          </Link>
         </div>
 
         {stats.recentReports.length === 0 ? (
@@ -119,7 +302,11 @@ export default async function DashboardPage() {
         ) : (
           <div className="divide-y divide-gray-200 dark:divide-gray-800">
             {stats.recentReports.map((report) => (
-              <div key={report.id} className="px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+              <Link
+                key={report.id}
+                href={`/dashboard/reports/${report.id}`}
+                className="block px-6 py-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <h3 className="font-medium text-gray-900 dark:text-white">
@@ -133,6 +320,9 @@ export default async function DashboardPage() {
                       <span className="flex items-center gap-1">
                         <GitCommit className="w-4 h-4" />
                         {report.commitCount} commits
+                      </span>
+                      <span>
+                        {report.filesChanged} files
                       </span>
                     </div>
                   </div>
@@ -149,9 +339,12 @@ export default async function DashboardPage() {
                         {report.warningCount}
                       </span>
                     )}
+                    {report.errorCount === 0 && report.warningCount === 0 && (
+                      <span className="text-green-600 dark:text-green-400 text-sm">Clean</span>
+                    )}
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}
