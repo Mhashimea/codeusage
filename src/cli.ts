@@ -78,6 +78,77 @@ function filterIgnoredFiles<T extends { path: string }>(files: T[], ignorePatter
   });
 }
 
+/**
+ * Format LLM error with helpful suggestions
+ */
+function formatLLMError(error: unknown): { message: string; suggestion?: string } {
+  if (error && typeof error === 'object' && 'code' in error) {
+    const llmError = error as { code: string; message: string };
+
+    switch (llmError.code) {
+      case 'NETWORK_ERROR':
+        return {
+          message: 'Network connection failed',
+          suggestion: 'Check your internet connection and try again',
+        };
+      case 'TIMEOUT':
+        return {
+          message: 'Request timed out',
+          suggestion: 'The LLM service is slow. Try again or use a faster model',
+        };
+      case 'RATE_LIMITED':
+        return {
+          message: 'Rate limit exceeded',
+          suggestion: 'Wait a moment and try again, or check your API quota',
+        };
+      case 'INVALID_API_KEY':
+        return {
+          message: 'Invalid API key',
+          suggestion: 'Check your API key in .afterburnrc or environment variables',
+        };
+      case 'INSUFFICIENT_QUOTA':
+        return {
+          message: 'API quota exceeded',
+          suggestion: 'Check your billing/quota at your LLM provider dashboard',
+        };
+      case 'MODEL_NOT_FOUND':
+        return {
+          message: 'Model not found',
+          suggestion: 'Check the model name in your configuration',
+        };
+      case 'CONTEXT_LENGTH_EXCEEDED':
+        return {
+          message: 'Input too long for model',
+          suggestion: 'Try a shorter time window or more ignore patterns',
+        };
+      default:
+        return {
+          message: llmError.message || 'Unknown LLM error',
+        };
+    }
+  }
+
+  // Handle standard Error objects
+  if (error instanceof Error) {
+    // Check for common network errors
+    if (error.message.includes('fetch failed') || error.message.includes('ENOTFOUND')) {
+      return {
+        message: 'Network connection failed',
+        suggestion: 'Check your internet connection and try again',
+      };
+    }
+    if (error.message.includes('timeout') || error.message.includes('ETIMEDOUT')) {
+      return {
+        message: 'Request timed out',
+        suggestion: 'The LLM service is slow. Try again later',
+      };
+    }
+    return { message: error.message };
+  }
+
+  return { message: 'Unknown error occurred' };
+}
+
 interface AnalyzeOptions {
   explain?: boolean;
   yes?: boolean;  // Auto-confirm LLM cost
@@ -435,7 +506,13 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
     if (!isRepo) {
       spinner?.fail('Not a git repository');
       if (!quiet) {
-        console.error(chalk.red(`Error: ${absolutePath} is not a git repository`));
+        console.error(chalk.red(`\n❌ Error: ${absolutePath} is not a git repository\n`));
+        console.log(chalk.gray('Afterburn requires a git repository to track changes.'));
+        console.log();
+        console.log(chalk.gray('To initialize a git repository:'));
+        console.log(chalk.white(`  cd ${absolutePath}`));
+        console.log(chalk.white('  git init'));
+        console.log();
       }
       process.exit(2);
     }
@@ -447,9 +524,16 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
     // Load configuration
     const { config, configPath, errors: configErrors } = await loadConfig(absolutePath);
     if (configErrors.length > 0 && !quiet) {
+      spinner?.stop();
+      console.log();
+      console.log(chalk.yellow('⚠️  Configuration issues detected:'));
       for (const err of configErrors) {
-        console.warn(chalk.yellow(`Config warning: ${err}`));
+        console.log(chalk.yellow(`   • ${err}`));
       }
+      console.log(chalk.gray('\n   Using default configuration. Fix the issues above or run:'));
+      console.log(chalk.white('   afterburn init'));
+      console.log();
+      spinner?.start();
     }
     if (configPath && options.verbose) {
       console.log(chalk.gray(`Using config: ${configPath}`));
@@ -470,6 +554,34 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       diff.stats.filesChanged = diff.files.length;
       diff.stats.insertions = diff.files.reduce((sum, f) => sum + f.additions, 0);
       diff.stats.deletions = diff.files.reduce((sum, f) => sum + f.deletions, 0);
+    }
+
+    // Handle empty sessions (no changes)
+    if (diff.files.length === 0 && diff.commits.length === 0) {
+      spinner?.succeed('No changes detected');
+      if (!quiet && !jsonOutput) {
+        console.log();
+        console.log(chalk.yellow('📭 No changes found in the specified time window.'));
+        console.log();
+        console.log(chalk.gray('Tips:'));
+        console.log(chalk.gray(`  • Try a longer time window: ${chalk.white('--since "1 day ago"')}`));
+        console.log(chalk.gray(`  • Check if you have uncommitted changes: ${chalk.white('git status')}`));
+        console.log(chalk.gray(`  • Make sure you're in the right directory`));
+        console.log();
+      }
+      if (jsonOutput) {
+        console.log(JSON.stringify({ status: 'empty', message: 'No changes found' }));
+      }
+      process.exit(0);
+    }
+
+    // Warn about large diffs (>100 files)
+    const isLargeDiff = diff.files.length > 100;
+    if (isLargeDiff && !quiet && !jsonOutput) {
+      spinner?.warn(`Large session detected: ${diff.files.length} files`);
+      console.log(chalk.yellow(`⚠️  Analyzing ${diff.files.length} files may take longer and use more LLM tokens.`));
+      console.log(chalk.gray(`   Consider using a shorter time window or more specific ignore patterns.`));
+      spinner?.start();
     }
 
     if (spinner) {
@@ -649,11 +761,14 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
                 spinner.text = `AI analysis complete (${formatCost(llmAnalysis.usage.estimatedCost)})`;
               }
             } catch (error) {
-              const errMsg = error instanceof Error ? error.message : 'Unknown error';
+              const { message, suggestion } = formatLLMError(error);
               if (spinner) {
-                spinner.warn(`LLM analysis failed: ${errMsg}`);
+                spinner.warn(`LLM analysis failed: ${message}`);
               } else if (!quiet && !jsonOutput) {
-                console.warn(chalk.yellow(`⚠️  LLM analysis failed: ${errMsg}`));
+                console.warn(chalk.yellow(`⚠️  LLM analysis failed: ${message}`));
+              }
+              if (suggestion && !quiet && !jsonOutput) {
+                console.log(chalk.gray(`   💡 ${suggestion}`));
               }
             }
           }
@@ -687,11 +802,14 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
               spinner.text = `AI analysis complete (${formatCost(llmAnalysis.usage.estimatedCost)})`;
             }
           } catch (error) {
-            const errMsg = error instanceof Error ? error.message : 'Unknown error';
+            const { message, suggestion } = formatLLMError(error);
             if (spinner) {
-              spinner.warn(`LLM analysis failed: ${errMsg}`);
+              spinner.warn(`LLM analysis failed: ${message}`);
             } else if (!quiet && !jsonOutput) {
-              console.warn(chalk.yellow(`⚠️  LLM analysis failed: ${errMsg}`));
+              console.warn(chalk.yellow(`⚠️  LLM analysis failed: ${message}`));
+            }
+            if (suggestion && !quiet && !jsonOutput) {
+              console.log(chalk.gray(`   💡 ${suggestion}`));
             }
           }
         }
