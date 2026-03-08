@@ -163,6 +163,78 @@ interface AnalyzeOptions {
   failOnWarnings?: boolean;
   maxErrors?: number;
   stagedOnly?: boolean;
+  sync?: boolean;  // Sync report to dashboard
+}
+
+/**
+ * Sync report to dashboard
+ */
+async function syncToDashboard(
+  reportData: {
+    projectName: string;
+    sessionDuration: number;
+    analyzedAt: Date;
+    since: string;
+    filesChanged: number;
+    linesAdded: number;
+    linesRemoved: number;
+    commitCount: number;
+    errorCount: number;
+    warningCount: number;
+    infoCount: number;
+    verifiedDeps: number;
+    warningDeps: number;
+    hallucinatedDeps: number;
+    aiProvider?: string;
+    llmSummary?: string;
+    llmChangelog?: string;
+    llmAdr?: string;
+    llmTokens?: number;
+    llmCost?: number;
+    llmModel?: string;
+    fullReport: unknown;
+  },
+  config: { dashboardUrl?: string; licenseKey?: string }
+): Promise<{ success: boolean; reportId?: string; error?: string }> {
+  const dashboardUrl = config.dashboardUrl ?? 'https://afterburn.dev';
+  const licenseKey = config.licenseKey ?? process.env.AFTERBURN_LICENSE_KEY;
+
+  if (!licenseKey) {
+    return {
+      success: false,
+      error: 'No license key configured. Set AFTERBURN_LICENSE_KEY or add licenseKey to .afterburnrc',
+    };
+  }
+
+  try {
+    const response = await fetch(`${dashboardUrl}/api/reports`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-License-Key': licenseKey,
+      },
+      body: JSON.stringify(reportData),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ error: 'Unknown error' })) as { error?: string };
+      return {
+        success: false,
+        error: errorData.error ?? `HTTP ${response.status}`,
+      };
+    }
+
+    const result = await response.json() as { reportId?: string };
+    return {
+      success: true,
+      reportId: result.reportId,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Network error',
+    };
+  }
 }
 
 /**
@@ -893,6 +965,59 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       console.log(chalk.green(`\n📄 Report saved to: ${reportPath}\n`));
     }
 
+    // Sync to dashboard if requested
+    if (options.sync) {
+      const syncSpinner = !quiet && !jsonOutput
+        ? ora({ text: 'Syncing to dashboard...', color: 'cyan' }).start()
+        : null;
+
+      const syncResult = await syncToDashboard(
+        {
+          projectName: path.basename(absolutePath),
+          sessionDuration: duration,
+          analyzedAt: new Date(),
+          since,
+          filesChanged: diff.stats.filesChanged,
+          linesAdded: diff.stats.insertions,
+          linesRemoved: diff.stats.deletions,
+          commitCount: diff.stats.commitCount,
+          errorCount: summary.errors,
+          warningCount: summary.warnings,
+          infoCount: summary.info,
+          verifiedDeps: auditResult?.summary.verified ?? 0,
+          warningDeps: auditResult?.summary.warnings ?? 0,
+          hallucinatedDeps: auditResult?.summary.hallucinated ?? 0,
+          aiProvider: aiProvider.provider ?? undefined,
+          llmSummary: llmAnalysis?.summary,
+          llmChangelog: llmAnalysis?.changelog,
+          llmAdr: llmAnalysis?.architectureDecisions,
+          llmTokens: llmAnalysis?.usage.totalTokens,
+          llmCost: llmAnalysis?.usage.estimatedCost,
+          llmModel: config.llm?.model,
+          fullReport: {
+            stats: diff.stats,
+            commits: diff.commits,
+            files: diff.files,
+            findings: sortedFindings,
+            dependencies: auditResult?.dependencies,
+          },
+        },
+        {
+          dashboardUrl: (config as { dashboardUrl?: string }).dashboardUrl,
+          licenseKey: (config as { licenseKey?: string }).licenseKey,
+        }
+      );
+
+      if (syncResult.success) {
+        syncSpinner?.succeed(`Synced to dashboard (ID: ${syncResult.reportId})`);
+      } else {
+        syncSpinner?.warn(`Sync failed: ${syncResult.error}`);
+        if (!quiet && !jsonOutput) {
+          console.log(chalk.gray('  Tip: Set AFTERBURN_LICENSE_KEY or run `afterburn config set licenseKey YOUR_KEY`'));
+        }
+      }
+    }
+
     // Output results
     if (jsonOutput) {
       displayJsonOutput(diff, sortedFindings, auditResult, duration, {
@@ -974,6 +1099,7 @@ program
   .option('--fail-on-warnings', 'Fail CI if warnings are found')
   .option('--max-errors <n>', 'Maximum allowed errors before failing (default: 0)', parseInt)
   .option('--staged-only', 'Analyze only staged changes (for pre-commit hooks)')
+  .option('--sync', 'Sync report to Afterburn dashboard')
   .option('--verbose', 'Show verbose output including errors')
   .option('--quiet', 'Suppress all output except errors')
   .option('--no-color', 'Disable colored output (for CI environments)')
@@ -1632,6 +1758,7 @@ program
   .option('--fail-on-warnings', 'Fail CI if warnings are found')
   .option('--max-errors <n>', 'Maximum allowed errors', parseInt)
   .option('--staged-only', 'Analyze only staged changes')
+  .option('--sync', 'Sync report to dashboard')
   .option('--verbose', 'Show verbose output')
   .option('--quiet', 'Suppress output')
   .option('--no-color', 'Disable colored output')
