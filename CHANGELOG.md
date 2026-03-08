@@ -5,6 +5,40 @@ All notable changes to Afterburn will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Interactive Init Mode** - `afterburn init` now auto-detects project type
+  - Detects Node.js, Python, Go, Rust, and mixed projects
+  - Identifies frameworks (React, Vue, Next.js, Express, NestJS, Django)
+  - Interactive prompts for strictness level and session window
+  - Option to auto-add `.afterburn/` to `.gitignore`
+- **Watch Mode** - `afterburn watch` for continuous monitoring
+  - Real-time file change detection with debounce
+  - Automatic re-analysis on save
+- **Pre-commit Hook Integration** - `afterburn hook install/uninstall`
+  - Seamless git hook setup
+  - Blocks commits with critical issues
+- **Custom Rules** - Define project-specific rules in `.afterburnrc`
+  - Regex-based pattern matching
+  - Custom severity and file filters
+- **Config Validation** - Helpful error messages for invalid configuration
+- **Enhanced AI Tool Detection**
+  - Cursor detection (`.cursor` directory, composer sessions)
+  - Aider detection (`.aider` directory, chat history)
+  - Continue detection (`.continue` directory)
+  - Cody detection (environment variables)
+- **Integration Tests** - Comprehensive test suite for all 10 rules
+- **Performance Optimizations**
+  - Parallel file reading with concurrency limit
+  - Rule execution caching by file extension
+  - Progress reporting for large sessions
+
+### Fixed
+
+- False positive "logging sensitive data" warnings for token count variables
+
 ## [0.2.0] - 2026-03-07
 
 ### Added
@@ -93,6 +127,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+[Unreleased]: https://github.com/Mhashimea/afterburn/compare/v0.2.0...HEAD
 [0.2.0]: https://github.com/Mhashimea/afterburn/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Mhashimea/afterburn/compare/v0.1.0-beta...v0.1.0
 [0.1.0-beta]: https://github.com/Mhashimea/afterburn/releases/tag/v0.1.0-beta

@@ -981,13 +981,93 @@ program
     await runAnalyze(targetPath, options);
   });
 
+// Project type detection
+interface ProjectInfo {
+  type: 'node' | 'python' | 'go' | 'rust' | 'mixed' | 'unknown';
+  frameworks: string[];
+  hasTests: boolean;
+}
+
+function detectProjectType(cwd: string): ProjectInfo {
+  const info: ProjectInfo = { type: 'unknown', frameworks: [], hasTests: false };
+
+  // Node.js detection
+  const hasPackageJson = fs.existsSync(path.join(cwd, 'package.json'));
+  if (hasPackageJson) {
+    info.type = 'node';
+    try {
+      const pkg = JSON.parse(fs.readFileSync(path.join(cwd, 'package.json'), 'utf-8'));
+      const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+      if (deps.react || deps['react-dom']) info.frameworks.push('React');
+      if (deps.vue) info.frameworks.push('Vue');
+      if (deps.next) info.frameworks.push('Next.js');
+      if (deps.express) info.frameworks.push('Express');
+      if (deps.nestjs || deps['@nestjs/core']) info.frameworks.push('NestJS');
+      if (deps.jest || deps.vitest || deps.mocha) info.hasTests = true;
+    } catch { /* ignore */ }
+  }
+
+  // Python detection
+  const hasRequirements = fs.existsSync(path.join(cwd, 'requirements.txt'));
+  const hasPyproject = fs.existsSync(path.join(cwd, 'pyproject.toml'));
+  const hasSetupPy = fs.existsSync(path.join(cwd, 'setup.py'));
+  if (hasRequirements || hasPyproject || hasSetupPy) {
+    info.type = hasPackageJson ? 'mixed' : 'python';
+    if (fs.existsSync(path.join(cwd, 'django')) || fs.existsSync(path.join(cwd, 'manage.py'))) {
+      info.frameworks.push('Django');
+    }
+    if (fs.existsSync(path.join(cwd, 'tests')) || fs.existsSync(path.join(cwd, 'test'))) {
+      info.hasTests = true;
+    }
+  }
+
+  // Go detection
+  const hasGoMod = fs.existsSync(path.join(cwd, 'go.mod'));
+  if (hasGoMod) {
+    info.type = info.type === 'unknown' ? 'go' : 'mixed';
+  }
+
+  // Rust detection
+  const hasCargoToml = fs.existsSync(path.join(cwd, 'Cargo.toml'));
+  if (hasCargoToml) {
+    info.type = info.type === 'unknown' ? 'rust' : 'mixed';
+  }
+
+  return info;
+}
+
+// Interactive prompt helper
+async function prompt(question: string, defaultValue?: string): Promise<string> {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise((resolve) => {
+    const q = defaultValue ? `${question} [${defaultValue}]: ` : `${question}: `;
+    rl.question(q, (answer) => {
+      rl.close();
+      resolve(answer.trim() || defaultValue || '');
+    });
+  });
+}
+
+async function promptChoice(question: string, choices: string[], defaultIdx = 0): Promise<string> {
+  console.log(chalk.cyan(question));
+  choices.forEach((c, i) => {
+    const marker = i === defaultIdx ? chalk.green('→') : ' ';
+    console.log(`  ${marker} ${i + 1}. ${c}`);
+  });
+  const answer = await prompt(`Enter choice (1-${choices.length})`, String(defaultIdx + 1));
+  const idx = parseInt(answer, 10) - 1;
+  return choices[idx >= 0 && idx < choices.length ? idx : defaultIdx];
+}
+
 // Init command
 program
   .command('init')
   .description('Create a .afterburnrc configuration file')
   .option('--force', 'Overwrite existing config file')
   .option('--format <format>', 'Config format: json or js', 'json')
-  .action((options: { force?: boolean; format?: string }) => {
+  .option('-i, --interactive', 'Interactive mode with prompts')
+  .option('-y, --yes', 'Accept all defaults (non-interactive)')
+  .action(async (options: { force?: boolean; format?: string; interactive?: boolean; yes?: boolean }) => {
     const cwd = process.cwd();
     const existingConfig = findConfigFile(cwd);
 
@@ -998,15 +1078,19 @@ program
     }
 
     // Detect project type
-    const hasPackageJson = fs.existsSync(path.join(cwd, 'package.json'));
-    const hasRequirements = fs.existsSync(path.join(cwd, 'requirements.txt'));
-    const hasPyproject = fs.existsSync(path.join(cwd, 'pyproject.toml'));
+    const projectInfo = detectProjectType(cwd);
 
-    // Create initial config
+    console.log(chalk.cyan('\nAfterburn Configuration Setup\n'));
+    console.log(chalk.gray('Detected project:'));
+    console.log(chalk.white(`  Type: ${projectInfo.type}`));
+    if (projectInfo.frameworks.length > 0) {
+      console.log(chalk.white(`  Frameworks: ${projectInfo.frameworks.join(', ')}`));
+    }
+    console.log();
+
+    // Default config
     const config: Partial<AfterburnerConfig> = {
-      rules: {
-        // All rules enabled by default, user can customize
-      },
+      rules: {},
       ignore: [
         'node_modules/**',
         'dist/**',
@@ -1025,12 +1109,105 @@ program
       },
     };
 
-    // Add language-specific ignores
-    if (hasPackageJson) {
-      config.ignore?.push('package-lock.json', 'yarn.lock', 'pnpm-lock.yaml');
+    // Add language-specific ignores based on detected type
+    if (projectInfo.type === 'node' || projectInfo.type === 'mixed') {
+      config.ignore?.push('package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lock');
     }
-    if (hasRequirements || hasPyproject) {
-      config.ignore?.push('__pycache__/**', '*.pyc', '.venv/**', 'venv/**');
+    if (projectInfo.type === 'python' || projectInfo.type === 'mixed') {
+      config.ignore?.push('__pycache__/**', '*.pyc', '.venv/**', 'venv/**', '*.egg-info/**');
+    }
+    if (projectInfo.type === 'go') {
+      config.ignore?.push('vendor/**');
+    }
+    if (projectInfo.type === 'rust') {
+      config.ignore?.push('target/**', 'Cargo.lock');
+    }
+
+    // Interactive mode
+    if (options.interactive && !options.yes) {
+      // Strictness level
+      const strictness = await promptChoice(
+        'Choose strictness level:',
+        ['Relaxed (info only)', 'Standard (warnings + errors)', 'Strict (all errors)'],
+        1
+      );
+
+      if (strictness.includes('Relaxed')) {
+        config.rules = {
+          AB001: 'error',  // Credentials always error
+          AB002: 'info',
+          AB003: 'info',
+          AB004: 'info',
+          AB005: 'info',
+          AB006: 'info',
+          AB007: 'error',  // Security always error
+          AB008: 'info',
+          AB009: 'info',
+          AB010: 'info',
+        };
+      } else if (strictness.includes('Strict')) {
+        config.rules = {
+          AB001: 'error',
+          AB002: 'error',
+          AB003: 'error',
+          AB004: 'warn',
+          AB005: 'error',
+          AB006: 'warn',
+          AB007: 'error',
+          AB008: 'warn',
+          AB009: 'warn',
+          AB010: 'warn',
+        };
+      }
+      // Standard uses defaults
+
+      // Session window
+      console.log();
+      const window = await prompt('Session time window', '4h');
+      config.session = { ...config.session, window };
+
+      // LLM provider
+      console.log();
+      const useLLM = await prompt('Configure LLM for AI summaries? (y/n)', 'n');
+      if (useLLM.toLowerCase() === 'y') {
+        const provider = await promptChoice(
+          'Choose LLM provider:',
+          ['OpenRouter (recommended)', 'OpenAI', 'Anthropic', 'Ollama (local)'],
+          0
+        );
+
+        const providerMap: Record<string, string> = {
+          'OpenRouter (recommended)': 'openrouter',
+          'OpenAI': 'openai',
+          'Anthropic': 'anthropic',
+          'Ollama (local)': 'ollama',
+        };
+
+        const modelDefaults: Record<string, string> = {
+          openrouter: 'openai/gpt-4o-mini',
+          openai: 'gpt-4o-mini',
+          anthropic: 'claude-sonnet-4-20250514',
+          ollama: 'llama3',
+        };
+
+        const envVars: Record<string, string> = {
+          openrouter: 'OPENROUTER_API_KEY',
+          openai: 'OPENAI_API_KEY',
+          anthropic: 'ANTHROPIC_API_KEY',
+          ollama: '',
+        };
+
+        const p = providerMap[provider];
+        config.llm = {
+          provider: p,
+          model: modelDefaults[p],
+          apiKey: envVars[p] ? `env:${envVars[p]}` : undefined,
+        };
+
+        if (envVars[p]) {
+          console.log(chalk.gray(`\n  Set ${envVars[p]} in your environment to enable LLM features.`));
+        }
+      }
     }
 
     // Determine file name and write
@@ -1039,6 +1216,7 @@ program
 
     writeConfigFile(configPath, config);
 
+    console.log();
     console.log(chalk.green(`✓ Created ${fileName}`));
     console.log();
     console.log(chalk.gray('Configuration options:'));
@@ -1047,18 +1225,28 @@ program
     console.log(chalk.gray('  session   - Session detection settings'));
     console.log(chalk.gray('  output    - Report output settings'));
     console.log();
-    console.log(chalk.gray('Example rule configuration:'));
-    console.log(chalk.cyan('  "rules": { "AB001": "error", "AB004": "off" }'));
-    console.log();
 
-    // Suggest adding to .gitignore
+    // Offer to add to .gitignore
     const gitignorePath = path.join(cwd, '.gitignore');
     if (fs.existsSync(gitignorePath)) {
       const gitignore = fs.readFileSync(gitignorePath, 'utf-8');
       if (!gitignore.includes('.afterburn')) {
-        console.log(chalk.yellow('Tip: Add .afterburn/ to your .gitignore'));
+        if (options.interactive && !options.yes) {
+          const addGitignore = await prompt('Add .afterburn/ to .gitignore? (y/n)', 'y');
+          if (addGitignore.toLowerCase() === 'y') {
+            fs.appendFileSync(gitignorePath, '\n# Afterburn reports\n.afterburn/\n');
+            console.log(chalk.green('✓ Added .afterburn/ to .gitignore'));
+          }
+        } else {
+          console.log(chalk.yellow('Tip: Add .afterburn/ to your .gitignore'));
+        }
       }
     }
+
+    console.log();
+    console.log(chalk.cyan('Next steps:'));
+    console.log(chalk.gray('  1. Run'), chalk.white('afterburn ./'), chalk.gray('to analyze your project'));
+    console.log(chalk.gray('  2. Run'), chalk.white('afterburn hook install'), chalk.gray('to add pre-commit hook'));
   });
 
 // Hook command
