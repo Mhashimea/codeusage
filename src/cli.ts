@@ -18,6 +18,7 @@ import chalk from 'chalk';
 import ora from 'ora';
 import path from 'path';
 import fs from 'fs';
+import dotenv from 'dotenv';
 import { getSessionDiff, isGitRepo, getFileContent, type GitDiff } from './git/index.js';
 import { formatDuration } from './utils/timespec.js';
 import { generateMarkdownReport } from './reporter/index.js';
@@ -45,6 +46,7 @@ import {
 } from './llm/index.js';
 import * as readline from 'readline';
 import chokidar from 'chokidar';
+import { startStudio } from './studio/server.js';
 
 /**
  * Convert glob-like pattern to regex
@@ -561,6 +563,35 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
   // Resolve absolute path
   const absolutePath = path.resolve(targetPath);
 
+  // Load .env file from target project directory (if exists)
+  const envPath = path.join(absolutePath, '.env');
+  const envExists = fs.existsSync(envPath);
+  if (envExists) {
+    dotenv.config({ path: envPath });
+  }
+
+  // Debug logger - writes to .afterburn/debug.log when --explain is used
+  const debugLogPath = path.join(absolutePath, '.afterburn', 'debug.log');
+  const debugLog = (msg: string) => {
+    if (options.explain) {
+      const timestamp = new Date().toISOString();
+      const logDir = path.dirname(debugLogPath);
+      if (!fs.existsSync(logDir)) {
+        fs.mkdirSync(logDir, { recursive: true });
+      }
+      fs.appendFileSync(debugLogPath, `[${timestamp}] ${msg}\n`);
+    }
+  };
+
+  // Log environment setup
+  debugLog(`=== New Analysis Run ===`);
+  debugLog(`CWD: ${process.cwd()}`);
+  debugLog(`Target path: ${absolutePath}`);
+  debugLog(`.env exists: ${envExists}`);
+  debugLog(`OPENROUTER_API_KEY in env: ${!!process.env.OPENROUTER_API_KEY}`);
+  debugLog(`ANTHROPIC_API_KEY in env: ${!!process.env.ANTHROPIC_API_KEY}`);
+  debugLog(`OPENAI_API_KEY in env: ${!!process.env.OPENAI_API_KEY}`);
+
   // Detect AI provider (Claude Code, Cursor, etc.)
   const aiProvider = detectAIProvider(absolutePath);
 
@@ -771,33 +802,57 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
 
     // LLM Analysis (if --explain flag is set)
     let llmAnalysis: LLMAnalysisResult | null = null;
+    let llmSkippedReason: string | undefined;
 
     if (options.explain) {
+      debugLog(`LLM analysis requested (--explain)`);
+
       // Check for LLM config - first from config file, then auto-detect from env vars
       let llmConfig = config.llm as LLMConfig | undefined;
       let resolvedApiKey = llmConfig?.apiKey ? resolveApiKey(llmConfig.apiKey) : undefined;
 
+      debugLog(`Config LLM: ${llmConfig ? JSON.stringify({ provider: llmConfig.provider, model: llmConfig.model, hasApiKey: !!llmConfig.apiKey }) : 'none'}`);
+      debugLog(`Config API key resolved: ${resolvedApiKey ? `yes (${resolvedApiKey.slice(0, 8)}...)` : 'no'}`);
+
+      // Debug logging for verbose mode
+      if (options.verbose) {
+        console.log(chalk.gray(`[DEBUG] LLM config from file: ${llmConfig ? JSON.stringify({ provider: llmConfig.provider, model: llmConfig.model, hasApiKey: !!llmConfig.apiKey }) : 'none'}`));
+        console.log(chalk.gray(`[DEBUG] Resolved API key: ${resolvedApiKey ? 'present (' + resolvedApiKey.slice(0, 8) + '...)' : 'missing'}`));
+      }
+
       // Auto-detect from environment variables if no config found
       if (!llmConfig || !resolvedApiKey) {
+        debugLog(`Auto-detecting from env vars...`);
         if (process.env.OPENROUTER_API_KEY) {
           llmConfig = { provider: 'openrouter', model: 'openai/gpt-4o-mini', apiKey: process.env.OPENROUTER_API_KEY };
           resolvedApiKey = process.env.OPENROUTER_API_KEY;
+          debugLog(`Found OPENROUTER_API_KEY in env`);
         } else if (process.env.ANTHROPIC_API_KEY) {
           llmConfig = { provider: 'anthropic', model: 'claude-sonnet-4-20250514', apiKey: process.env.ANTHROPIC_API_KEY };
           resolvedApiKey = process.env.ANTHROPIC_API_KEY;
+          debugLog(`Found ANTHROPIC_API_KEY in env`);
         } else if (process.env.OPENAI_API_KEY) {
           llmConfig = { provider: 'openai', model: 'gpt-4o-mini', apiKey: process.env.OPENAI_API_KEY };
           resolvedApiKey = process.env.OPENAI_API_KEY;
+          debugLog(`Found OPENAI_API_KEY in env`);
+        } else {
+          debugLog(`No API key found in env vars`);
         }
       }
 
       if (!llmConfig || !resolvedApiKey) {
+        llmSkippedReason = 'No API key configured';
+        debugLog(`SKIPPED: ${llmSkippedReason}`);
         if (spinner) {
           spinner.warn('LLM analysis skipped: No API key configured');
         } else if (!quiet && !jsonOutput) {
           console.warn(chalk.yellow('⚠️  --explain requires LLM configuration. Set llm.apiKey in .afterburnrc or OPENROUTER_API_KEY/ANTHROPIC_API_KEY/OPENAI_API_KEY env var'));
         }
+        if (options.verbose) {
+          console.log(chalk.gray(`[DEBUG] Environment vars: OPENROUTER=${!!process.env.OPENROUTER_API_KEY}, ANTHROPIC=${!!process.env.ANTHROPIC_API_KEY}, OPENAI=${!!process.env.OPENAI_API_KEY}`));
+        }
       } else {
+        debugLog(`Proceeding with LLM: provider=${llmConfig.provider}, model=${llmConfig.model}`);
         // Get diff content for LLM
         const diffContent = diff.files
           .filter(f => f.status !== 'deleted' && f.diff)
@@ -859,6 +914,7 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
               }
             } catch (error) {
               const { message, suggestion } = formatLLMError(error);
+              llmSkippedReason = `LLM failed: ${message}`;
               if (spinner) {
                 spinner.warn(`LLM analysis failed: ${message}`);
               } else if (!quiet && !jsonOutput) {
@@ -871,6 +927,7 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
           }
         } else {
           // Auto-confirm mode (CI, --yes, free model, etc.)
+          debugLog(`Auto-confirm mode - calling LLM...`);
           if (spinner) {
             spinner.text = 'Generating AI summary...';
           }
@@ -895,11 +952,15 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
               }
             );
 
+            debugLog(`SUCCESS: LLM analysis complete, tokens=${llmAnalysis.usage.totalTokens}, cost=${formatCost(llmAnalysis.usage.estimatedCost)}`);
             if (spinner) {
               spinner.text = `AI analysis complete (${formatCost(llmAnalysis.usage.estimatedCost)})`;
             }
           } catch (error) {
             const { message, suggestion } = formatLLMError(error);
+            llmSkippedReason = `LLM failed: ${message}`;
+            debugLog(`ERROR (auto-confirm): ${message}`);
+            debugLog(`Full error: ${error instanceof Error ? error.stack : String(error)}`);
             if (spinner) {
               spinner.warn(`LLM analysis failed: ${message}`);
             } else if (!quiet && !jsonOutput) {
@@ -911,6 +972,10 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
           }
         }
       }
+    } else if (options.explain) {
+      // --explain was passed but we got here without running LLM
+      // This shouldn't happen, but track it for debugging
+      llmSkippedReason = llmSkippedReason || 'Unknown reason (logic error)';
     }
 
     const duration = Date.now() - startTime;
@@ -957,6 +1022,7 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       since,
       aiProvider,
       llmAnalysis: llmAnalysis ?? undefined,
+      llmSkippedReason: options.explain ? llmSkippedReason : undefined,
     });
 
     fs.writeFileSync(reportPath, markdownReport, 'utf-8');
@@ -1746,6 +1812,29 @@ program
     });
   });
 
+// Studio command
+program
+  .command('studio')
+  .description('Launch Afterburn Studio - local dashboard to view session reports')
+  .option('-p, --port <port>', 'Port to run the server on', '3333')
+  .option('--path <path>', 'Path to project directory', './')
+  .action(async (options: { port?: string; path?: string }) => {
+    const projectPath = path.resolve(options.path ?? './');
+    const port = parseInt(options.port ?? '3333', 10);
+
+    // Check if .afterburn directory exists
+    const afterburnDir = path.join(projectPath, '.afterburn');
+    if (!fs.existsSync(afterburnDir)) {
+      console.log(chalk.yellow('\n📭 No .afterburn directory found.\n'));
+      console.log(chalk.gray('Run an analysis first to generate session reports:'));
+      console.log(chalk.white('  afterburn ./\n'));
+      process.exit(1);
+    }
+
+    console.log(chalk.cyan('\n🔥 Starting Afterburn Studio...\n'));
+    await startStudio(projectPath, port);
+  });
+
 // Default action: if path is provided without command, run analyze
 program
   .argument('[path]', 'Path to analyze')
@@ -1764,7 +1853,7 @@ program
   .option('--no-color', 'Disable colored output')
   .action(async (targetPath: string | undefined, options: AnalyzeOptions) => {
     // If a path is provided (and it's not a subcommand), run analyze
-    if (targetPath && !['analyze', 'init', 'config', 'watch', 'hook', 'help'].includes(targetPath)) {
+    if (targetPath && !['analyze', 'init', 'config', 'watch', 'hook', 'studio', 'help'].includes(targetPath)) {
       await runAnalyze(targetPath, options);
     } else if (!targetPath) {
       // No path provided, run analyze on current directory

@@ -4,12 +4,28 @@
 
 Afterburn analyzes your AI coding sessions and generates comprehensive reports with:
 
+- **Afterburn Studio** - Local dashboard to visualize all your sessions
 - **LLM-powered summaries** - Human-readable session analysis with changelogs
-- Session summaries with file changes and commit history
-- Static analysis for AI-specific anti-patterns (10 rules)
-- Hallucinated package detection via npm/PyPI registry verification
-- Multi-language support (TypeScript, JavaScript, Python)
-- CI/CD integration with configurable exit codes
+- **Session summaries** - File changes, commits, author tracking
+- **Static analysis** - 10 rules for AI-specific anti-patterns
+- **Hallucinated package detection** - npm/PyPI registry verification
+- **Multi-language support** - TypeScript, JavaScript, Python
+- **CI/CD integration** - Configurable exit codes
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Afterburn Studio](#afterburn-studio)
+- [Claude Code Integration](#claude-code-integration)
+- [Commands](#commands)
+- [Configuration](#configuration)
+- [Static Analysis Rules](#static-analysis-rules)
+- [LLM-Powered Analysis](#llm-powered-analysis)
+- [Dependency Audit](#dependency-audit)
+- [CI Integration](#ci-integration)
+
+---
 
 ## Installation
 
@@ -28,34 +44,96 @@ afterburn
 # Initialize configuration
 afterburn init
 
-# Run with CI mode
+# Run with AI-powered explanations
+afterburn --explain
+
+# Launch the local dashboard
+afterburn studio
+
+# Run in CI mode
 afterburn --ci
 ```
 
-## LLM-Powered Analysis
+---
 
-Generate human-readable summaries, changelogs, and architecture decision records using AI:
+## Afterburn Studio
+
+Afterburn Studio is a local dashboard to visualize all your AI coding sessions.
+
+### Launch Studio
 
 ```bash
-# Analyze with AI explanations
-afterburn --explain
+# Start Studio (default port 3333)
+afterburn studio
 
-# Auto-confirm cost (for scripts/CI)
-afterburn --explain --yes
+# Specify a custom port
+afterburn studio --port 8080
+
+# Specify project directory
+afterburn studio --path /path/to/project
 ```
 
-### Supported Providers
+### Features
 
-| Provider | Models | API Key Env Var |
-|----------|--------|-----------------|
-| Anthropic | Claude Sonnet, Opus, Haiku | `ANTHROPIC_API_KEY` |
-| OpenAI | GPT-4o, GPT-4o-mini | `OPENAI_API_KEY` |
-| OpenRouter | Any model via OpenRouter | `OPENROUTER_API_KEY` |
-| Ollama | Llama 3, Mistral, etc. | (none - local) |
+- **Session Browser** - View all sessions grouped by date
+- **AI Summary** - LLM-generated overview displayed prominently
+- **Health Score** - Visual indicator of code quality (0-100)
+- **Session Comparison** - Compare two sessions side-by-side
+- **Reports Dashboard** - Aggregate analytics with charts
+- **Hotspots** - Files/directories with most issues
+- **Author & Project Tracking** - Multi-user and multi-project support
+
+### Session Details
+
+Each session displays:
+- AI Summary (if `--explain` was used)
+- Health Score calculation
+- Files changed with line counts
+- Issues (errors, warnings, info)
+- Dependencies (verified vs hallucinated)
+- Full rendered markdown report
+
+### Multi-User Support
+
+Each session automatically captures:
+- **Author** - System username (macOS/Windows/Linux)
+- **Project** - Repository/folder name
+
+This is useful when multiple developers share a Claude Code license across projects.
+
+---
+
+## Claude Code Integration
+
+Afterburn works seamlessly with Claude Code via hooks.
+
+### Setup Automatic Analysis
+
+Add to your `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "afterburn ./ --explain -y"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+This automatically runs Afterburn with AI explanations after each Claude Code session.
 
 ### LLM Configuration
 
-Add to your `.afterburnrc`:
+For the `--explain` flag to work, add to your project's `.afterburnrc`:
 
 ```json
 {
@@ -67,40 +145,28 @@ Add to your `.afterburnrc`:
 }
 ```
 
-Or use environment variables directly:
-
-```bash
-export ANTHROPIC_API_KEY=sk-ant-...
-afterburn --explain
-```
-
-### What LLM Analysis Provides
-
-- **Session Summary** - 2-3 paragraph overview of what was accomplished
-- **Changelog** - Intent-based changelog grouped by purpose (Added/Changed/Fixed)
-- **Architecture Decisions** - Identifies technology choices and trade-offs
-
-### Cost Estimation
-
-Before making LLM calls, Afterburn shows estimated cost and asks for confirmation:
+Then add `OPENROUTER_API_KEY` to your `.env` file:
 
 ```
-📊 LLM Analysis Cost Estimate:
-   Model: openai/gpt-4o-mini
-   Input: ~2,500 tokens
-   Output: ~1,500 tokens
-   Estimated cost: <$0.01
-
-Proceed with LLM analysis? (y/N)
+OPENROUTER_API_KEY=sk-or-v1-your-key-here
 ```
 
-Use `--yes` or `-y` to skip confirmation (auto-confirms in CI mode).
+Afterburn automatically loads `.env` from the project directory.
 
-## Usage
+---
+
+## Commands
+
+### `afterburn [path]`
+
+Analyze a directory for AI coding session changes.
 
 ```bash
 # Analyze current directory
 afterburn ./
+
+# Analyze with AI explanations
+afterburn ./ --explain
 
 # Scope to recent changes
 afterburn ./ --since "2 hours ago"
@@ -109,43 +175,130 @@ afterburn ./ --since "30m"
 # Output to specific directory
 afterburn ./ --output ./reports/
 
-# CI mode (exits with error code on findings)
-afterburn ./ --ci
-
-# Fail on warnings too
-afterburn ./ --ci --fail-on-warnings
-
-# Allow up to 3 errors before failing
-afterburn ./ --ci --max-errors 3
-
-# JSON output for machine processing
+# JSON output
 afterburn ./ --json
 
-# Analyze only staged changes (for pre-commit hooks)
-afterburn ./ --staged-only
+# CI mode
+afterburn ./ --ci --fail-on-warnings
 ```
 
-## Configuration
+**Options:**
 
-Create a `.afterburnrc` file in your project root:
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--explain` | Include LLM-powered analysis | `false` |
+| `-y, --yes` | Auto-confirm LLM cost | `false` |
+| `--since <timespec>` | Scope to changes since timespec | `4h` |
+| `--output <path>` | Output path for report | `./` |
+| `--ci` | CI mode with exit codes | `false` |
+| `--fail-on-warnings` | Fail CI on warnings | `false` |
+| `--max-errors <n>` | Max allowed errors | `0` |
+| `--staged-only` | Analyze only staged changes | `false` |
+| `--json` | JSON output format | `false` |
+| `--verbose` | Show verbose output | `false` |
+| `--quiet` | Suppress output | `false` |
+| `--no-color` | Disable colors | `false` |
+
+### `afterburn init`
+
+Create a `.afterburnrc` configuration file.
 
 ```bash
 afterburn init
 ```
 
-Example configuration:
+### `afterburn studio`
+
+Launch the local dashboard.
+
+```bash
+afterburn studio
+afterburn studio --port 8080
+afterburn studio --path /path/to/project
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `--port <n>` | Port to run Studio on | `3333` |
+| `--path <dir>` | Project directory | `./` |
+
+### `afterburn watch`
+
+Watch for file changes and re-run analysis.
+
+```bash
+afterburn watch
+afterburn watch --since "1h"
+```
+
+### `afterburn config`
+
+Manage configuration.
+
+```bash
+# Show all config
+afterburn config list
+
+# Get a value
+afterburn config get rules.AB001
+
+# Set a value
+afterburn config set session.window "2h"
+
+# Set LLM provider
+afterburn config set-llm
+```
+
+### `afterburn hook`
+
+Manage git hooks.
+
+```bash
+# Install pre-commit hook
+afterburn hook install
+
+# Remove pre-commit hook
+afterburn hook uninstall
+```
+
+---
+
+## Configuration
+
+Create `.afterburnrc` in your project root:
+
+```bash
+afterburn init
+```
+
+### Full Configuration
 
 ```json
 {
   "rules": {
     "AB001": "error",
+    "AB002": "warn",
+    "AB003": "info",
     "AB004": "info",
-    "AB008": "off"
+    "AB005": "warn",
+    "AB006": "warn",
+    "AB007": "error",
+    "AB008": "off",
+    "AB009": "warn",
+    "AB010": "info"
   },
   "ignore": [
     "node_modules/**",
     "dist/**",
-    "**/*.test.ts"
+    "build/**",
+    "coverage/**",
+    ".git/**",
+    "*.min.js",
+    "package-lock.json",
+    "yarn.lock",
+    "pnpm-lock.yaml"
   ],
   "session": {
     "window": "4h",
@@ -155,12 +308,27 @@ Example configuration:
     "format": "markdown",
     "includeAIProvider": true
   },
+  "llm": {
+    "provider": "openrouter",
+    "model": "openai/gpt-4o-mini",
+    "apiKey": "env:OPENROUTER_API_KEY"
+  },
   "ci": {
     "failOnWarnings": false,
-    "maxErrors": 0
+    "maxErrors": 0,
+    "maxWarnings": 0
   }
 }
 ```
+
+### Config File Names
+
+Afterburn looks for these files (in order):
+1. `.afterburnrc`
+2. `.afterburnrc.json`
+3. `afterburn.config.json`
+4. `afterburn.config.js`
+5. `afterburn.config.mjs`
 
 ### Inline Disable Comments
 
@@ -173,54 +341,153 @@ const apiKey = "sk-1234567890";
 // afterburn-disable AB001, AB002
 // ... code block ...
 // afterburn-enable AB001, AB002
+
+// afterburn-disable-file AB003
 ```
+
+---
 
 ## Static Analysis Rules
 
-| Rule | Description | Default |
-|------|-------------|---------|
-| AB001 | Hardcoded credentials (API keys, passwords, tokens, secrets) | Error |
-| AB002 | Generic error swallowing (empty catch blocks) | Warning |
-| AB003 | Optimistic type assertions (`as any`, non-null `!`) | Info |
-| AB004 | Duplicate logic detection (repeated code blocks) | Info |
-| AB005 | Missing null/undefined checks | Warning |
-| AB006 | Hardcoded config values (localhost URLs, ports) | Warning |
-| AB007 | Security anti-patterns (eval, SQL injection, XSS) | Error |
-| AB008 | Over-abstraction (wrapper functions, single-impl interfaces) | Info |
-| AB009 | Missing timeout configuration (fetch, DB queries) | Warning |
-| AB010 | AI TODO/FIXME detection (incomplete implementations) | Info |
+### Rule Reference
+
+| Rule | Name | Description | Default |
+|------|------|-------------|---------|
+| AB001 | Hardcoded Credentials | API keys, passwords, tokens, secrets | Error |
+| AB002 | Error Swallowing | Empty catch blocks, ignored errors | Warning |
+| AB003 | Type Assertions | `as any`, non-null `!`, unsafe casts | Info |
+| AB004 | Duplicate Logic | Repeated code blocks | Info |
+| AB005 | Null Checks | Missing null/undefined checks | Warning |
+| AB006 | Hardcoded Config | Localhost URLs, ports, hardcoded values | Warning |
+| AB007 | Security | eval(), SQL injection, XSS vulnerabilities | Error |
+| AB008 | Over-Abstraction | Unnecessary wrappers, single-impl interfaces | Info |
+| AB009 | Timeouts | Missing timeout on fetch, DB queries | Warning |
+| AB010 | AI TODOs | Incomplete implementations, TODO/FIXME | Info |
+
+### AB001: Hardcoded Credentials
+
+Detects:
+- AWS keys (`AKIA...`)
+- Google API keys (`AIza...`)
+- Stripe keys (`sk_live_...`, `pk_live_...`)
+- GitHub tokens (`ghp_...`, `gho_...`)
+- JWT tokens
+- Database connection strings
+- Private keys and certificates
+
+### AB007: Security
+
+Detects:
+- `eval()` and `new Function()`
+- SQL string concatenation
+- XSS vulnerabilities (innerHTML with variables)
+- Prototype pollution
+- Path traversal
+- CORS `*` wildcards
+- Hardcoded CORS origins
 
 ### Python-Specific Rules
 
-For Python files, additional checks are performed:
-
-- Bare `except:` clauses (should specify exception type)
-- `pass` in except blocks (silent error swallowing)
-- `eval()` / `exec()` usage (code injection risk)
+For Python files:
+- Bare `except:` clauses
+- `pass` in except blocks
+- `eval()` / `exec()` usage
 - `pickle` with untrusted data
-- SQL string formatting (injection risk)
+- SQL string formatting
 - `subprocess` with `shell=True`
+
+### Custom Rules
+
+Define custom rules in `.afterburnrc`:
+
+```json
+{
+  "customRules": [
+    {
+      "id": "CUSTOM-001",
+      "name": "Console Log",
+      "description": "Detect console.log statements",
+      "severity": "warn",
+      "pattern": "console\\.log\\(",
+      "flags": "g",
+      "message": "Remove console.log before committing",
+      "suggestion": "Use a proper logger instead",
+      "appliesTo": [".ts", ".js", ".tsx", ".jsx"]
+    }
+  ]
+}
+```
+
+---
+
+## LLM-Powered Analysis
+
+Generate AI summaries, changelogs, and architecture decisions.
+
+### Supported Providers
+
+| Provider | Models | API Key Env Var |
+|----------|--------|-----------------|
+| Anthropic | Claude Sonnet, Opus, Haiku | `ANTHROPIC_API_KEY` |
+| OpenAI | GPT-4o, GPT-4o-mini | `OPENAI_API_KEY` |
+| OpenRouter | Any model | `OPENROUTER_API_KEY` |
+| Ollama | Llama 3, Mistral, etc. | (none - local) |
+
+### Usage
+
+```bash
+# Analyze with AI explanations
+afterburn --explain
+
+# Auto-confirm cost (for CI/scripts)
+afterburn --explain --yes
+```
+
+### LLM Output Includes
+
+1. **Session Summary** - 2-3 paragraph overview
+2. **Changelog** - Grouped by purpose (Added/Changed/Fixed)
+3. **Architecture Decisions** - Technology choices and trade-offs
+
+### Cost Estimation
+
+Before making LLM calls, Afterburn shows:
+
+```
+📊 LLM Analysis Cost Estimate:
+   Model: openai/gpt-4o-mini
+   Input: ~2,500 tokens
+   Output: ~1,500 tokens
+   Estimated cost: <$0.01
+
+Proceed with LLM analysis? (y/N)
+```
+
+---
 
 ## Dependency Audit
 
 ### npm (JavaScript/TypeScript)
 
-Afterburn verifies all imported packages against the npm registry:
+Verifies all imported packages against npm registry:
 
-- **Hallucinated**: Package not found on npm (may have been invented by AI)
-- **Low Adoption**: Less than 100 weekly downloads
-- **Unmaintained**: Not updated in over 12 months
-- **Deprecated**: Marked as deprecated on npm
+| Status | Meaning |
+|--------|---------|
+| **Hallucinated** | Package not found on npm |
+| **Low Adoption** | < 100 weekly downloads |
+| **Unmaintained** | No updates in 12+ months |
+| **Deprecated** | Marked deprecated on npm |
+| **Verified** | Package exists and is healthy |
 
 ### PyPI (Python)
 
-For Python projects, Afterburn parses:
+Parses and verifies packages from:
 - `requirements.txt`
-- `pyproject.toml` (PEP 621 / Poetry)
+- `pyproject.toml`
 - `setup.py`
 - `Pipfile`
 
-And verifies packages against the PyPI registry.
+---
 
 ## CI Integration
 
@@ -229,8 +496,8 @@ And verifies packages against the PyPI registry.
 | Code | Meaning |
 |------|---------|
 | `0` | No errors found |
-| `1` | Errors detected (hallucinated packages or error-severity findings) |
-| `2` | Execution error (not a git repo, config error, etc.) |
+| `1` | Errors detected |
+| `2` | Execution error |
 
 ### GitHub Actions
 
@@ -262,18 +529,6 @@ jobs:
 
 ### Pre-commit Hook
 
-Add to `.pre-commit-config.yaml`:
-
-```yaml
-repos:
-  - repo: https://github.com/hashimea/afterburn
-    rev: v0.1.0
-    hooks:
-      - id: afterburn
-```
-
-Or use a local hook:
-
 ```yaml
 repos:
   - repo: local
@@ -286,70 +541,33 @@ repos:
         always_run: true
 ```
 
-## CLI Options
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `--explain` | Include LLM-powered analysis (requires API key) | `false` |
-| `-y, --yes` | Auto-confirm LLM cost (skip confirmation) | `false` |
-| `--since <timespec>` | Scope analysis to changes since timespec | `4h` |
-| `--output <path>` | Output path for report | `./` |
-| `--ci` | CI mode - exit with error code based on findings | `false` |
-| `--fail-on-warnings` | Fail CI if warnings are found | `false` |
-| `--max-errors <n>` | Maximum allowed errors before failing | `0` |
-| `--staged-only` | Analyze only staged changes | `false` |
-| `--json` | Output in JSON format | `false` |
-| `--no-color` | Disable colored output | `false` |
-| `--verbose` | Show verbose output | `false` |
-| `--quiet` | Suppress all output except errors | `false` |
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `afterburn [path]` | Analyze a directory |
-| `afterburn init` | Create `.afterburnrc` config file |
-| `afterburn config list` | Show current configuration |
-| `afterburn config get <key>` | Get a config value |
-| `afterburn config set <key> <value>` | Set a config value |
-
-## Timespec Format
-
-The `--since` flag supports various formats:
-
-- `30m`, `2h`, `1d` - Relative time shorthand
-- `"2 hours ago"`, `"30 minutes ago"` - Natural language
-- `"1 day ago"`, `"3 days ago"` - Days
-- ISO 8601 dates - Absolute timestamps
-
-## AI Provider Detection
-
-Afterburn automatically detects when you're using AI coding assistants:
-
-- **Claude Code** - Detects sessions via `~/.claude/projects/`
-- **Cursor** - Detects via `.cursor/` directory
-- **GitHub Copilot** - Detects via VS Code extensions
-- **Windsurf** - Detects via Codeium integration
-
-Session IDs are included in reports for traceability.
+---
 
 ## Output
 
 Reports are saved to `.afterburn/YYYY-MM-DD/session-HH-MM-SS.md`:
 
-```
+```markdown
 # Afterburn Session Report
 
-_Generated: Mar 7, 2026 | Project: my-app | AI: Claude Code_
+_Generated: Mar 8, 2026, 02:36 PM | Author: hashimea | Project: workly | Analysis: 11s_
+
+---
 
 ## Session Summary
 
 | Metric | Value |
 |--------|-------|
-| Files Changed | 6 |
-| Lines Added | +313 |
-| Lines Removed | -35 |
-| Commits | 4 |
+| Files Changed | 22 |
+| Lines Added | +1858 |
+| Lines Removed | -319 |
+| Commits | 0 |
+
+## AI Summary
+
+1. **Summary**: In this coding session, various updates were made...
+2. **Key Changes**: ...
+3. **Purpose**: ...
 
 ## Risk Report
 
@@ -361,18 +579,54 @@ _Generated: Mar 7, 2026 | Project: my-app | AI: Claude Code_
 
 ## Dependency Audit
 
-| Status | Count |
-|--------|-------|
-| Hallucinated | 0 |
-| Warnings | 1 |
-| Verified | 10 |
+| Status | Package |
+|--------|---------|
+| ✅ Verified | express |
+| ❌ Hallucinated | fake-package |
 ```
+
+---
+
+## Timespec Format
+
+The `--since` flag supports:
+
+- `30m`, `2h`, `1d` - Shorthand
+- `"2 hours ago"` - Natural language
+- `"1 day ago"` - Days
+- ISO 8601 - Absolute timestamps
+
+---
+
+## AI Provider Detection
+
+Afterburn detects AI coding assistants:
+
+- **Claude Code** - Via `~/.claude/projects/`
+- **Cursor** - Via `.cursor/` directory
+- **GitHub Copilot** - Via VS Code extensions
+- **Windsurf** - Via Codeium integration
+
+---
 
 ## Requirements
 
 - Node.js >= 18.0.0
 - Git repository
 
+---
+
 ## License
 
 MIT
+
+---
+
+## Contributing
+
+Contributions welcome! Please read our contributing guidelines.
+
+## Support
+
+- GitHub Issues: https://github.com/hashimea/afterburn/issues
+- Documentation: https://github.com/hashimea/afterburn#readme

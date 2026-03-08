@@ -2,6 +2,7 @@
  * Report generator module - produces markdown and terminal output
  */
 
+import os from 'os';
 import type { GitDiff } from '../git/index.js';
 import type { RiskFinding, DependencyInfo, FileChange } from '../types.js';
 import type { AIProviderInfo } from '../ai-provider.js';
@@ -9,6 +10,18 @@ import type { LLMAnalysisResult } from '../llm/index.js';
 import { formatDuration } from '../utils/timespec.js';
 import { categorizeFiles, sortByImpact, getCategoryIcon, getCategoryLabel } from '../analyzer/file-categorizer.js';
 import { formatCost } from '../llm/utils.js';
+
+/**
+ * Get the system username (works on macOS, Windows, Linux)
+ */
+function getSystemAuthor(): string {
+  try {
+    const userInfo = os.userInfo();
+    return userInfo.username || process.env.USER || process.env.USERNAME || 'Unknown';
+  } catch {
+    return process.env.USER || process.env.USERNAME || 'Unknown';
+  }
+}
 
 export interface ReportData {
   diff: GitDiff;
@@ -20,6 +33,7 @@ export interface ReportData {
   since?: string;
   aiProvider?: AIProviderInfo;
   llmAnalysis?: LLMAnalysisResult;
+  llmSkippedReason?: string;
 }
 
 export interface ReportOptions {
@@ -35,12 +49,13 @@ export function generateMarkdownReport(data: ReportData): string {
   const { stats, commits, files } = diff;
   const timestamp = new Date().toISOString();
   const projectName = projectPath.split('/').pop() || 'Unknown';
+  const author = getSystemAuthor();
 
   let md = '';
 
   // Header
   md += `# Afterburn Session Report\n\n`;
-  md += `_Generated: ${formatTimestamp(timestamp)} | Project: ${projectName} | Analysis: ${formatDuration(analysisTime)}_\n\n`;
+  md += `_Generated: ${formatTimestamp(timestamp)} | Author: ${author} | Project: ${projectName} | Analysis: ${formatDuration(analysisTime)}_\n\n`;
   md += `---\n\n`;
 
   // Session Summary
@@ -143,6 +158,10 @@ export function generateMarkdownReport(data: ReportData): string {
 
     md += `---\n`;
     md += `*LLM Analysis: ${data.llmAnalysis.usage.totalTokens} tokens, ${formatCost(data.llmAnalysis.usage.estimatedCost)}, ${(data.llmAnalysis.latencyMs / 1000).toFixed(1)}s*\n\n`;
+  } else if (data.llmSkippedReason) {
+    // Show why AI Summary was not generated
+    md += `## AI Summary\n\n`;
+    md += `> ⚠️ AI Summary not available: ${data.llmSkippedReason}\n\n`;
   }
 
   // Risk Report
