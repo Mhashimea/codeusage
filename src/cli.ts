@@ -36,7 +36,6 @@ import {
 import type { RiskFinding } from './types.js';
 import {
   analyzeWithLLM,
-  formatLLMAnalysisForReport,
   resolveApiKey,
   formatCost,
   estimateTokenCount,
@@ -692,7 +691,7 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       fs.mkdirSync(sessionDir, { recursive: true });
     }
 
-    let markdownReport = generateMarkdownReport({
+    const markdownReport = generateMarkdownReport({
       diff,
       findings: sortedFindings,
       dependencies: auditResult?.dependencies,
@@ -700,12 +699,8 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       projectPath: absolutePath,
       since,
       aiProvider,
+      llmAnalysis: llmAnalysis ?? undefined,
     });
-
-    // Append LLM analysis to report if available
-    if (llmAnalysis) {
-      markdownReport += '\n\n' + formatLLMAnalysisForReport(llmAnalysis);
-    }
 
     fs.writeFileSync(reportPath, markdownReport, 'utf-8');
 

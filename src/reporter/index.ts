@@ -5,8 +5,10 @@
 import type { GitDiff } from '../git/index.js';
 import type { RiskFinding, DependencyInfo, FileChange } from '../types.js';
 import type { AIProviderInfo } from '../ai-provider.js';
+import type { LLMAnalysisResult } from '../llm/index.js';
 import { formatDuration } from '../utils/timespec.js';
 import { categorizeFiles, sortByImpact, getCategoryIcon, getCategoryLabel } from '../analyzer/file-categorizer.js';
+import { formatCost } from '../llm/utils.js';
 
 export interface ReportData {
   diff: GitDiff;
@@ -17,6 +19,7 @@ export interface ReportData {
   projectPath: string;
   since?: string;
   aiProvider?: AIProviderInfo;
+  llmAnalysis?: LLMAnalysisResult;
 }
 
 export interface ReportOptions {
@@ -116,6 +119,30 @@ export function generateMarkdownReport(data: ReportData): string {
       }
       md += summaryParts.join(', ') + `\n\n`;
     }
+  }
+
+  // AI Summary (after Files Changed)
+  if (data.llmAnalysis) {
+    md += `## AI Summary\n\n`;
+    md += data.llmAnalysis.summary + '\n\n';
+
+    if (data.llmAnalysis.changelog) {
+      md += `## Changelog\n\n`;
+      md += data.llmAnalysis.changelog + '\n\n';
+    }
+
+    if (data.llmAnalysis.architectureDecisions) {
+      md += `## Architecture Decisions\n\n`;
+      md += data.llmAnalysis.architectureDecisions + '\n\n';
+    }
+
+    if (data.llmAnalysis.tradeoffs) {
+      md += `## Trade-off Analysis\n\n`;
+      md += data.llmAnalysis.tradeoffs + '\n\n';
+    }
+
+    md += `---\n`;
+    md += `*LLM Analysis: ${data.llmAnalysis.usage.totalTokens} tokens, ${formatCost(data.llmAnalysis.usage.estimatedCost)}, ${(data.llmAnalysis.latencyMs / 1000).toFixed(1)}s*\n\n`;
   }
 
   // Risk Report
