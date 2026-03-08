@@ -523,15 +523,29 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
     let llmAnalysis: LLMAnalysisResult | null = null;
 
     if (options.explain) {
-      // Check for LLM config
-      const llmConfig = config.llm as LLMConfig | undefined;
-      const resolvedApiKey = llmConfig?.apiKey ? resolveApiKey(llmConfig.apiKey) : undefined;
+      // Check for LLM config - first from config file, then auto-detect from env vars
+      let llmConfig = config.llm as LLMConfig | undefined;
+      let resolvedApiKey = llmConfig?.apiKey ? resolveApiKey(llmConfig.apiKey) : undefined;
+
+      // Auto-detect from environment variables if no config found
+      if (!llmConfig || !resolvedApiKey) {
+        if (process.env.OPENROUTER_API_KEY) {
+          llmConfig = { provider: 'openrouter', model: 'openai/gpt-4o-mini', apiKey: process.env.OPENROUTER_API_KEY };
+          resolvedApiKey = process.env.OPENROUTER_API_KEY;
+        } else if (process.env.ANTHROPIC_API_KEY) {
+          llmConfig = { provider: 'anthropic', model: 'claude-sonnet-4-20250514', apiKey: process.env.ANTHROPIC_API_KEY };
+          resolvedApiKey = process.env.ANTHROPIC_API_KEY;
+        } else if (process.env.OPENAI_API_KEY) {
+          llmConfig = { provider: 'openai', model: 'gpt-4o-mini', apiKey: process.env.OPENAI_API_KEY };
+          resolvedApiKey = process.env.OPENAI_API_KEY;
+        }
+      }
 
       if (!llmConfig || !resolvedApiKey) {
         if (spinner) {
           spinner.warn('LLM analysis skipped: No API key configured');
         } else if (!quiet && !jsonOutput) {
-          console.warn(chalk.yellow('⚠️  --explain requires LLM configuration. Set llm.apiKey in .afterburnrc'));
+          console.warn(chalk.yellow('⚠️  --explain requires LLM configuration. Set llm.apiKey in .afterburnrc or OPENROUTER_API_KEY/ANTHROPIC_API_KEY/OPENAI_API_KEY env var'));
         }
       } else {
         // Get diff content for LLM
