@@ -45,6 +45,39 @@ import {
 } from './llm/index.js';
 import * as readline from 'readline';
 
+/**
+ * Convert glob-like pattern to regex
+ */
+function patternToRegex(pattern: string): RegExp {
+  const escaped = pattern
+    .replace(/[.+^${}()|[\]\\]/g, '\\$&')
+    .replace(/\*\*/g, '<<<GLOBSTAR>>>')
+    .replace(/\*/g, '[^/]*')
+    .replace(/<<<GLOBSTAR>>>/g, '.*')
+    .replace(/\?/g, '.');
+  return new RegExp(`^${escaped}$`);
+}
+
+/**
+ * Filter files based on ignore patterns
+ */
+function filterIgnoredFiles<T extends { path: string }>(files: T[], ignorePatterns: string[] = []): T[] {
+  if (ignorePatterns.length === 0) {
+    return files;
+  }
+
+  const patterns = ignorePatterns.map(p => patternToRegex(p));
+
+  return files.filter(file => {
+    for (const pattern of patterns) {
+      if (pattern.test(file.path)) {
+        return false; // File matches ignore pattern, filter it out
+      }
+    }
+    return true; // File doesn't match any ignore pattern, keep it
+  });
+}
+
 interface AnalyzeOptions {
   explain?: boolean;
   yes?: boolean;  // Auto-confirm LLM cost
@@ -429,6 +462,15 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
     // Get session diff - use config session window if not overridden
     const since = options.since ?? config.session?.window ?? '4h';
     const diff = await getSessionDiff(absolutePath, since);
+
+    // Filter files based on ignore patterns
+    if (config.ignore && config.ignore.length > 0) {
+      diff.files = filterIgnoredFiles(diff.files, config.ignore);
+      // Update stats to reflect filtered files
+      diff.stats.filesChanged = diff.files.length;
+      diff.stats.insertions = diff.files.reduce((sum, f) => sum + f.additions, 0);
+      diff.stats.deletions = diff.files.reduce((sum, f) => sum + f.deletions, 0);
+    }
 
     if (spinner) {
       spinner.text = 'Running static analysis...';
