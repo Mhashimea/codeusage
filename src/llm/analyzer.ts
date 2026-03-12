@@ -55,6 +55,14 @@ const DEFAULT_MAX_DIFF_TOKENS = 8000;
 /**
  * Analyze code changes using LLM
  */
+/**
+ * Session action from Claude Code transcript
+ */
+interface SessionAction {
+  tool_name: string;
+  tool_input?: Record<string, unknown>;
+}
+
 export async function analyzeWithLLM(
   config: LLMConfig,
   options: {
@@ -63,6 +71,7 @@ export async function analyzeWithLLM(
     commitMessages?: string[];
     projectName?: string;
     newDependencies?: string[];
+    sessionActions?: SessionAction[];
   },
   analyzerOptions?: AnalyzerOptions
 ): Promise<LLMAnalysisResult> {
@@ -89,11 +98,34 @@ export async function analyzeWithLLM(
 
   // Generate session summary (always)
   onProgress?.('Generating session summary...');
+
+  // Convert session actions to summary format for the prompt
+  const sessionActionsSummary = options.sessionActions?.map(action => {
+    let actionDescription = '-';
+    if (action.tool_input) {
+      // Extract meaningful action description from tool input
+      if (action.tool_input.file_path) {
+        actionDescription = String(action.tool_input.file_path);
+      } else if (action.tool_input.command) {
+        actionDescription = String(action.tool_input.command).slice(0, 100);
+      } else if (action.tool_input.pattern) {
+        actionDescription = String(action.tool_input.pattern);
+      } else if (action.tool_input.query) {
+        actionDescription = String(action.tool_input.query);
+      }
+    }
+    return {
+      tool: action.tool_name,
+      action: actionDescription,
+    };
+  });
+
   const summaryPrompt = createSessionSummaryPrompt({
     diff: truncatedDiff,
     fileList: options.fileList,
     commitMessages: options.commitMessages,
     projectName: options.projectName,
+    sessionActions: sessionActionsSummary,
   });
 
   const summaryResponse = await provider.complete(summaryPrompt, {

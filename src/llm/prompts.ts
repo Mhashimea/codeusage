@@ -12,6 +12,14 @@ export const SYSTEM_PROMPT = `You are Afterburn, an AI assistant that analyzes c
 Always be factual and base your analysis only on the provided diff and context. If something is unclear, say so rather than speculating.`;
 
 /**
+ * Session action from Claude Code
+ */
+interface SessionActionSummary {
+  tool: string;
+  action: string;
+}
+
+/**
  * Generate a session summary prompt
  */
 export function createSessionSummaryPrompt(options: {
@@ -19,13 +27,37 @@ export function createSessionSummaryPrompt(options: {
   fileList: string[];
   commitMessages?: string[];
   projectName?: string;
+  sessionActions?: SessionActionSummary[];
 }): string {
-  const { diff, fileList, commitMessages, projectName } = options;
+  const { diff, fileList, commitMessages, projectName, sessionActions } = options;
 
-  let prompt = `Analyze this coding session and provide a concise summary.\n\n`;
+  let prompt = `Analyze this Claude Code session and provide a concise summary.\n\n`;
 
   if (projectName) {
     prompt += `**Project:** ${projectName}\n\n`;
+  }
+
+  // Include session actions from Claude Code
+  if (sessionActions?.length) {
+    prompt += `**Claude Code Actions (${sessionActions.length} actions):**\n`;
+    // Group actions by tool for cleaner display
+    const toolGroups = new Map<string, string[]>();
+    for (const action of sessionActions) {
+      if (!toolGroups.has(action.tool)) {
+        toolGroups.set(action.tool, []);
+      }
+      if (action.action && action.action !== '-') {
+        toolGroups.get(action.tool)!.push(action.action);
+      }
+    }
+    for (const [tool, actions] of toolGroups) {
+      if (actions.length > 0) {
+        prompt += `- **${tool}**: ${actions.slice(0, 5).join(', ')}${actions.length > 5 ? ` (+${actions.length - 5} more)` : ''}\n`;
+      } else {
+        prompt += `- **${tool}**: ${sessionActions.filter(a => a.tool === tool).length} calls\n`;
+      }
+    }
+    prompt += '\n';
   }
 
   prompt += `**Files Changed (${fileList.length}):**\n`;
@@ -38,14 +70,17 @@ export function createSessionSummaryPrompt(options: {
     prompt += '\n\n';
   }
 
-  prompt += `**Diff:**\n\`\`\`diff\n${diff}\n\`\`\`\n\n`;
+  if (diff && diff.trim()) {
+    prompt += `**Code Diff:**\n\`\`\`diff\n${diff}\n\`\`\`\n\n`;
+  }
 
-  prompt += `Please provide:
-1. **Summary** (2-3 sentences): What was accomplished in this session?
-2. **Key Changes**: List the main changes made (use bullet points)
+  prompt += `Based on the Claude Code actions and code changes above, provide:
+
+1. **Summary** (2-3 sentences): What was accomplished in this coding session? Describe the work done in plain language.
+2. **Key Changes**: List the main code changes made (use bullet points)
 3. **Purpose**: What problem was being solved or what feature was being built?
 
-Keep the response under 300 words.`;
+Keep the response under 300 words. Focus on describing what the developer achieved with Claude Code's assistance.`;
 
   return prompt;
 }

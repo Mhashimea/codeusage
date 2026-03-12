@@ -18,10 +18,11 @@ import chalk from 'chalk';
 import ora from 'ora';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import dotenv from 'dotenv';
 import { getSessionDiff, isGitRepo, getFileContent, type GitDiff } from './git/index.js';
 import { formatDuration } from './utils/timespec.js';
-import { generateMarkdownReport } from './reporter/index.js';
+import { generateMarkdownReport, readSessionActions, clearSessionActions, readActionsFromTranscript, getLastCommitHash, saveLastCommitHash, getLastReportedFiles, saveLastReportedFiles } from './reporter/index.js';
 import { RuleRunner } from './rules/index.js';
 import { runDependencyAudit, type DependencyAuditResult } from './registry/index.js';
 import { detectAIProvider } from './ai-provider.js';
@@ -47,6 +48,7 @@ import {
 import * as readline from 'readline';
 import chokidar from 'chokidar';
 import { startStudio } from './studio/server.js';
+import { select, input, confirm as inquirerConfirm } from '@inquirer/prompts';
 
 /**
  * Convert glob-like pattern to regex
@@ -166,6 +168,7 @@ interface AnalyzeOptions {
   maxErrors?: number;
   stagedOnly?: boolean;
   sync?: boolean;  // Sync report to dashboard
+  transcript?: string;  // Path to Claude Code transcript file
 }
 
 /**
@@ -649,7 +652,11 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
 
     // Get session diff - use config session window if not overridden
     const since = options.since ?? config.session?.window ?? '4h';
-    const diff = await getSessionDiff(absolutePath, since);
+
+    // Get the last commit hash and reported files from previous report (for incremental tracking)
+    const lastCommitHash = options.transcript ? getLastCommitHash(options.transcript) : undefined;
+    const lastReportedFiles = options.transcript ? getLastReportedFiles(options.transcript) : undefined;
+    const diff = await getSessionDiff(absolutePath, since, lastCommitHash, lastReportedFiles);
 
     // Filter files based on ignore patterns
     if (config.ignore && config.ignore.length > 0) {
@@ -804,6 +811,17 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
     let llmAnalysis: LLMAnalysisResult | null = null;
     let llmSkippedReason: string | undefined;
 
+    // Read session actions early for LLM analysis and report generation
+    let sessionActions: import('./reporter/index.js').SessionAction[] = [];
+    let tokenUsage: import('./reporter/index.js').TokenUsage | undefined;
+    if (options.transcript) {
+      const transcriptData = readActionsFromTranscript(options.transcript);
+      sessionActions = transcriptData.actions;
+      tokenUsage = transcriptData.tokenUsage;
+    } else {
+      sessionActions = readSessionActions(absolutePath);
+    }
+
     if (options.explain) {
       debugLog(`LLM analysis requested (--explain)`);
 
@@ -900,6 +918,7 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
                   newDependencies: auditResult?.dependencies
                     .filter(d => d.status === 'verified')
                     .map(d => d.name),
+                  sessionActions: sessionActions,
                 },
                 {
                   includeChangelog: true,
@@ -943,6 +962,7 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
                 newDependencies: auditResult?.dependencies
                   .filter(d => d.status === 'verified')
                   .map(d => d.name),
+                sessionActions: sessionActions,
               },
               {
                 includeChangelog: true,
@@ -1017,6 +1037,8 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       diff,
       findings: sortedFindings,
       dependencies: auditResult?.dependencies,
+      sessionActions,
+      tokenUsage,
       analysisTime: duration,
       projectPath: absolutePath,
       since,
@@ -1026,6 +1048,25 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
     });
 
     fs.writeFileSync(reportPath, markdownReport, 'utf-8');
+
+    // Save state for incremental tracking
+    if (options.transcript) {
+      // Save the most recent commit hash
+      if (diff.commits.length > 0) {
+        const latestCommit = diff.commits[0]; // commits are sorted newest first
+        saveLastCommitHash(options.transcript, latestCommit.hash);
+      }
+
+      // Save the reported files (combine with previous to track all uncommitted files)
+      const currentFiles = diff.files.map(f => f.path);
+      const allReportedFiles = [...new Set([...(lastReportedFiles || []), ...currentFiles])];
+      saveLastReportedFiles(options.transcript, allReportedFiles);
+    }
+
+    // Clear session actions after report is generated (for next session)
+    if (sessionActions.length > 0 && !options.transcript) {
+      clearSessionActions(absolutePath);
+    }
 
     if (!quiet && !jsonOutput) {
       console.log(chalk.green(`\n📄 Report saved to: ${reportPath}\n`));
@@ -1169,6 +1210,7 @@ program
   .option('--verbose', 'Show verbose output including errors')
   .option('--quiet', 'Suppress all output except errors')
   .option('--no-color', 'Disable colored output (for CI environments)')
+  .option('--transcript <path>', 'Path to Claude Code transcript file (for extracting session actions)')
   .action(async (targetPath: string, options: AnalyzeOptions) => {
     await runAnalyze(targetPath, options);
   });
@@ -1228,28 +1270,571 @@ function detectProjectType(cwd: string): ProjectInfo {
   return info;
 }
 
-// Interactive prompt helper
+// Interactive prompt helpers using @inquirer/prompts (arrow key navigation)
 async function prompt(question: string, defaultValue?: string): Promise<string> {
-  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-  return new Promise((resolve) => {
-    const q = defaultValue ? `${question} [${defaultValue}]: ` : `${question}: `;
-    rl.question(q, (answer) => {
-      rl.close();
-      resolve(answer.trim() || defaultValue || '');
-    });
+  return input({
+    message: question,
+    default: defaultValue,
   });
 }
 
 async function promptChoice(question: string, choices: string[], defaultIdx = 0): Promise<string> {
-  console.log(chalk.cyan(question));
-  choices.forEach((c, i) => {
-    const marker = i === defaultIdx ? chalk.green('→') : ' ';
-    console.log(`  ${marker} ${i + 1}. ${c}`);
+  const result = await select({
+    message: question,
+    choices: choices.map((choice) => ({
+      name: choice,
+      value: choice,
+    })),
+    default: choices[defaultIdx],
   });
-  const answer = await prompt(`Enter choice (1-${choices.length})`, String(defaultIdx + 1));
-  const idx = parseInt(answer, 10) - 1;
-  return choices[idx >= 0 && idx < choices.length ? idx : defaultIdx];
+  return result;
 }
+
+async function promptConfirm(question: string, defaultValue = true): Promise<boolean> {
+  return inquirerConfirm({
+    message: question,
+    default: defaultValue,
+  });
+}
+
+// Template configurations for setup wizard
+interface SetupTemplate {
+  name: string;
+  description: string;
+  config: Partial<AfterburnerConfig>;
+}
+
+const SETUP_TEMPLATES: Record<string, SetupTemplate> = {
+  plain: {
+    name: 'Plain',
+    description: 'Minimal config - just the essentials, no rules configured',
+    config: {
+      rules: {},
+      ignore: ['node_modules/**', 'dist/**', 'build/**', '.git/**'],
+      session: { window: '4h', outputDir: '.afterburn' },
+      output: { format: 'markdown', includeAIProvider: true },
+    },
+  },
+  basic: {
+    name: 'Basic',
+    description: 'Standard rules with balanced severity - good for most projects',
+    config: {
+      rules: {
+        AB001: 'error',  // Credentials - always critical
+        AB002: 'warn',   // Error swallowing
+        AB003: 'info',   // Type assertions
+        AB004: 'info',   // Duplicate logic
+        AB005: 'warn',   // Null checks
+        AB006: 'info',   // Hardcoded config
+        AB007: 'error',  // Security - always critical
+        AB008: 'info',   // Over-abstraction
+        AB009: 'warn',   // Timeouts
+        AB010: 'info',   // AI TODOs
+      },
+      ignore: ['node_modules/**', 'dist/**', 'build/**', 'coverage/**', '.git/**', '*.min.js'],
+      session: { window: '4h', outputDir: '.afterburn' },
+      output: { format: 'markdown', includeAIProvider: true },
+    },
+  },
+  advanced: {
+    name: 'Advanced',
+    description: 'Strict rules with CI integration - for production projects',
+    config: {
+      rules: {
+        AB001: 'error',
+        AB002: 'error',
+        AB003: 'warn',
+        AB004: 'warn',
+        AB005: 'error',
+        AB006: 'warn',
+        AB007: 'error',
+        AB008: 'warn',
+        AB009: 'error',
+        AB010: 'warn',
+      },
+      ignore: ['node_modules/**', 'dist/**', 'build/**', 'coverage/**', '.git/**', '*.min.js', '*.bundle.js'],
+      session: { window: '8h', outputDir: '.afterburn' },
+      output: { format: 'markdown', includeAIProvider: true },
+      ci: { failOnWarnings: false, maxErrors: 0, maxWarnings: 10 },
+    },
+  },
+  custom: {
+    name: 'Custom',
+    description: 'Start from scratch - configure everything yourself',
+    config: {
+      rules: {},
+      ignore: [],
+      session: { window: '4h', outputDir: '.afterburn' },
+      output: { format: 'markdown', includeAIProvider: true },
+    },
+  },
+};
+
+/**
+ * Interactive setup wizard for first-time users
+ */
+async function runSetupWizard(): Promise<void> {
+  const cwd = process.cwd();
+
+  console.log(chalk.cyan('\n🔥 Welcome to Afterburn Setup!\n'));
+  console.log(chalk.gray('This wizard will help you configure Afterburn for your project.\n'));
+
+  // Step 1: Check for existing config
+  const existingConfig = findConfigFile(cwd);
+  if (existingConfig) {
+    console.log(chalk.yellow(`Config file already exists: ${existingConfig}`));
+    const overwrite = await promptConfirm('Do you want to overwrite it?', false);
+    if (!overwrite) {
+      console.log(chalk.gray('\nSetup cancelled. Your existing config is unchanged.'));
+      return;
+    }
+    console.log();
+  }
+
+  // Step 2: Ask for project name
+  const detectedName = path.basename(cwd);
+  const projectName = await prompt('Project name', detectedName);
+  console.log();
+
+  // Step 3: Detect project type
+  const projectInfo = detectProjectType(cwd);
+  console.log(chalk.gray('Detected project:'));
+  console.log(chalk.white(`  Type: ${projectInfo.type}`));
+  if (projectInfo.frameworks.length > 0) {
+    console.log(chalk.white(`  Frameworks: ${projectInfo.frameworks.join(', ')}`));
+  }
+  console.log();
+
+  // Step 4: Choose template
+  const templateChoice = await promptChoice(
+    'Choose a configuration template:',
+    [
+      `${chalk.bold('Plain')}    - ${SETUP_TEMPLATES.plain.description}`,
+      `${chalk.bold('Basic')}    - ${SETUP_TEMPLATES.basic.description}`,
+      `${chalk.bold('Advanced')} - ${SETUP_TEMPLATES.advanced.description}`,
+      `${chalk.bold('Custom')}   - ${SETUP_TEMPLATES.custom.description}`,
+    ],
+    1 // Default to Basic
+  );
+
+  const templateKey = templateChoice.includes('Plain') ? 'plain'
+    : templateChoice.includes('Basic') ? 'basic'
+    : templateChoice.includes('Advanced') ? 'advanced'
+    : 'custom';
+
+  const template = SETUP_TEMPLATES[templateKey];
+  const config: Partial<AfterburnerConfig> = JSON.parse(JSON.stringify(template.config));
+
+  // Add project name as a comment in the config (we'll store it in session metadata)
+  console.log();
+  console.log(chalk.green(`✓ Using ${template.name} template`));
+
+  // Step 5: Add language-specific ignores
+  if (projectInfo.type === 'node' || projectInfo.type === 'mixed') {
+    config.ignore?.push('package-lock.json', 'yarn.lock', 'pnpm-lock.yaml', 'bun.lock');
+  }
+  if (projectInfo.type === 'python' || projectInfo.type === 'mixed') {
+    config.ignore?.push('__pycache__/**', '*.pyc', '.venv/**', 'venv/**', '*.egg-info/**');
+  }
+  if (projectInfo.type === 'go') {
+    config.ignore?.push('vendor/**');
+  }
+  if (projectInfo.type === 'rust') {
+    config.ignore?.push('target/**', 'Cargo.lock');
+  }
+
+  // Step 6: Custom template - additional questions
+  if (templateKey === 'custom') {
+    console.log();
+    console.log(chalk.cyan('Custom configuration:\n'));
+
+    // Session window
+    const window = await prompt('Session time window (e.g., 4h, 1d, 30m)', '4h');
+    config.session = { ...config.session, window };
+
+    // Output format
+    console.log();
+    const format = await promptChoice('Output format:', ['Markdown', 'JSON'], 0);
+    config.output = { ...config.output, format: format.toLowerCase() as 'markdown' | 'json' };
+
+    // Ignore patterns
+    console.log();
+    const defaultIgnores = 'node_modules/**, dist/**, .git/**';
+    const ignoreInput = await prompt('Ignore patterns (comma-separated)', defaultIgnores);
+    config.ignore = ignoreInput.split(',').map(p => p.trim()).filter(p => p.length > 0);
+  }
+
+  // Step 7: LLM configuration (optional)
+  console.log();
+  const configureLLM = await promptConfirm('Configure LLM for AI-powered summaries?', false);
+  if (configureLLM) {
+    console.log();
+    const provider = await promptChoice(
+      'Choose LLM provider:',
+      ['OpenRouter (recommended)', 'OpenAI', 'Anthropic', 'Ollama (local)'],
+      0
+    );
+
+    const providerMap: Record<string, string> = {
+      'OpenRouter (recommended)': 'openrouter',
+      'OpenAI': 'openai',
+      'Anthropic': 'anthropic',
+      'Ollama (local)': 'ollama',
+    };
+
+    const modelDefaults: Record<string, string> = {
+      openrouter: 'openai/gpt-4o-mini',
+      openai: 'gpt-4o-mini',
+      anthropic: 'claude-sonnet-4-20250514',
+      ollama: 'llama3',
+    };
+
+    const envVars: Record<string, string> = {
+      openrouter: 'OPENROUTER_API_KEY',
+      openai: 'OPENAI_API_KEY',
+      anthropic: 'ANTHROPIC_API_KEY',
+      ollama: '',
+    };
+
+    const p = providerMap[provider];
+    config.llm = {
+      provider: p,
+      model: modelDefaults[p],
+      apiKey: envVars[p] ? `env:${envVars[p]}` : undefined,
+    };
+
+    if (envVars[p]) {
+      console.log(chalk.gray(`\n  💡 Set ${envVars[p]} in your environment to enable LLM features.`));
+    }
+  }
+
+  // Step 8: Write config file
+  console.log();
+  const formatChoice = await promptChoice('Config file format:', ['.afterburnrc (JSON)', 'afterburn.config.js'], 0);
+  const fileName = formatChoice.includes('JSON') ? '.afterburnrc' : 'afterburn.config.js';
+  const configPath = path.join(cwd, fileName);
+
+  writeConfigFile(configPath, config);
+  console.log();
+  console.log(chalk.green(`✓ Created ${fileName}`));
+
+  // Step 9: Add to .gitignore
+  const gitignorePath = path.join(cwd, '.gitignore');
+  if (fs.existsSync(gitignorePath)) {
+    const gitignore = fs.readFileSync(gitignorePath, 'utf-8');
+    if (!gitignore.includes('.afterburn')) {
+      console.log();
+      const addGitignore = await promptConfirm('Add .afterburn/ to .gitignore?', true);
+      if (addGitignore) {
+        fs.appendFileSync(gitignorePath, '\n# Afterburn reports\n.afterburn/\n');
+        console.log(chalk.green('✓ Added .afterburn/ to .gitignore'));
+      }
+    }
+  }
+
+  // Step 10: AI Coding Assistant hooks integration
+  console.log();
+  const aiProvider = await promptChoice(
+    'Which AI coding assistant are you using?',
+    [
+      `${chalk.bold('Claude Code')} - Anthropic's CLI assistant`,
+      `${chalk.bold('Codex')}       - OpenAI's coding assistant`,
+      `${chalk.bold('None')}        - Skip hook setup`,
+    ],
+    0
+  );
+
+  if (aiProvider.includes('Claude Code')) {
+    console.log();
+    const scopeChoice = await promptChoice(
+      'Where should the hooks be installed?',
+      [
+        `${chalk.bold('Project')} - Only this project (./${path.basename(cwd)}/.claude/)`,
+        `${chalk.bold('Global')}  - All projects (~/.claude/)`,
+      ],
+      0
+    );
+    const scope: 'project' | 'global' = scopeChoice.includes('Project') ? 'project' : 'global';
+
+    console.log();
+    const sharingChoice = await promptChoice(
+      'How should hooks be configured?',
+      [
+        `${chalk.bold('Team')}     - Share with team (settings.json) ${chalk.green('← recommended')}`,
+        `${chalk.bold('Personal')} - Only for you (settings.local.json, gitignored)`,
+      ],
+      0
+    );
+    const sharing: 'team' | 'personal' = sharingChoice.includes('Team') ? 'team' : 'personal';
+
+    await setupClaudeCodeHooks(cwd, projectName, scope, sharing);
+  } else if (aiProvider.includes('Codex')) {
+    console.log();
+    const scopeChoice = await promptChoice(
+      'Where should the hooks be installed?',
+      [
+        `${chalk.bold('Project')} - Only this project (./${path.basename(cwd)}/.codex/)`,
+        `${chalk.bold('Global')}  - All projects (~/.codex/)`,
+      ],
+      0
+    );
+    const scope: 'project' | 'global' = scopeChoice.includes('Project') ? 'project' : 'global';
+
+    console.log();
+    const sharingChoice = await promptChoice(
+      'How should hooks be configured?',
+      [
+        `${chalk.bold('Team')}     - Share with team (config.json) ${chalk.green('← recommended')}`,
+        `${chalk.bold('Personal')} - Only for you (config.local.json, gitignored)`,
+      ],
+      0
+    );
+    const sharing: 'team' | 'personal' = sharingChoice.includes('Team') ? 'team' : 'personal';
+
+    await setupCodexHooks(cwd, projectName, scope, sharing);
+  }
+
+  // Done!
+  console.log();
+  console.log(chalk.cyan('━'.repeat(50)));
+  console.log(chalk.green('\n✨ Afterburn setup complete!\n'));
+  console.log(chalk.gray('Next steps:'));
+  console.log(chalk.white('  1.'), chalk.gray('Run'), chalk.cyan('afterburn'), chalk.gray('to analyze your project'));
+  console.log(chalk.white('  2.'), chalk.gray('Run'), chalk.cyan('afterburn --explain'), chalk.gray('for AI-powered summaries'));
+  console.log(chalk.white('  3.'), chalk.gray('Run'), chalk.cyan('afterburn studio'), chalk.gray('to view the dashboard'));
+  console.log();
+}
+
+/**
+ * Setup Claude Code hooks for automatic analysis
+ * @param cwd - Current working directory (project path)
+ * @param projectName - Name of the project
+ * @param scope - 'project' for local .claude/ or 'global' for ~/.claude/
+ * @param sharing - 'team' for settings.json (shared) or 'personal' for settings.local.json (gitignored)
+ */
+async function setupClaudeCodeHooks(cwd: string, _projectName: string, scope: 'project' | 'global', sharing: 'team' | 'personal'): Promise<void> {
+  const homeDir = os.homedir();
+  const claudeDir = scope === 'global'
+    ? path.join(homeDir, '.claude')
+    : path.join(cwd, '.claude');
+
+  // Create .claude directory if it doesn't exist
+  if (!fs.existsSync(claudeDir)) {
+    fs.mkdirSync(claudeDir, { recursive: true });
+  }
+
+  // Determine settings file based on sharing preference
+  // team = settings.json (committed to git, shared with team)
+  // personal = settings.local.json (gitignored, personal only)
+  const settingsFileName = sharing === 'team' ? 'settings.json' : 'settings.local.json';
+  const settingsPath = path.join(claudeDir, settingsFileName);
+  let settings: Record<string, unknown> = {};
+
+  if (fs.existsSync(settingsPath)) {
+    try {
+      settings = JSON.parse(fs.readFileSync(settingsPath, 'utf-8'));
+    } catch {
+      // Ignore parse errors, start fresh
+    }
+  }
+
+  // Stop hook command that:
+  // 1. Reads stdin to get session info (including transcript_path)
+  // 2. Extracts transcript_path using jq
+  // 3. Passes it to afterburn via --transcript flag
+  // This allows afterburn to read Claude's actions directly from the transcript
+  const stopHookCommand = 'INPUT=$(cat); TRANSCRIPT=$(echo "$INPUT" | jq -r \'.transcript_path // empty\'); if [ -n "$TRANSCRIPT" ]; then afterburn --since=1h --quiet --transcript "$TRANSCRIPT"; else afterburn --since=1h --quiet; fi';
+
+  // Merge with existing hooks if present
+  const existingHooks = (settings.hooks as Record<string, unknown[]>) || {};
+  const existingStopHooks = (existingHooks.Stop as unknown[]) || [];
+
+  // Helper to check if a hook command exists
+  const hookExists = (hooks: unknown[], searchStr: string): boolean => {
+    return hooks.some((hook: unknown) => {
+      if (typeof hook === 'object' && hook !== null) {
+        const h = hook as Record<string, unknown>;
+        const innerHooks = h.hooks as Array<Record<string, unknown>> | undefined;
+        return innerHooks?.some(innerHook =>
+          typeof innerHook.command === 'string' && innerHook.command.includes(searchStr)
+        );
+      }
+      return false;
+    });
+  };
+
+  // Add Stop hook for running afterburn at session end
+  // The hook extracts transcript_path from stdin and passes it to afterburn
+  if (!hookExists(existingStopHooks, 'afterburn')) {
+    existingStopHooks.push({
+      matcher: '',
+      hooks: [
+        {
+          type: 'command',
+          command: stopHookCommand,
+        },
+      ],
+    });
+  }
+
+  settings.hooks = {
+    ...existingHooks,
+    Stop: existingStopHooks,
+  };
+
+  fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
+
+  // IMPORTANT: If settings.local.json exists with hooks, we need to update it too
+  // because settings.local.json takes precedence over settings.json
+  const localSettingsPath = path.join(claudeDir, 'settings.local.json');
+  let updatedLocalSettings = false;
+
+  if (sharing === 'team' && fs.existsSync(localSettingsPath)) {
+    try {
+      const localSettings = JSON.parse(fs.readFileSync(localSettingsPath, 'utf-8')) as Record<string, unknown>;
+
+      // Check if local settings has hooks defined - update Stop hook if needed
+      if (localSettings.hooks) {
+        const localHooks = localSettings.hooks as Record<string, unknown[]>;
+        const localStopHooks = (localHooks.Stop as unknown[]) || [];
+
+        // Update Stop hook to use the new command
+        if (!hookExists(localStopHooks, 'afterburn')) {
+          localStopHooks.push({
+            matcher: '',
+            hooks: [
+              {
+                type: 'command',
+                command: stopHookCommand,
+              },
+            ],
+          });
+        }
+
+        localSettings.hooks = {
+          ...localHooks,
+          Stop: localStopHooks,
+        };
+
+        fs.writeFileSync(localSettingsPath, JSON.stringify(localSettings, null, 2));
+        updatedLocalSettings = true;
+      }
+    } catch {
+      // Ignore errors reading local settings
+    }
+  }
+
+  const displayPath = scope === 'global' ? '~/.claude' : '.claude';
+  const sharingLabel = sharing === 'team' ? 'team-shared' : 'personal';
+  console.log(chalk.green(`✓ Created Claude Code hooks (${scope}, ${sharingLabel})`));
+  console.log(chalk.gray(`  ${displayPath}/${settingsFileName}`));
+  if (updatedLocalSettings) {
+    console.log(chalk.gray(`  ${displayPath}/settings.local.json (also updated)`));
+  }
+  console.log(chalk.gray(`  Hooks configured:`));
+  console.log(chalk.gray(`    • Stop → Run Afterburn analysis (with session actions from transcript)`));
+
+  if (scope === 'global') {
+    console.log(chalk.gray('\n  Global hooks will run for all Claude Code sessions.'));
+  }
+  if (sharing === 'team') {
+    console.log(chalk.gray('\n  💡 Commit .claude/settings.json to share hooks with your team.'));
+  }
+  if (updatedLocalSettings) {
+    console.log(chalk.yellow('\n  ⚠️  Also updated settings.local.json (takes precedence over settings.json)'));
+  }
+}
+
+/**
+ * Setup Codex (OpenAI) hooks for automatic analysis
+ * @param cwd - Current working directory (project path)
+ * @param projectName - Name of the project
+ * @param scope - 'project' for local .codex/ or 'global' for ~/.codex/
+ * @param sharing - 'team' for config.json (shared) or 'personal' for config.local.json (gitignored)
+ */
+async function setupCodexHooks(cwd: string, _projectName: string, scope: 'project' | 'global', sharing: 'team' | 'personal'): Promise<void> {
+  const homeDir = os.homedir();
+  const codexDir = scope === 'global'
+    ? path.join(homeDir, '.codex')
+    : path.join(cwd, '.codex');
+
+  // Create .codex directory if it doesn't exist
+  if (!fs.existsSync(codexDir)) {
+    fs.mkdirSync(codexDir, { recursive: true });
+  }
+
+  // Determine config file based on sharing preference
+  const configFileName = sharing === 'team' ? 'config.json' : 'config.local.json';
+  const configPath = path.join(codexDir, configFileName);
+  let config: Record<string, unknown> = {};
+
+  if (fs.existsSync(configPath)) {
+    try {
+      config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
+    } catch {
+      // Ignore parse errors, start fresh
+    }
+  }
+
+  // Use correct Codex hooks format (similar to Claude Code)
+  const hookCommand = 'npx afterburn --since="1h" --quiet';
+
+  // Merge with existing hooks if present
+  const existingHooks = (config.hooks as Record<string, unknown[]>) || {};
+  const existingStopHooks = (existingHooks.Stop as unknown[]) || [];
+
+  // Check if afterburn hook already exists
+  const afterburnHookExists = existingStopHooks.some((hook: unknown) => {
+    if (typeof hook === 'object' && hook !== null) {
+      const h = hook as Record<string, unknown>;
+      const hooks = h.hooks as Array<Record<string, unknown>> | undefined;
+      return hooks?.some(innerHook =>
+        typeof innerHook.command === 'string' && innerHook.command.includes('afterburn')
+      );
+    }
+    return false;
+  });
+
+  if (!afterburnHookExists) {
+    existingStopHooks.push({
+      matcher: '',
+      hooks: [
+        {
+          type: 'command',
+          command: hookCommand,
+        },
+      ],
+    });
+  }
+
+  config.hooks = {
+    ...existingHooks,
+    Stop: existingStopHooks,
+  };
+
+  fs.writeFileSync(configPath, JSON.stringify(config, null, 2));
+
+  const displayPath = scope === 'global' ? '~/.codex' : '.codex';
+  const sharingLabel = sharing === 'team' ? 'team-shared' : 'personal';
+  console.log(chalk.green(`✓ Created Codex hooks (${scope}, ${sharingLabel})`));
+  console.log(chalk.gray(`  ${displayPath}/${configFileName}`));
+  console.log(chalk.gray(`  Hook event: Stop (runs when session ends)`));
+
+  if (scope === 'global') {
+    console.log(chalk.gray('\n  Global hooks will run for all Codex sessions.'));
+  }
+  if (sharing === 'team') {
+    console.log(chalk.gray('\n  💡 Commit .codex/config.json to share hooks with your team.'));
+  }
+}
+
+// Setup command
+program
+  .command('setup')
+  .description('Interactive setup wizard for first-time configuration')
+  .action(async () => {
+    await runSetupWizard();
+  });
 
 // Init command
 program
@@ -1836,6 +2421,7 @@ program
   });
 
 // Default action: if path is provided without command, run analyze
+// If no config exists and no args, trigger setup wizard
 program
   .argument('[path]', 'Path to analyze')
   .option('--explain', 'Include LLM-powered explanations')
@@ -1851,12 +2437,33 @@ program
   .option('--verbose', 'Show verbose output')
   .option('--quiet', 'Suppress output')
   .option('--no-color', 'Disable colored output')
+  .option('--transcript <path>', 'Path to Claude Code transcript file')
   .action(async (targetPath: string | undefined, options: AnalyzeOptions) => {
+    const subcommands = ['analyze', 'init', 'config', 'watch', 'hook', 'studio', 'setup', 'help'];
+
     // If a path is provided (and it's not a subcommand), run analyze
-    if (targetPath && !['analyze', 'init', 'config', 'watch', 'hook', 'studio', 'help'].includes(targetPath)) {
+    if (targetPath && !subcommands.includes(targetPath)) {
       await runAnalyze(targetPath, options);
     } else if (!targetPath) {
-      // No path provided, run analyze on current directory
+      // No path provided - check if this is first-time setup
+      const cwd = process.cwd();
+      const existingConfig = findConfigFile(cwd);
+
+      // If no config exists and not in CI mode, offer setup wizard
+      if (!existingConfig && !options.ci && !options.quiet) {
+        console.log(chalk.cyan('\n🔥 Welcome to Afterburn!\n'));
+        console.log(chalk.gray('No configuration file found in this project.\n'));
+
+        const runSetup = await promptConfirm('Would you like to run the setup wizard?', true);
+        if (runSetup) {
+          await runSetupWizard();
+          return;
+        }
+
+        console.log(chalk.gray('\nRunning with default settings...\n'));
+      }
+
+      // Run analyze on current directory
       await runAnalyze('./', options);
     }
   });

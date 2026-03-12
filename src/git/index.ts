@@ -155,15 +155,44 @@ export async function getUncommittedChanges(repoPath: string): Promise<GitFileDi
 
 /**
  * Get recent commits within a time window
+ * @param repoPath - Path to the repository
+ * @param since - Time specification (e.g., "1h", "30m")
+ * @param sinceCommit - Only include commits AFTER this commit hash (exclusive)
  */
 export async function getRecentCommits(
   repoPath: string,
-  since?: string
+  since?: string,
+  sinceCommit?: string
 ): Promise<GitCommit[]> {
   const git: SimpleGit = simpleGit(repoPath);
   const commits: GitCommit[] = [];
 
   try {
+    // If we have a sinceCommit, get commits after that
+    if (sinceCommit) {
+      try {
+        // Get commits from sinceCommit to HEAD (exclusive of sinceCommit)
+        const log = await git.log({ from: sinceCommit, to: 'HEAD' });
+
+        for (const entry of log.all) {
+          // Skip the sinceCommit itself
+          if (entry.hash === sinceCommit) continue;
+
+          commits.push({
+            hash: entry.hash,
+            message: entry.message,
+            author: entry.author_name,
+            email: entry.author_email,
+            date: new Date(entry.date),
+          });
+        }
+        return commits;
+      } catch {
+        // If sinceCommit doesn't exist, fall back to time-based
+      }
+    }
+
+    // Fall back to time-based filtering
     const sinceDate = since ? parseTimespec(since) : new Date(Date.now() - 4 * 60 * 60 * 1000); // Default 4 hours
 
     const logOptions: Record<string, string | null> = {
@@ -260,10 +289,16 @@ export async function getFileContent(
 
 /**
  * Get complete session diff including uncommitted changes and recent commits
+ * @param repoPath - Path to the repository
+ * @param since - Time specification (e.g., "1h", "30m")
+ * @param sinceCommit - Only include commits AFTER this commit hash (exclusive)
+ * @param excludeFiles - Files to exclude (already reported in previous session)
  */
 export async function getSessionDiff(
   repoPath: string,
-  since?: string
+  since?: string,
+  sinceCommit?: string,
+  excludeFiles?: string[]
 ): Promise<GitDiff> {
   const git: SimpleGit = simpleGit(repoPath);
 
@@ -276,20 +311,26 @@ export async function getSessionDiff(
   // Get uncommitted changes
   const uncommittedFiles = await getUncommittedChanges(repoPath);
 
-  // Get recent commits
-  const commits = await getRecentCommits(repoPath, since);
+  // Get recent commits (pass sinceCommit for incremental tracking)
+  const commits = await getRecentCommits(repoPath, since, sinceCommit);
 
   // Get files changed in recent commits
   const commitFiles: GitFileDiff[] = [];
 
   if (commits.length > 0) {
-    const sinceDate = since ? parseTimespec(since) : new Date(Date.now() - 4 * 60 * 60 * 1000);
-
     try {
-      const diffResult = await git.diffSummary([
-        `--since="${sinceDate.toISOString()}"`,
-        'HEAD',
-      ]);
+      // If we have a sinceCommit, diff from that commit to HEAD
+      // Otherwise fall back to time-based
+      let diffResult;
+      if (sinceCommit) {
+        diffResult = await git.diffSummary([sinceCommit, 'HEAD']);
+      } else {
+        const sinceDate = since ? parseTimespec(since) : new Date(Date.now() - 4 * 60 * 60 * 1000);
+        diffResult = await git.diffSummary([
+          `--since="${sinceDate.toISOString()}"`,
+          'HEAD',
+        ]);
+      }
 
       for (const file of diffResult.files) {
         // Only add if not already in uncommitted changes
@@ -312,7 +353,13 @@ export async function getSessionDiff(
   }
 
   // Combine all files
-  const allFiles = [...uncommittedFiles, ...commitFiles];
+  let allFiles = [...uncommittedFiles, ...commitFiles];
+
+  // Filter out files that were already reported in previous session
+  if (excludeFiles && excludeFiles.length > 0) {
+    const excludeSet = new Set(excludeFiles);
+    allFiles = allFiles.filter(f => !excludeSet.has(f.path));
+  }
 
   // Calculate session duration from commits
   let sessionDuration = 0;
