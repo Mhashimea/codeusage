@@ -33,7 +33,7 @@ const CLOUD_PROVIDER_PATTERNS: CredentialPattern[] = [
   },
   {
     name: 'AWS Secret Access Key',
-    pattern: /(?:aws_secret_access_key|aws_secret_key|secret_?access_?key)\s*[:=]\s*["'][A-Za-z0-9/+=]{40}["']/gi,
+    pattern: /(?:aws_?secret_?access_?key|aws_?secret_?key|secret_?access_?key|awsSecretKey|awsSecret)\s*[:=]\s*["'][A-Za-z0-9/+=]{40}["']/gi,
     message: 'AWS Secret Access Key detected',
     severity: 'error',
   },
@@ -308,7 +308,7 @@ const VCS_CICD_PATTERNS: CredentialPattern[] = [
   // GitHub
   {
     name: 'GitHub Personal Access Token',
-    pattern: /ghp_[a-zA-Z0-9]{36}/g,
+    pattern: /ghp_[a-zA-Z0-9]{36,}/g,
     message: 'GitHub personal access token detected',
     severity: 'error',
   },
@@ -646,15 +646,15 @@ const EXCLUDE_CONTENT_PATTERNS = [
   /\{\{[^}]+\}\}/,
   /<YOUR[_-]?/i,
   /PLACEHOLDER/i,
-  /EXAMPLE/i,
-  /xxxxxxx/i,
-  /\*\*\*\*\*\*\*/,
+  /['"].*EXAMPLE.*['"]/i,  // Only exclude if EXAMPLE is in a string value that looks like a placeholder
+  /x{8,}/i,  // Require at least 8 consecutive x's to be considered placeholder
+  /\*{7,}/,  // Require at least 7 consecutive asterisks
   /your[_-]?api[_-]?key/i,
   /insert[_-]?your/i,
   /replace[_-]?with/i,
   /sk_test_/,  // Stripe test keys are OK
   /pk_test_/,
-  /test_/i,
+  /['"]test_/i,  // Only exclude if it starts with test_ in a string
   /dummy/i,
   /fake/i,
   /mock/i,

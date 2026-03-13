@@ -16,7 +16,8 @@ export interface NpmPackageInfo {
   description?: string;
   weeklyDownloads?: number;
   lastPublished?: Date;
-  deprecated?: string | boolean;
+  lastPublish?: Date; // Alias for lastPublished for compatibility
+  deprecated: boolean;
   license?: string;
   repository?: string;
   maintainers?: number;
@@ -108,6 +109,7 @@ export async function fetchPackageInfo(packageName: string): Promise<NpmPackageI
   const result: NpmPackageInfo = {
     name: packageName,
     exists: false,
+    deprecated: false,
   };
 
   try {
@@ -140,9 +142,9 @@ export async function fetchPackageInfo(packageName: string): Promise<NpmPackageI
     result.license = data.license;
     result.maintainers = data.maintainers?.length;
 
-    // Check if deprecated
+    // Check if deprecated (normalize to boolean)
     if (result.version && data.versions?.[result.version]?.deprecated) {
-      result.deprecated = data.versions[result.version].deprecated;
+      result.deprecated = true;
     }
 
     // Get last published date
@@ -150,6 +152,7 @@ export async function fetchPackageInfo(packageName: string): Promise<NpmPackageI
       const publishTime = data.time[result.version] || data.time.modified;
       if (publishTime) {
         result.lastPublished = new Date(publishTime);
+        result.lastPublish = result.lastPublished; // Alias for compatibility
       }
     }
 

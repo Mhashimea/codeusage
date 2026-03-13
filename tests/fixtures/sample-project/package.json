@@ -1,0 +1,8 @@
+{
+  "name": "sample-test-project",
+  "version": "1.0.0",
+  "description": "Sample project for afterburn testing",
+  "dependencies": {
+    "chalk": "^5.0.0"
+  }
+}

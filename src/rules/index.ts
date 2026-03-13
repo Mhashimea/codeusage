@@ -257,7 +257,8 @@ export class RuleRunner {
       }
     }
 
-    return findings;
+    // Sort findings by severity
+    return this.aggregateFindings(findings);
   }
 
   /**

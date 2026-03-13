@@ -1,4 +1,8 @@
 #!/usr/bin/env node
+
+// Import pre-init FIRST to set environment variables before other imports
+import './pre-init.js';
+
 /**
  * Afterburn CLI - Post-Session Intelligence for AI-Assisted Coding
  *
@@ -20,7 +24,7 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import dotenv from 'dotenv';
-import { getSessionDiff, isGitRepo, getFileContent, type GitDiff } from './git/index.js';
+import { getSessionDiff, isGitRepo, getFileContent, getCurrentBranch, type GitDiff } from './git/index.js';
 import { formatDuration } from './utils/timespec.js';
 import { generateMarkdownReport, readSessionActions, clearSessionActions, readActionsFromTranscript, getLastCommitHash, saveLastCommitHash, getLastReportedFiles, saveLastReportedFiles } from './reporter/index.js';
 import { RuleRunner } from './rules/index.js';
@@ -49,6 +53,14 @@ import * as readline from 'readline';
 import chokidar from 'chokidar';
 import { startStudio } from './studio/server.js';
 import { select, input, confirm as inquirerConfirm } from '@inquirer/prompts';
+import {
+  getApiKey,
+  getApiUrl,
+  validateApiKey,
+  uploadSession,
+  isCloudEnabled,
+  type SessionUploadData,
+} from './cloud/index.js';
 
 /**
  * Convert glob-like pattern to regex
@@ -168,6 +180,9 @@ interface AnalyzeOptions {
   maxErrors?: number;
   stagedOnly?: boolean;
   sync?: boolean;  // Sync report to dashboard
+  cloud?: boolean;  // Upload report to cloud
+  apiKey?: string;  // Afterburn API key
+  apiUrl?: string;  // Afterburn API URL
   transcript?: string;  // Path to Claude Code transcript file
 }
 
@@ -559,6 +574,9 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
   // Disable colors if --no-color flag is set or in CI
   if (options.noColor || inCI) {
     chalk.level = 0;
+    // Also set environment variables for other libraries
+    process.env.NO_COLOR = '1';
+    process.env.FORCE_COLOR = '0';
   }
 
   const startTime = Date.now();
@@ -602,8 +620,8 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
   const quiet = options.quiet ?? false;
   const jsonOutput = options.json ?? false;
 
-  // Create spinner (only if not quiet, not json, and not in CI)
-  const spinner = !quiet && !jsonOutput && !inCI
+  // Create spinner (only if not quiet, not json, not in CI, and colors enabled)
+  const spinner = !quiet && !jsonOutput && !inCI && !options.noColor
     ? ora({ text: 'Analyzing session...', color: 'cyan' }).start()
     : null;
 
@@ -667,8 +685,21 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       diff.stats.deletions = diff.files.reduce((sum, f) => sum + f.deletions, 0);
     }
 
-    // Handle empty sessions (no changes)
-    if (diff.files.length === 0 && diff.commits.length === 0) {
+    // Read session actions early for report generation and empty session check
+    let sessionActions: import('./reporter/index.js').SessionAction[] = [];
+    let tokenUsage: import('./reporter/index.js').TokenUsage | undefined;
+    if (options.transcript) {
+      const transcriptData = readActionsFromTranscript(options.transcript);
+      sessionActions = transcriptData.actions;
+      tokenUsage = transcriptData.tokenUsage;
+    } else {
+      sessionActions = readSessionActions(absolutePath);
+    }
+
+    // Handle empty sessions (no file changes AND no session actions)
+    // Still generate report if there are session actions from Claude Code
+    const hasSessionActions = sessionActions.length > 0;
+    if (diff.files.length === 0 && diff.commits.length === 0 && !hasSessionActions) {
       spinner?.succeed('No changes detected');
       if (!quiet && !jsonOutput) {
         console.log();
@@ -810,17 +841,6 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
     // LLM Analysis (if --explain flag is set)
     let llmAnalysis: LLMAnalysisResult | null = null;
     let llmSkippedReason: string | undefined;
-
-    // Read session actions early for LLM analysis and report generation
-    let sessionActions: import('./reporter/index.js').SessionAction[] = [];
-    let tokenUsage: import('./reporter/index.js').TokenUsage | undefined;
-    if (options.transcript) {
-      const transcriptData = readActionsFromTranscript(options.transcript);
-      sessionActions = transcriptData.actions;
-      tokenUsage = transcriptData.tokenUsage;
-    } else {
-      sessionActions = readSessionActions(absolutePath);
-    }
 
     if (options.explain) {
       debugLog(`LLM analysis requested (--explain)`);
@@ -1072,6 +1092,73 @@ async function runAnalyze(targetPath: string, options: AnalyzeOptions): Promise<
       console.log(chalk.green(`\n📄 Report saved to: ${reportPath}\n`));
     }
 
+    // Upload to cloud if requested
+    if (options.cloud || isCloudEnabled(config as { cloud?: { enabled?: boolean } })) {
+      const cloudApiKey = getApiKey(options.apiKey);
+      const cloudApiUrl = getApiUrl(options.apiUrl);
+
+      if (!cloudApiKey) {
+        if (!quiet && !jsonOutput) {
+          console.log(chalk.yellow('⚠️  Cloud upload skipped: No API key found'));
+          console.log(chalk.gray('  Set AFTERBURN_API_KEY environment variable or use --api-key flag'));
+        }
+      } else {
+        const cloudSpinner = !quiet && !jsonOutput
+          ? ora({ text: 'Uploading to cloud...', color: 'cyan' }).start()
+          : null;
+
+        // Validate API key first
+        const validation = await validateApiKey(cloudApiKey, cloudApiUrl);
+
+        if (!validation.valid) {
+          cloudSpinner?.fail(`Cloud upload failed: ${validation.error}`);
+        } else {
+          // Get git info for the session
+          const branch = await getCurrentBranch(absolutePath);
+          const commitHash = diff.commits.length > 0 ? diff.commits[0].hash : undefined;
+          const author = diff.commits.length > 0 ? diff.commits[0].author : undefined;
+
+          // Prepare session data
+          const sessionData: SessionUploadData = {
+            projectName: path.basename(absolutePath),
+            projectSlug: path.basename(absolutePath).toLowerCase().replace(/[^a-z0-9]/g, '-'),
+            startedAt: new Date(Date.now() - duration),
+            endedAt: new Date(),
+            durationSeconds: Math.round(duration / 1000),
+            branch,
+            commitHash,
+            author,
+            filesChanged: diff.stats.filesChanged,
+            linesAdded: diff.stats.insertions,
+            linesRemoved: diff.stats.deletions,
+            commitsCount: diff.stats.commitCount,
+            totalTokens: tokenUsage?.totalTokens ?? llmAnalysis?.usage.totalTokens ?? 0,
+            inputTokens: tokenUsage?.inputTokens ?? llmAnalysis?.usage.inputTokens ?? 0,
+            outputTokens: tokenUsage?.outputTokens ?? llmAnalysis?.usage.outputTokens ?? 0,
+            cacheReadTokens: tokenUsage?.cacheReadTokens ?? 0,
+            estimatedCost: tokenUsage?.estimatedCost ?? llmAnalysis?.usage.estimatedCost ?? 0,
+            model: tokenUsage?.model ?? config.llm?.model,
+            actionsCount: sessionActions.length,
+            actionsJson: sessionActions,
+            aiSummary: llmAnalysis?.summary,
+            aiType: undefined, // TODO: Extract from AI summary if available
+            reportMarkdown: markdownReport,
+          };
+
+          const uploadResult = await uploadSession(cloudApiKey, sessionData, cloudApiUrl);
+
+          if (uploadResult.success) {
+            cloudSpinner?.succeed(`Uploaded to cloud (Session: ${uploadResult.sessionId})`);
+            if (!quiet && !jsonOutput && validation.organization) {
+              console.log(chalk.gray(`  Organization: ${validation.organization.name}`));
+            }
+          } else {
+            cloudSpinner?.fail(`Cloud upload failed: ${uploadResult.error}`);
+          }
+        }
+      }
+    }
+
     // Sync to dashboard if requested
     if (options.sync) {
       const syncSpinner = !quiet && !jsonOutput
@@ -1207,6 +1294,9 @@ program
   .option('--max-errors <n>', 'Maximum allowed errors before failing (default: 0)', parseInt)
   .option('--staged-only', 'Analyze only staged changes (for pre-commit hooks)')
   .option('--sync', 'Sync report to Afterburn dashboard')
+  .option('--cloud', 'Upload report to Afterburn cloud (requires API key)')
+  .option('--api-key <key>', 'Afterburn API key (or use AFTERBURN_API_KEY env var)')
+  .option('--api-url <url>', 'Afterburn API URL (default: https://afterburn.dev)')
   .option('--verbose', 'Show verbose output including errors')
   .option('--quiet', 'Suppress all output except errors')
   .option('--no-color', 'Disable colored output (for CI environments)')
@@ -2420,6 +2510,58 @@ program
     await startStudio(projectPath, port);
   });
 
+// Login command - authenticate with Afterburn Cloud
+program
+  .command('login')
+  .description('Authenticate with Afterburn Cloud')
+  .option('--api-key <key>', 'API key to validate')
+  .option('--api-url <url>', 'Afterburn API URL (default: https://afterburn.dev)')
+  .action(async (options: { apiKey?: string; apiUrl?: string }) => {
+    console.log(chalk.cyan('\n🔥 Afterburn Cloud Login\n'));
+
+    let apiKey = options.apiKey;
+
+    // If no API key provided, prompt for it
+    if (!apiKey) {
+      apiKey = await input({
+        message: 'Enter your Afterburn API key:',
+        validate: (value) => value.length > 0 || 'API key is required',
+      });
+    }
+
+    const apiUrl = getApiUrl(options.apiUrl);
+    const spinner = ora({ text: 'Validating API key...', color: 'cyan' }).start();
+
+    const result = await validateApiKey(apiKey, apiUrl);
+
+    if (result.valid && result.organization) {
+      spinner.succeed('API key validated successfully!');
+      console.log();
+      console.log(chalk.green(`  ✓ Organization: ${result.organization.name}`));
+      console.log(chalk.gray(`    Slug: ${result.organization.slug}`));
+      console.log(chalk.gray(`    Plan: ${result.organization.plan}`));
+      console.log();
+      console.log(chalk.gray('To use this API key automatically, set the environment variable:'));
+      console.log(chalk.white(`  export AFTERBURN_API_KEY="${apiKey}"`));
+      console.log();
+      console.log(chalk.gray('Or add to your .env file:'));
+      console.log(chalk.white(`  AFTERBURN_API_KEY=${apiKey}`));
+      console.log();
+      console.log(chalk.gray('Then run afterburn with --cloud flag to upload reports:'));
+      console.log(chalk.white('  afterburn ./ --explain --cloud'));
+      console.log();
+    } else {
+      spinner.fail(`API key validation failed: ${result.error}`);
+      console.log();
+      console.log(chalk.gray('To get an API key:'));
+      console.log(chalk.white(`  1. Go to ${apiUrl}/dashboard`));
+      console.log(chalk.white('  2. Navigate to Settings > API Keys'));
+      console.log(chalk.white('  3. Create a new API key'));
+      console.log();
+      process.exit(1);
+    }
+  });
+
 // Default action: if path is provided without command, run analyze
 // If no config exists and no args, trigger setup wizard
 program
@@ -2439,7 +2581,7 @@ program
   .option('--no-color', 'Disable colored output')
   .option('--transcript <path>', 'Path to Claude Code transcript file')
   .action(async (targetPath: string | undefined, options: AnalyzeOptions) => {
-    const subcommands = ['analyze', 'init', 'config', 'watch', 'hook', 'studio', 'setup', 'help'];
+    const subcommands = ['analyze', 'init', 'config', 'watch', 'hook', 'studio', 'setup', 'login', 'help'];
 
     // If a path is provided (and it's not a subcommand), run analyze
     if (targetPath && !subcommands.includes(targetPath)) {

@@ -57,6 +57,14 @@ const NETWORK_PATTERNS: ConfigPattern[] = [
     severity: 'info',
     suggestion: 'Use environment variable: process.env.PORT',
   },
+  // Hardcoded port in variable names
+  {
+    name: 'Hardcoded Port Variable',
+    pattern: /(?:server|db|redis|app|http|service|listen)Port\s*[:=]\s*(\d{4,5})(?!\d)/g,
+    message: 'Hardcoded port number in variable',
+    severity: 'info',
+    suggestion: 'Use environment variable: process.env.PORT',
+  },
   // Private IP ranges
   {
     name: 'Private IP',
@@ -459,9 +467,9 @@ const EXCLUDE_CONTENT_PATTERNS = [
 
 // Known safe patterns
 const SAFE_PATTERNS = [
-  /\/\/.*[:=]/,      // In comments
-  /\/\*.*[:=]/,      // In block comments
-  /\*.*[:=]/,        // In JSDoc
+  /^\s*\/\/.*[:=]/,  // Line starting with comment //
+  /^\s*\/\*.*[:=]/,  // Line starting with block comment /*
+  /^\s*\*.*[:=]/,    // Line starting with * (JSDoc continuation)
   /"description":/,
   /"homepage":/,
   /"repository":/,
