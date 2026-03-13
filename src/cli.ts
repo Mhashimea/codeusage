@@ -2516,7 +2516,8 @@ program
   .description('Authenticate with Afterburn Cloud')
   .option('--api-key <key>', 'API key to validate')
   .option('--api-url <url>', 'Afterburn API URL (default: https://afterburn.dev)')
-  .action(async (options: { apiKey?: string; apiUrl?: string }) => {
+  .option('--save', 'Save API key to .afterburnrc config file')
+  .action(async (options: { apiKey?: string; apiUrl?: string; save?: boolean }) => {
     console.log(chalk.cyan('\n🔥 Afterburn Cloud Login\n'));
 
     let apiKey = options.apiKey;
@@ -2532,7 +2533,8 @@ program
     const apiUrl = getApiUrl(options.apiUrl);
     const spinner = ora({ text: 'Validating API key...', color: 'cyan' }).start();
 
-    const result = await validateApiKey(apiKey, apiUrl);
+    // Skip cache on login to ensure fresh validation
+    const result = await validateApiKey(apiKey, apiUrl, { skipCache: true });
 
     if (result.valid && result.organization) {
       spinner.succeed('API key validated successfully!');
@@ -2541,13 +2543,63 @@ program
       console.log(chalk.gray(`    Slug: ${result.organization.slug}`));
       console.log(chalk.gray(`    Plan: ${result.organization.plan}`));
       console.log();
-      console.log(chalk.gray('To use this API key automatically, set the environment variable:'));
-      console.log(chalk.white(`  export AFTERBURN_API_KEY="${apiKey}"`));
-      console.log();
-      console.log(chalk.gray('Or add to your .env file:'));
-      console.log(chalk.white(`  AFTERBURN_API_KEY=${apiKey}`));
-      console.log();
-      console.log(chalk.gray('Then run afterburn with --cloud flag to upload reports:'));
+
+      // Ask to save if --save flag provided or prompt user
+      let shouldSave = options.save;
+      if (!shouldSave) {
+        shouldSave = await inquirerConfirm({
+          message: 'Save API key to .afterburnrc config file?',
+          default: true,
+        });
+      }
+
+      if (shouldSave) {
+        const cwd = process.cwd();
+        const configPath = findConfigFile(cwd) || path.join(cwd, '.afterburnrc');
+        let config: AfterburnerConfig = { ...DEFAULT_CONFIG };
+
+        // Load existing config if it exists
+        if (fs.existsSync(configPath)) {
+          try {
+            const loadResult = await loadConfig(cwd);
+            config = loadResult.config;
+          } catch {
+            // Start fresh if config is invalid
+          }
+        }
+
+        // Add cloud config with API key using env: prefix for security
+        config.cloud = {
+          ...config.cloud,
+          enabled: true,
+          apiKey: `env:AFTERBURN_API_KEY`,
+        };
+
+        writeConfigFile(configPath, config);
+
+        // Also write to .env file
+        const envPath = path.join(cwd, '.env');
+        let envContent = '';
+        if (fs.existsSync(envPath)) {
+          envContent = fs.readFileSync(envPath, 'utf-8');
+          // Remove existing AFTERBURN_API_KEY line if present
+          envContent = envContent.replace(/^AFTERBURN_API_KEY=.*$/m, '').trim();
+        }
+        envContent = `${envContent}\nAFTERBURN_API_KEY=${apiKey}`.trim() + '\n';
+        fs.writeFileSync(envPath, envContent);
+
+        console.log(chalk.green('  ✓ API key saved to .env'));
+        console.log(chalk.green('  ✓ Cloud mode enabled in .afterburnrc'));
+        console.log();
+        console.log(chalk.gray('Make sure .env is in your .gitignore!'));
+        console.log();
+      } else {
+        console.log(chalk.gray('To use this API key, set the environment variable:'));
+        console.log(chalk.white(`  export AFTERBURN_API_KEY="${apiKey}"`));
+        console.log();
+      }
+
+      console.log(chalk.gray('Run afterburn with --cloud flag to upload reports:'));
       console.log(chalk.white('  afterburn ./ --explain --cloud'));
       console.log();
     } else {

@@ -3,7 +3,83 @@
  * Handles API key validation and session upload to cloud
  */
 
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
+
 const DEFAULT_API_URL = 'https://afterburn.dev';
+const CACHE_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/**
+ * Cached validation result with timestamp
+ */
+interface CachedValidation {
+  apiKeyHash: string; // Hash of API key for comparison
+  result: ValidationResult;
+  timestamp: number;
+  apiUrl: string;
+}
+
+/**
+ * Get cache file path
+ */
+function getCacheFilePath(): string {
+  const cacheDir = path.join(os.homedir(), '.afterburn');
+  if (!fs.existsSync(cacheDir)) {
+    fs.mkdirSync(cacheDir, { recursive: true });
+  }
+  return path.join(cacheDir, 'auth-cache.json');
+}
+
+/**
+ * Simple hash function for API key (for cache comparison, not security)
+ */
+function hashApiKey(apiKey: string): string {
+  // Use first 8 and last 4 chars as a simple identifier
+  if (apiKey.length < 12) return apiKey;
+  return `${apiKey.slice(0, 8)}...${apiKey.slice(-4)}`;
+}
+
+/**
+ * Load cached validation result
+ */
+function loadCachedValidation(): CachedValidation | null {
+  try {
+    const cachePath = getCacheFilePath();
+    if (!fs.existsSync(cachePath)) return null;
+
+    const data = JSON.parse(fs.readFileSync(cachePath, 'utf-8')) as CachedValidation;
+    return data;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Save validation result to cache
+ */
+function saveCachedValidation(cache: CachedValidation): void {
+  try {
+    const cachePath = getCacheFilePath();
+    fs.writeFileSync(cachePath, JSON.stringify(cache, null, 2));
+  } catch {
+    // Ignore cache write errors
+  }
+}
+
+/**
+ * Clear the validation cache
+ */
+export function clearValidationCache(): void {
+  try {
+    const cachePath = getCacheFilePath();
+    if (fs.existsSync(cachePath)) {
+      fs.unlinkSync(cachePath);
+    }
+  } catch {
+    // Ignore cache clear errors
+  }
+}
 
 export interface CloudConfig {
   apiKey?: string;
@@ -70,12 +146,30 @@ export function getApiUrl(configApiUrl?: string): string {
 }
 
 /**
- * Validate API key with the cloud server
+ * Validate API key with the cloud server (with caching)
  */
 export async function validateApiKey(
   apiKey: string,
-  apiUrl: string = DEFAULT_API_URL
+  apiUrl: string = DEFAULT_API_URL,
+  options: { skipCache?: boolean } = {}
 ): Promise<ValidationResult> {
+  const keyHash = hashApiKey(apiKey);
+
+  // Check cache first (unless skipCache is set)
+  if (!options.skipCache) {
+    const cached = loadCachedValidation();
+    if (cached) {
+      const isExpired = Date.now() - cached.timestamp > CACHE_EXPIRY_MS;
+      const isSameKey = cached.apiKeyHash === keyHash;
+      const isSameUrl = cached.apiUrl === apiUrl;
+
+      if (!isExpired && isSameKey && isSameUrl && cached.result.valid) {
+        return cached.result;
+      }
+    }
+  }
+
+  // Make network request
   try {
     const response = await fetch(`${apiUrl}/api/v1/auth/validate`, {
       method: 'POST',
@@ -98,11 +192,23 @@ export async function validateApiKey(
       };
     }
 
-    return {
+    const result: ValidationResult = {
       valid: data.valid ?? false,
       organization: data.organization,
       error: data.error,
     };
+
+    // Cache successful validations
+    if (result.valid) {
+      saveCachedValidation({
+        apiKeyHash: keyHash,
+        result,
+        timestamp: Date.now(),
+        apiUrl,
+      });
+    }
+
+    return result;
   } catch (error) {
     return {
       valid: false,

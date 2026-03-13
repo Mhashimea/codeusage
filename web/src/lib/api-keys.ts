@@ -153,6 +153,50 @@ export async function listApiKeys(organizationId: string) {
 }
 
 /**
+ * Get usage stats for an API key
+ */
+export async function getApiKeyUsageStats(keyId: string): Promise<{
+  sessionsCount: number;
+  totalTokens: number;
+  totalCost: number;
+}> {
+  const { sessions } = await import("@/db/schema");
+  const { sql } = await import("drizzle-orm");
+
+  const result = await db
+    .select({
+      sessionsCount: sql<number>`count(*)::int`,
+      totalTokens: sql<number>`coalesce(sum(${sessions.totalTokens}), 0)::int`,
+      totalCost: sql<number>`coalesce(sum(${sessions.estimatedCost}), 0)::float`,
+    })
+    .from(sessions)
+    .where(eq(sessions.apiKeyId, keyId));
+
+  return {
+    sessionsCount: result[0]?.sessionsCount ?? 0,
+    totalTokens: result[0]?.totalTokens ?? 0,
+    totalCost: result[0]?.totalCost ?? 0,
+  };
+}
+
+/**
+ * List API keys with usage stats
+ */
+export async function listApiKeysWithStats(organizationId: string) {
+  const keys = await listApiKeys(organizationId);
+
+  // Get usage stats for each key
+  const keysWithStats = await Promise.all(
+    keys.map(async (key) => {
+      const stats = await getApiKeyUsageStats(key.id);
+      return { ...key, ...stats };
+    })
+  );
+
+  return keysWithStats;
+}
+
+/**
  * Get user's organization
  */
 export async function getUserOrganization(userId: string) {

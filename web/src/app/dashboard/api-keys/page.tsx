@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { getUserOrganization, listApiKeys } from "@/lib/api-keys";
+import { getUserOrganization, listApiKeysWithStats } from "@/lib/api-keys";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ApiKeyList } from "./api-key-list";
 import { CreateApiKeyButton } from "./create-api-key-button";
@@ -21,7 +21,7 @@ export default async function ApiKeysPage() {
     );
   }
 
-  const apiKeys = await listApiKeys(organization.id);
+  const apiKeys = await listApiKeysWithStats(organization.id);
 
   return (
     <div className="space-y-8">

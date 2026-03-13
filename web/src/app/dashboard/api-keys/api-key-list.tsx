@@ -32,6 +32,22 @@ interface ApiKey {
   expiresAt: Date | null;
   createdAt: Date;
   revokedAt: Date | null;
+  sessionsCount?: number;
+  totalTokens?: number;
+  totalCost?: number;
+}
+
+function formatTokens(tokens: number): string {
+  if (tokens === 0) return "0";
+  if (tokens < 1000) return tokens.toString();
+  if (tokens < 1000000) return `${(tokens / 1000).toFixed(1)}K`;
+  return `${(tokens / 1000000).toFixed(1)}M`;
+}
+
+function formatCost(cost: number): string {
+  if (cost === 0) return "$0.00";
+  if (cost < 0.01) return "<$0.01";
+  return `$${cost.toFixed(2)}`;
 }
 
 interface ApiKeyListProps {
@@ -122,9 +138,10 @@ export function ApiKeyList({ apiKeys, organizationId }: ApiKeyListProps) {
               <TableRow>
                 <TableHead>Name</TableHead>
                 <TableHead>Key</TableHead>
+                <TableHead>Sessions</TableHead>
+                <TableHead>Tokens</TableHead>
+                <TableHead>Cost</TableHead>
                 <TableHead>Last Used</TableHead>
-                <TableHead>Created</TableHead>
-                <TableHead>Expires</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -137,19 +154,16 @@ export function ApiKeyList({ apiKeys, organizationId }: ApiKeyListProps) {
                       {key.keyPrefix}
                     </code>
                   </TableCell>
-                  <TableCell>{formatRelativeTime(key.lastUsedAt)}</TableCell>
-                  <TableCell>{formatDate(key.createdAt)}</TableCell>
                   <TableCell>
-                    {key.expiresAt ? (
-                      new Date(key.expiresAt) < new Date() ? (
-                        <Badge variant="destructive">Expired</Badge>
-                      ) : (
-                        formatDate(key.expiresAt)
-                      )
-                    ) : (
-                      <span className="text-muted-foreground">Never</span>
-                    )}
+                    <span className="tabular-nums">{key.sessionsCount ?? 0}</span>
                   </TableCell>
+                  <TableCell>
+                    <span className="tabular-nums">{formatTokens(key.totalTokens ?? 0)}</span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="tabular-nums">{formatCost(key.totalCost ?? 0)}</span>
+                  </TableCell>
+                  <TableCell>{formatRelativeTime(key.lastUsedAt)}</TableCell>
                   <TableCell className="text-right">
                     <AlertDialog>
                       <AlertDialogTrigger asChild>

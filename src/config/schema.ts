@@ -160,6 +160,26 @@ export interface AfterburnerConfig {
    * Custom rules defined by the user
    */
   customRules?: CustomRuleDefinition[];
+
+  /**
+   * Cloud configuration
+   */
+  cloud?: {
+    /**
+     * Enable cloud sync
+     */
+    enabled?: boolean;
+
+    /**
+     * API key (use "env:VARIABLE_NAME" to read from environment)
+     */
+    apiKey?: string;
+
+    /**
+     * API URL (default: https://afterburn.dev)
+     */
+    apiUrl?: string;
+  };
 }
 
 /**
