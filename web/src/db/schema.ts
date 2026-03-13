@@ -20,6 +20,7 @@ export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: varchar("email", { length: 255 }).unique().notNull(),
   name: varchar("name", { length: 255 }),
+  password: varchar("password", { length: 255 }), // For credential-based auth
   emailVerified: timestamp("email_verified"),
   image: text("image"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

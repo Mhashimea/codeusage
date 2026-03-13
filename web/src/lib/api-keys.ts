@@ -112,7 +112,7 @@ export async function createApiKey(
       createdById,
       expiresAt,
     })
-    .returning({ id: apiKeys.id });
+    .returning();
 
   return {
     id: newKey.id,

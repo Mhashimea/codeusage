@@ -397,6 +397,20 @@ export async function getSessionDiff(
 }
 
 /**
+ * Get the current branch name
+ */
+export async function getCurrentBranch(repoPath: string): Promise<string | undefined> {
+  const git: SimpleGit = simpleGit(repoPath);
+
+  try {
+    const branch = await git.revparse(['--abbrev-ref', 'HEAD']);
+    return branch.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Get raw diff output for the session
  */
 export async function getRawDiff(repoPath: string, since?: string): Promise<string> {

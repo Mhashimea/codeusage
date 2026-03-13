@@ -1,6 +1,6 @@
 {
   "name": "afterburn",
-  "version": "0.2.0",
+  "version": "0.1.0",
   "description": "Post-session intelligence for AI-assisted coding. The documentation that vibe coding never produces.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -31,7 +31,7 @@
     "claude-code"
   ],
   "author": "Hashim",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "engines": {
     "node": ">=18.0.0"
   },
@@ -40,13 +40,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hashimea/afterburn.git"
+    "url": "git+https://github.com/Mhashimea/afterburn.git"
   },
   "bugs": {
-    "url": "https://github.com/hashimea/afterburn/issues"
+    "url": "https://github.com/Mhashimea/afterburn/issues"
   },
-  "homepage": "https://github.com/hashimea/afterburn#readme",
+  "homepage": "https://github.com/Mhashimea/afterburn#readme",
   "dependencies": {
+    "@inquirer/prompts": "^8.3.0",
     "chalk": "^5.3.0",
     "chokidar": "^5.0.0",
     "commander": "^12.1.0",
@@ -60,6 +61,7 @@
     "web-tree-sitter": "^0.26.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/express": "^5.0.6",
     "@types/marked": "^5.0.2",
     "@types/node": "^20.14.0",

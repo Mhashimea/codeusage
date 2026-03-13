@@ -74,13 +74,21 @@ export function createSessionSummaryPrompt(options: {
     prompt += `**Code Diff:**\n\`\`\`diff\n${diff}\n\`\`\`\n\n`;
   }
 
-  prompt += `Based on the Claude Code actions and code changes above, provide:
+  prompt += `Based on the Claude Code actions and code changes above, provide a developer-focused summary:
 
-1. **Summary** (2-3 sentences): What was accomplished in this coding session? Describe the work done in plain language.
-2. **Key Changes**: List the main code changes made (use bullet points)
-3. **Purpose**: What problem was being solved or what feature was being built?
+1. **What was done** (1-2 sentences): Clearly state the feature added, bug fixed, or improvement made. Be specific - e.g., "Added dark mode toggle to settings page" not "Made UI changes".
 
-Keep the response under 300 words. Focus on describing what the developer achieved with Claude Code's assistance.`;
+2. **Type**: Classify as one of: Feature | Bug Fix | Refactor | Config | Docs | Test | Research
+
+3. **Impact**: Who/what does this affect? (e.g., "Users can now export reports to PDF", "Fixes login failure on Safari")
+
+4. **Technical Details** (optional, 2-3 bullets max): Only include if there are notable implementation choices, new dependencies, or architecture decisions.
+
+Rules:
+- Focus on WHAT was accomplished, not HOW (don't list tools used)
+- Be specific and actionable - another developer should understand the change
+- If no code was changed but research was done, summarize what was learned
+- Keep total response under 150 words`;
 
   return prompt;
 }
