@@ -129,3 +129,104 @@ export async function countTasks(workspaceId: string) {
 
   return result.count;
 }
+
+/**
+ * Get top projects by token volume
+ * CRITICAL: Always filter by workspace_id
+ */
+export async function getTopProjects(
+  workspaceId: string,
+  options: {
+    limit?: number;
+    startDate?: Date;
+    endDate?: Date;
+  } = {}
+) {
+  const { limit = 5, startDate, endDate } = options;
+
+  const conditions = [eq(tasks.workspace_id, workspaceId)];
+
+  if (startDate) {
+    conditions.push(gte(tasks.created_at, startDate));
+  }
+  if (endDate) {
+    conditions.push(lte(tasks.created_at, endDate));
+  }
+
+  const result = await db
+    .select({
+      project_slug: tasks.project_slug,
+      total_tokens: sql<number>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::int`,
+      total_cost_usd: sql<string>`coalesce(sum(${tasks.cost_usd}), 0)::numeric(10,6)`,
+      task_count: sql<number>`count(*)::int`,
+    })
+    .from(tasks)
+    .where(and(...conditions))
+    .groupBy(tasks.project_slug)
+    .orderBy(desc(sql`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))`))
+    .limit(limit);
+
+  return result.map((row) => ({
+    project_slug: row.project_slug,
+    total_tokens: row.total_tokens,
+    total_cost_usd: parseFloat(row.total_cost_usd),
+    task_count: row.task_count,
+  }));
+}
+
+/**
+ * Get unique developers for a workspace (for filters)
+ */
+export async function getUniqueDevelopers(workspaceId: string) {
+  const result = await db
+    .selectDistinct({ developer_alias: tasks.developer_alias })
+    .from(tasks)
+    .where(eq(tasks.workspace_id, workspaceId))
+    .orderBy(tasks.developer_alias);
+
+  return result.map((r) => r.developer_alias);
+}
+
+/**
+ * Get unique projects for a workspace (for filters)
+ */
+export async function getUniqueProjects(workspaceId: string) {
+  const result = await db
+    .selectDistinct({ project_slug: tasks.project_slug })
+    .from(tasks)
+    .where(eq(tasks.workspace_id, workspaceId))
+    .orderBy(tasks.project_slug);
+
+  return result.map((r) => r.project_slug);
+}
+
+/**
+ * Get daily activity for heatmap (last 26 weeks)
+ * CRITICAL: Always filter by workspace_id
+ */
+export async function getDailyActivity(
+  workspaceId: string,
+  options: { weeks?: number } = {}
+) {
+  const { weeks = 26 } = options;
+
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - weeks * 7);
+
+  const result = await db
+    .select({
+      date: sql<string>`date(${tasks.created_at})::text`,
+      task_count: sql<number>`count(*)::int`,
+    })
+    .from(tasks)
+    .where(and(eq(tasks.workspace_id, workspaceId), gte(tasks.created_at, startDate)))
+    .groupBy(sql`date(${tasks.created_at})`)
+    .orderBy(sql`date(${tasks.created_at})`);
+
+  const activityMap: Record<string, number> = {};
+  for (const row of result) {
+    activityMap[row.date] = row.task_count;
+  }
+
+  return activityMap;
+}

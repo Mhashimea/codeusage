@@ -1,8 +1,14 @@
 import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { getTasksByWorkspace, countTasks } from "@/lib/db/queries/tasks";
+import {
+  getTasksByWorkspace,
+  countTasks,
+  getUniqueDevelopers,
+  getUniqueProjects,
+} from "@/lib/db/queries/tasks";
 import { TaskList } from "@/components/dashboard/tasks/TaskList";
+import { TaskFilters } from "@/components/dashboard/tasks/TaskFilters";
 
 interface TasksPageProps {
   searchParams: Promise<{
@@ -24,7 +30,7 @@ async function TasksContent({ searchParams }: TasksPageProps) {
   const page = parseInt(params.page || "1", 10);
   const pageSize = 20;
 
-  const [tasks, total] = await Promise.all([
+  const [tasks, total, developers, projects] = await Promise.all([
     getTasksByWorkspace(workspaceId, {
       limit: pageSize,
       offset: (page - 1) * pageSize,
@@ -32,16 +38,21 @@ async function TasksContent({ searchParams }: TasksPageProps) {
       project: params.project,
     }),
     countTasks(workspaceId),
+    getUniqueDevelopers(workspaceId),
+    getUniqueProjects(workspaceId),
   ]);
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
-        <p className="text-muted-foreground">
-          All Claude Code tasks synced from your team
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
+          <p className="text-muted-foreground">
+            All Claude Code tasks synced from your team
+          </p>
+        </div>
+        <TaskFilters developers={developers} projects={projects} />
       </div>
 
       {/* Task List */}

@@ -1,18 +1,17 @@
 import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { getTaskStats, getTasksByWorkspace } from "@/lib/db/queries/tasks";
+import { getTaskStats, getTasksByWorkspace, getTopProjects, getDailyActivity } from "@/lib/db/queries/tasks";
 import { MetricCard } from "@/components/shared/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCost, formatTokens } from "@afterburn/shared";
 import { Coins, Zap, ListTodo, Users, Clock, FileCode } from "lucide-react";
-import {
-  PeriodSelector,
-  getPeriodDates,
-  type Period,
-} from "@/components/dashboard/overview/PeriodSelector";
+import { PeriodSelector } from "@/components/dashboard/overview/PeriodSelector";
+import { TopProjects } from "@/components/dashboard/overview/TopProjects";
+import { Heatmap } from "@/components/shared/Heatmap";
+import { getPeriodDates, type Period } from "@/lib/period";
 
 interface OverviewContentProps {
   period: Period;
@@ -30,9 +29,11 @@ async function OverviewContent({ period }: OverviewContentProps) {
   // Get dates based on selected period
   const { startDate, label: periodLabel } = getPeriodDates(period);
 
-  const [stats, recentTasks] = await Promise.all([
+  const [stats, recentTasks, topProjects, dailyActivity] = await Promise.all([
     getTaskStats(workspaceId, { startDate }),
     getTasksByWorkspace(workspaceId, { limit: 5 }),
+    getTopProjects(workspaceId, { startDate, limit: 5 }),
+    getDailyActivity(workspaceId, { weeks: 26 }),
   ]);
 
   const totalTokens = stats.total_input_tokens + stats.total_output_tokens;
@@ -47,12 +48,9 @@ async function OverviewContent({ period }: OverviewContentProps) {
             {periodLabel} summary for your workspace
           </p>
         </div>
-        <div className="flex items-center gap-2 border-2 border-red-500 bg-red-500/20 p-2 rounded">
-          <span className="text-red-500 text-sm font-bold">DEBUG:</span>
-          <Suspense fallback={<Skeleton className="h-10 w-[160px]" />}>
-            <PeriodSelector defaultPeriod={period} />
-          </Suspense>
-        </div>
+        <Suspense fallback={<Skeleton className="h-10 w-40" />}>
+          <PeriodSelector defaultPeriod={period} />
+        </Suspense>
       </div>
 
       {/* Metric Cards */}
@@ -104,6 +102,12 @@ async function OverviewContent({ period }: OverviewContentProps) {
           icon={Clock}
         />
       </div>
+
+      {/* Activity Heatmap */}
+      <Heatmap data={dailyActivity} weeks={26} />
+
+      {/* Top Projects */}
+      <TopProjects projects={topProjects} />
 
       {/* Recent Tasks */}
       <Card>

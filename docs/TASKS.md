@@ -10,14 +10,14 @@ This document contains the complete task breakdown from zero to first version, o
 
 ## Overview
 
-| Sprint | Focus | Priority |
-|--------|-------|----------|
-| Sprint 1 | Foundation & Infrastructure | **MVP** |
-| Sprint 2 | CLI Core | **MVP** |
-| Sprint 3 | Dashboard MVP | **MVP** |
-| Sprint 4 | CLI Complete | Post-MVP |
-| Sprint 5 | Dashboard Complete | Post-MVP |
-| Sprint 6 | Reports, Polish & Testing | Post-MVP |
+| Sprint | Focus | Priority | Status |
+|--------|-------|----------|--------|
+| Sprint 1 | Foundation & Infrastructure | **MVP** | ✅ Complete |
+| Sprint 2 | CLI Core | **MVP** | ✅ Complete |
+| Sprint 3 | Dashboard MVP | **MVP** | ✅ Complete |
+| Sprint 4 | CLI Complete | Post-MVP | ✅ Complete |
+| Sprint 5 | Dashboard Complete | Post-MVP | ✅ Complete |
+| Sprint 6 | Reports, Polish & Testing | Post-MVP | ✅ Complete |
 
 ---
 

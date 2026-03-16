@@ -1,6 +1,6 @@
 import { db } from "..";
 import { tasks } from "../schema";
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, and, gte } from "drizzle-orm";
 
 /**
  * Get all developers for a workspace with their stats
@@ -64,4 +64,39 @@ export async function getDeveloperStats(
     firstTask: stats.firstTask,
     lastTask: stats.lastTask,
   };
+}
+
+/**
+ * Get developer activity for the last 14 days
+ * CRITICAL: Always filter by workspace_id
+ */
+export async function getDeveloperActivity(
+  workspaceId: string,
+  options: { days?: number } = {}
+) {
+  const { days = 14 } = options;
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+
+  const result = await db
+    .select({
+      developer_alias: tasks.developer_alias,
+      date: sql<string>`date(${tasks.created_at})::text`,
+      task_count: sql<number>`count(*)::int`,
+    })
+    .from(tasks)
+    .where(and(eq(tasks.workspace_id, workspaceId), gte(tasks.created_at, startDate)))
+    .groupBy(tasks.developer_alias, sql`date(${tasks.created_at})`)
+    .orderBy(tasks.developer_alias, sql`date(${tasks.created_at})`);
+
+  // Group by developer
+  const activityByDeveloper: Record<string, Record<string, number>> = {};
+  for (const row of result) {
+    if (!activityByDeveloper[row.developer_alias]) {
+      activityByDeveloper[row.developer_alias] = {};
+    }
+    activityByDeveloper[row.developer_alias][row.date] = row.task_count;
+  }
+
+  return activityByDeveloper;
 }

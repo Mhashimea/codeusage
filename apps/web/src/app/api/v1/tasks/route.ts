@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { telemetryPayloadSchema } from "@afterburn/shared";
 import { getWorkspaceByApiKey } from "@/lib/db/queries/workspaces";
 import { insertTask } from "@/lib/db/queries/tasks";
+import { broadcastToWorkspace } from "@/app/api/v1/stream/route";
 
 // Simple in-memory rate limiter (use Redis in production)
 const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
@@ -106,8 +107,19 @@ export async function POST(request: NextRequest) {
       cli_version: payload.cli_version,
     });
 
-    // 7. TODO: Emit SSE event to connected dashboard clients
-    // This will be implemented in Sprint 6
+    // 7. Broadcast new task to connected dashboard clients
+    broadcastToWorkspace(workspace.id, {
+      type: "new_task",
+      task: {
+        id: task.id,
+        developer_alias: task.developer_alias,
+        project_slug: task.project_slug,
+        cost_usd: task.cost_usd,
+        input_tokens: task.input_tokens,
+        output_tokens: task.output_tokens,
+        created_at: task.created_at.toISOString(),
+      },
+    });
 
     // 8. Return success
     return NextResponse.json(
