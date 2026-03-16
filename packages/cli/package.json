@@ -1,0 +1,39 @@
+{
+  "name": "afterburn",
+  "version": "0.1.0",
+  "description": "CLI for Afterburn - AI coding tool intelligence platform",
+  "author": "Hashim",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "afterburn": "./dist/index.js"
+  },
+  "main": "./dist/index.js",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@afterburn/shared": "workspace:*",
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "conf": "^13.1.0",
+    "execa": "^9.5.2",
+    "ora": "^8.2.0",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.0",
+    "tsup": "^8.5.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

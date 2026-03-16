@@ -1,0 +1,78 @@
+import { Suspense } from "react";
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+import { getTasksByWorkspace, countTasks } from "@/lib/db/queries/tasks";
+import { TaskList } from "@/components/dashboard/tasks/TaskList";
+
+interface TasksPageProps {
+  searchParams: Promise<{
+    page?: string;
+    developer?: string;
+    project?: string;
+  }>;
+}
+
+async function TasksContent({ searchParams }: TasksPageProps) {
+  const session = await auth();
+
+  if (!session?.user?.workspaceId) {
+    redirect("/login");
+  }
+
+  const workspaceId = session.user.workspaceId;
+  const params = await searchParams;
+  const page = parseInt(params.page || "1", 10);
+  const pageSize = 20;
+
+  const [tasks, total] = await Promise.all([
+    getTasksByWorkspace(workspaceId, {
+      limit: pageSize,
+      offset: (page - 1) * pageSize,
+      developer: params.developer,
+      project: params.project,
+    }),
+    countTasks(workspaceId),
+  ]);
+
+  return (
+    <div className="space-y-6">
+      {/* Page Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
+        <p className="text-muted-foreground">
+          All Claude Code tasks synced from your team
+        </p>
+      </div>
+
+      {/* Task List */}
+      <TaskList
+        tasks={tasks}
+        pagination={{
+          page,
+          pageSize,
+          total,
+        }}
+      />
+    </div>
+  );
+}
+
+function TasksSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div>
+        <div className="h-8 w-24 animate-pulse rounded bg-muted" />
+        <div className="mt-2 h-4 w-48 animate-pulse rounded bg-muted" />
+      </div>
+      <div className="h-96 animate-pulse rounded-lg bg-muted" />
+    </div>
+  );
+}
+
+export default function TasksPage(props: TasksPageProps) {
+  return (
+    <Suspense fallback={<TasksSkeleton />}>
+      <TasksContent {...props} />
+    </Suspense>
+  );
+}

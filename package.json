@@ -1,74 +1,31 @@
 {
   "name": "afterburn",
   "version": "0.1.0",
-  "description": "Post-session intelligence for AI-assisted coding. The documentation that vibe coding never produces.",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "bin": {
-    "afterburn": "./dist/cli.js"
-  },
-  "scripts": {
-    "build": "tsc && chmod +x dist/cli.js",
-    "dev": "tsc --watch",
-    "start": "node dist/cli.js",
-    "lint": "eslint src --ext .ts",
-    "lint:fix": "eslint src --ext .ts --fix",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "prepublishOnly": "npm run build"
-  },
-  "keywords": [
-    "ai",
-    "coding",
-    "documentation",
-    "static-analysis",
-    "cli",
-    "developer-tools",
-    "code-review",
-    "llm",
-    "cursor",
-    "copilot",
-    "claude-code"
-  ],
+  "private": true,
+  "description": "AI coding tool intelligence platform for engineering teams",
   "author": "Hashim",
-  "license": "UNLICENSED",
+  "license": "MIT",
+  "workspaces": ["apps/*", "packages/*"],
+  "scripts": {
+    "dev": "turbo dev",
+    "dev:web": "turbo dev --filter=web",
+    "dev:cli": "turbo dev --filter=cli",
+    "build": "turbo build",
+    "build:web": "turbo build --filter=web",
+    "build:cli": "turbo build --filter=cli",
+    "typecheck": "turbo typecheck",
+    "lint": "turbo lint",
+    "test": "turbo test",
+    "db:generate": "turbo db:generate --filter=web",
+    "db:migrate": "turbo db:migrate --filter=web",
+    "db:studio": "turbo db:studio --filter=web",
+    "clean": "turbo clean && rm -rf node_modules .turbo"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.0"
+  },
   "engines": {
     "node": ">=18.0.0"
   },
-  "files": [
-    "dist"
-  ],
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Mhashimea/afterburn.git"
-  },
-  "bugs": {
-    "url": "https://github.com/Mhashimea/afterburn/issues"
-  },
-  "homepage": "https://github.com/Mhashimea/afterburn#readme",
-  "dependencies": {
-    "@inquirer/prompts": "^8.3.0",
-    "chalk": "^5.3.0",
-    "chokidar": "^5.0.0",
-    "commander": "^12.1.0",
-    "dotenv": "^17.3.1",
-    "express": "^5.2.1",
-    "marked": "^17.0.4",
-    "open": "^11.0.0",
-    "ora": "^8.0.1",
-    "simple-git": "^3.25.0",
-    "tree-sitter-wasms": "^0.1.13",
-    "web-tree-sitter": "^0.26.6"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.58.2",
-    "@types/express": "^5.0.6",
-    "@types/marked": "^5.0.2",
-    "@types/node": "^20.14.0",
-    "@typescript-eslint/eslint-plugin": "^7.13.0",
-    "@typescript-eslint/parser": "^7.13.0",
-    "eslint": "^8.57.0",
-    "typescript": "^5.4.5",
-    "vitest": "^1.6.0"
-  }
+  "packageManager": "bun@1.2.22"
 }

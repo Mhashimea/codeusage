@@ -1,34 +1,51 @@
 # Dependencies
 node_modules/
+.pnpm-store/
 
-# Build output
+# Build outputs
 dist/
+.next/
+out/
+build/
+
+# Environment files
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # IDE
 .idea/
 .vscode/
 *.swp
 *.swo
-
-# OS
 .DS_Store
-Thumbs.db
-
-# Environment
-.env
-.env.local
-.env.*.local
 
 # Logs
 *.log
 npm-debug.log*
+pnpm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 
-# Test coverage
+# Testing
 coverage/
+.nyc_output/
 
-# Afterburn output
-.afterburn/
+# Drizzle
+drizzle/*.sql
 
-# Lock files (optional - remove if you want to commit)
-# package-lock.json
-.env
+# Turbo
+.turbo/
+
+# Vercel
+.vercel/
+
+# TypeScript
+*.tsbuildinfo
+
+# Misc
+.cache/
+tmp/
+temp/

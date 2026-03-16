@@ -2,8 +2,8 @@
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2022"],
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
@@ -12,16 +12,13 @@
     "declaration": true,
     "declarationMap": true,
     "sourceMap": true,
-    "noEmit": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
-    "noUncheckedIndexedAccess": true,
-    "exactOptionalPropertyTypes": true,
-    "paths": {
-      "@afterburn/shared": ["./packages/shared/src"],
-      "@afterburn/shared/*": ["./packages/shared/src/*"]
-    }
+    "noUncheckedIndexedAccess": true
   },
-  "exclude": ["node_modules", "**/dist", "**/.next"]
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
 }

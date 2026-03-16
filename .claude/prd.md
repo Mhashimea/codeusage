@@ -1,20 +1,10 @@
 # Afterburn — Product Requirements Document
 
-**Post-Session Intelligence for AI-Assisted Coding**
-
-*The documentation that vibe coding never produces.*
-
----
-
-| | |
-|---|---|
-| **Version** | 1.0 |
-| **Author** | Hashim |
-| **Date** | March 2026 |
-| **Status** | Draft |
-| **Classification** | Internal |
-| **Target Launch** | Q2 2026 (v0.1 CLI Beta) |
-| **Platform** | npm (Node.js CLI) → GitHub Action → Hosted Dashboard |
+**Version:** v2.0 — Final
+**Author:** Hashim (@hashim_ea)
+**Date:** March 2026
+**Status:** Final — Ready for Development
+**Target Launch:** Q3 2026 (Beta)
 
 ---
 
@@ -22,521 +12,454 @@
 
 1. [Executive Summary](#1-executive-summary)
 2. [Problem Statement](#2-problem-statement)
-3. [Target Users](#3-target-users)
-4. [Product Architecture](#4-product-architecture)
-5. [Feature Specification](#5-feature-specification)
-6. [Output Specification](#6-output-specification)
-7. [Competitive Positioning](#7-competitive-positioning)
-8. [Business Model](#8-business-model)
-9. [Development Roadmap](#9-development-roadmap)
-10. [Success Metrics](#10-success-metrics)
-11. [Risks & Mitigations](#11-risks--mitigations)
-12. [Open Questions](#12-open-questions)
+3. [Product Vision & Goals](#3-product-vision--goals)
+4. [User Personas](#4-user-personas)
+5. [System Architecture](#5-system-architecture)
+6. [CLI — Feature Specification](#6-cli--feature-specification)
+7. [Dashboard — Feature Specification](#7-dashboard--feature-specification)
+8. [Technical Requirements](#8-technical-requirements)
+9. [Phased Roadmap](#9-phased-roadmap)
+10. [Pricing Model](#10-pricing-model)
+11. [Success Metrics](#11-success-metrics)
+12. [Risks & Mitigations](#12-risks--mitigations)
+13. [Open Questions](#13-open-questions)
 
 ---
 
 ## 1. Executive Summary
 
-Afterburn is a CLI tool that generates a human-readable summary of every AI-assisted coding session. When a developer finishes a vibe coding session — with dozens of file changes across the codebase — Afterburn produces a clear, structured document explaining what changed, why it changed, and what's risky. No more reading every file, every diff, every line.
+Afterburn is a cloud-based AI coding tool intelligence platform that gives engineering teams and project managers complete visibility into how AI coding tools — Claude Code, Codex, and future agents — are used across their organisation.
 
-**Core thesis:** The readable summary of a coding session is the primary value. Developers using AI coding tools produce massive diffs they can't practically review line-by-line. Afterburn's LLM-powered summaries (via BYOK — bring-your-own-key) make every session understandable in 60 seconds. A static analysis layer underneath catches dangerous patterns at zero cost, but the human-readable intelligence is what customers will pay for.
+As AI coding tools become embedded infrastructure in software teams, managers face a new blind spot: subscriptions are purchased and tools deployed, but there is no way to track productivity, attribute costs to projects, or understand activity at the individual developer level. Afterburn closes this gap.
 
-> **KEY DIFFERENTIATORS**
->
-> (1) Human-readable session summaries powered by LLM (BYOK model — no infrastructure cost to us) • (2) Session-level context, not single-commit isolation • (3) Curated AI-specific static analysis ruleset • (4) Hallucinated package detection via registry verification • (5) Zero hosting cost: user's API key, user's LLM cost (~$0.01–0.05/session)
+> **Core problem:** A team of 10 developers sharing 2–3 AI coding subscriptions has zero visibility into who is using what, how much it costs per project, or whether the AI investment is delivering value. No existing tool solves this at the team level.
 
-### 1.1 Product at a Glance
+Afterburn works through a lightweight CLI package (installed with one command) that hooks into Claude Code's native event system. After every task, a structured telemetry payload — tokens, cost, tools used, files changed — is sent to a cloud dashboard. Project managers see real-time team activity, per-developer breakdowns, per-project cost attribution, and exportable reports. Developers see their own task history. No code content is ever captured.
 
-| Dimension | Detail |
-|---|---|
-| Product Type | Developer CLI tool (npm package) |
-| Primary Command | `afterburn ./ --explain` (run after any AI coding session) |
-| Output | `.afterburn.md` — human-readable session summary + risk report |
-| Primary Engine | LLM-powered session intelligence (BYOK: user's own API key) |
-| Foundation Layer | Static analysis (deterministic, zero LLM cost) for risk detection |
-| Cost Model | BYOK — user provides their own LLM API key (~$0.01–0.05/session) |
-| Target User | Developers using Claude Code, Cursor, Copilot, or any AI coding tool |
-| Pricing | Free (OSS CLI, static only) → Pro $12/mo (LLM features) → Enterprise |
-| Distribution | `npm install -g afterburn` |
-| Launch Target | Q2 2026 (v0.1 beta) |
+**Afterburn is the GitHub contribution graph for AI coding — making invisible work visible, measurable, and reportable.**
 
 ---
 
 ## 2. Problem Statement
 
-### 2.1 The AI Coding Accountability Gap
+### 2.1 Background
 
-AI coding tools have fundamentally changed how software is written. But they've created a dangerous blind spot: velocity without documentation. When a developer finishes a session with Claude Code, Cursor, or Copilot, they're left with working code and zero record of why decisions were made.
+AI coding tools (Claude Code, GitHub Copilot, OpenAI Codex, Cursor) have become standard in software teams. Companies purchase subscription seats, embed tools into developer workflows, and expect productivity gains. But unlike every other category of software tooling, there is no management layer — no equivalent to Git analytics, CI dashboards, or ticket tracking — for AI-assisted coding activity.
 
-This isn't a minor inconvenience. It's a compounding crisis:
+### 2.2 Specific Pain Points
 
-- 46% of GitHub commits are now AI-generated, yet only 3% of developers report high trust in AI code output
-- 66% of developers spend more time fixing "almost-right" AI code than writing it from scratch
-- 45% of AI-generated code contains security vulnerabilities
-- AI code creates 1.7x more production issues than human-written code
-- 75% of technology companies are projected to face moderate-to-severe AI-induced technical debt by late 2026
+**For Project Managers and Team Leads:**
 
-### 2.2 Why Existing Tools Don't Solve This
+- Cannot see which developers actively use AI tools vs. never touch them
+- Cannot attribute AI tool costs to specific projects, clients, or sprints
+- No way to measure ROI on AI subscription spend
+- No aggregate reporting for leadership, finance, or budget reviews
+- Cannot identify which task types consume the most AI usage
 
-| Tool Category | What It Does | What It Misses |
-|---|---|---|
-| AI Code Detectors (Span, CodeSpy) | Identifies whether code is AI-generated | Doesn't assess quality or provide documentation |
-| Generic Linters (ESLint, SonarQube) | Catches syntax issues and standard anti-patterns | No awareness of AI-specific failure patterns |
-| Observability Platforms (Langfuse, LangSmith) | Traces LLM calls and latency | Focused on agents, not coding sessions; cost is secondary |
-| Code Review Tools (CodeRabbit, GitHub Copilot Review) | Automated PR feedback | Generic suggestions, no session context or historical trends |
-| Pre-commit LLM Hooks (DIY) | LLM-powered commit review | Single-commit isolation, inconsistent results, no maintenance |
+**For Developers:**
 
-### 2.3 The Core Insight
+- No personal history of what they asked the AI to do and what changed
+- Cannot estimate their own subscription consumption
+- No way to review a completed AI task's file changes without reading raw diffs
 
-> **AFTERBURN'S THESIS**
->
-> The problem isn't that AI writes bad code — it's that nobody documents what happened. The most dangerous outcome of AI coding isn't bugs; it's an entire codebase that nobody understands six weeks later. Afterburn creates the paper trail that AI coding tools never provide.
+### 2.3 Market Gap
 
----
+Existing tools fall into two categories, neither of which solves the team-level problem:
 
-## 3. Target Users
-
-### 3.1 Primary Persona: Solo Developer / Indie Hacker
-
-**Profile:** Full-stack developer using AI coding tools daily (Claude Code, Cursor, or Copilot). Ships fast, iterates alone or with 1–2 collaborators. Builds side projects or freelance products. Needs to understand their own codebases weeks later when they revisit or hand off to clients.
-
-- Uses AI coding tools for 60–80% of coding output
-- Moves fast, rarely writes documentation voluntarily
-- Has experienced the "what did I build last month?" problem
-- Cost-sensitive; won't pay for tools they don't use daily
-- Values CLI tools over web dashboards
-
-### 3.2 Secondary Persona: Engineering Team Lead
-
-**Profile:** Manages a team of 4–15 engineers adopting AI coding tools. Responsible for code quality, review throughput, and shipping velocity. Bottlenecked on PR reviews because they're the only person who catches AI-pattern issues. Needs to enforce standards without slowing the team.
-
-- Team is adopting "agentic engineering" workflows
-- Spends 30–40% of time on code review
-- Concerned about technical debt accumulation
-- Wants data on AI tool usage patterns across the team
-- Would pay for a tool that reduces review burden
-
-### 3.3 Tertiary Persona: Consultant / Freelancer
-
-**Profile:** Builds codebases for clients using AI tools. Needs to demonstrate quality and transparency in deliverables. The `.afterburn.md` report becomes a client-facing artifact that builds trust and justifies rates.
+| Tool / Category                               | What it does                                                                                                     | Why it is insufficient                                                                           |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| Claude Code Usage Monitor (6.5k GitHub stars) | Real-time terminal monitor for individual Claude Code users                                                      | Personal only — no cloud, no team layer, no PM dashboard, no multi-developer view                |
+| ccusage (10.7k GitHub stars)                  | CLI analyzer for Claude Code and Codex from local JSONL files. Covers multiple tools and multi-instance grouping | Still local and personal — no cloud sync, no team dashboard, no cross-developer visibility       |
+| PostHog / LangSmith                           | General observability and LLM tracing platforms                                                                  | Not purpose-built for coding tools; requires significant custom instrumentation; no PM-facing UX |
+| **None**                                      | **Team-level, task-granularity, multi-developer, multi-tool dashboard with PM-facing reporting**                 | **This is the gap Afterburn fills**                                                              |
 
 ---
 
-## 4. Product Architecture
+## 3. Product Vision & Goals
 
-### 4.1 Two-Layer Design
+> **Vision:** Make AI coding tool usage as visible, measurable, and reportable as Git commits — giving every engineering team a GitHub-style activity view for their AI investment.
 
-Afterburn is deliberately designed as a two-layer system. The LLM-powered readable summary is the primary value customers pay for. The static analysis foundation runs underneath at zero cost, catching dangerous patterns deterministically. This architecture keeps Afterburn's infrastructure cost near zero while delivering the highest-value output.
+### 3.1 Primary Goals
 
-> **BYOK ECONOMICS**
->
-> Afterburn never calls LLM APIs on its own infrastructure. The user configures their own API key (OpenAI, Anthropic, or any compatible provider). Their key, their cost. A typical session summary costs ~$0.01–0.05 in LLM tokens depending on diff size and model choice. This means: (1) zero marginal cost per user for Afterburn, (2) no need to manage API quotas or rate limits, (3) users control their own provider and model preferences, (4) no data leaves the user's machine except to their own LLM provider.
+- **G1** — Task-level tracking of every AI coding interaction across the team
+- **G2** — Cloud dashboard for PMs and team leads with per-developer and per-project breakdowns
+- **G3** — Cost visibility — read-only, no budget limits or alert thresholds
+- **G4** — Multi-tool support starting with Claude Code, expanding to Codex in Phase 2
+- **G5** — Zero-friction developer setup via a single `npx` command
+- **G6** — One workspace API key model — no per-developer key management overhead
 
-#### Layer 1: LLM-Powered Session Intelligence (Primary Value — BYOK)
+### 3.2 Non-Goals (v1)
 
-This is what customers pay for. The LLM reads the full session diff in context and produces a readable summary that replaces manually reviewing every changed file. This is especially critical for vibe coding sessions where AI models generate large volumes of changes across many files.
-
-- **Human-Readable Session Summary** — A 2–3 paragraph overview of everything that happened in the session, written in plain language. The developer reads this instead of reviewing 40+ files of diff.
-- **Intent-Based Changelog** — Groups changes by purpose (not file), answering "what was the developer trying to accomplish?" Example: "Added Stripe payment integration with webhook verification" rather than listing 8 files that changed.
-- **Architecture Decision Record** — LLM interprets the diff to explain why specific frameworks, libraries, and patterns were selected and how they fit the codebase context.
-- **Trade-off Analysis** — Identifies decisions that have alternatives and briefly explains the pros/cons of the chosen approach vs. alternatives.
-
-#### Layer 2: Static Analysis Foundation (Free, Zero LLM Cost)
-
-This layer runs without any API key and catches dangerous patterns deterministically. It's the safety net — even if a user doesn't configure an LLM key, they still get risk detection and dependency auditing. It also serves as the free tier that drives adoption.
-
-- **Risk Report** — Flags patterns AI commonly gets wrong: hardcoded credentials, missing error boundaries, optimistic type assertions, generic try/catch blocks, duplicate logic across files
-- **Dependency Audit** — Identifies new packages, checks maintenance status via npm/PyPI registry lookups, detects hallucinated packages (imports that don't exist in any registry)
-- **Session Diff Summary** — Organizes changes by file with categorization (new feature, refactor, bugfix, config change), line count, and complexity scoring
-- **Session Statistics** — Lines added/removed, files touched, new dependencies introduced, estimated complexity delta
-
-### 4.2 Why BYOK Is Non-Negotiable
-
-The decision to use bring-your-own-key rather than hosting LLM calls is a fundamental business constraint, not just a preference:
-
-- **Cost at scale** — If Afterburn provided the LLM API, every user session would cost $0.01–0.05 in tokens. At 10,000 active users running 3 sessions/day, that's $900–$4,500/month in pure API costs before any revenue. Unsustainable for a solo-founder product.
-- **No margin erosion** — With BYOK, Afterburn's revenue is pure software margin. The $12/mo Pro subscription has zero variable cost per usage.
-- **User control** — Users choose their provider (Anthropic, OpenAI, local via Ollama), their model (fast/cheap vs. smart/expensive), and their data handling preferences.
-- **Privacy** — Code diffs are sent directly from the user's machine to their own LLM provider. Afterburn's servers never see the code.
-
-### 4.3 System Architecture
-
-High-level data flow:
-
-```
-$ afterburn ./ --explain
-  │
-  ├── [1] Git Diff Parser → reads uncommitted + recent commits
-  ├── [2] AST Analyzer → parses changed files into syntax trees
-  ├── [3] Rule Engine → runs AI-specific pattern detection rules
-  ├── [4] Registry Checker → verifies packages against npm/PyPI
-  ├── [5] LLM Layer → sends diff + context to user's own API key
-  │       (Anthropic / OpenAI / Ollama — user's choice + cost)
-  │
-  └── [6] Report Generator → .afterburn.md + terminal output
-```
-
-### 4.4 Technology Stack
-
-| Component | Technology | Rationale |
-|---|---|---|
-| Runtime | Node.js (18+) | npm ecosystem, fast startup, matches target audience toolchain |
-| Language | TypeScript | Type safety for rule engine, familiar to target users |
-| Git Integration | simple-git / child_process | Read diffs, log history, detect session boundaries |
-| AST Parsing | tree-sitter (via bindings) | Multi-language support, fast, mature |
-| Package Registry | npm registry API + PyPI JSON API | Hallucinated package verification |
-| LLM Integration | Vercel AI SDK / raw fetch | Provider-agnostic, supports OpenAI/Anthropic/local |
-| Output | Markdown + terminal (chalk/ora) | Universal, committable, readable |
-| Distribution | npm (global install) | One command: `npm install -g afterburn` |
+- Code content or prompt text storage — Afterburn captures metadata only
+- Budget alert thresholds or spending limits — cost is read-only information
+- AI model proxying or MITM interception — native hook APIs only
+- Codex integration — Phase 2
+- Per-developer API keys — one workspace key for the entire team
 
 ---
 
-## 5. Feature Specification
+## 4. User Personas
 
-### 5.1 CLI Interface
+| Persona                   | Role & Context                                                                                                                   | Primary Need                                                                                | Key Metric                                 |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | ------------------------------------------ |
+| PM / Team Lead            | Manages 5–20 developers. Has budget authority. Owns 2–5 AI subscriptions shared across the team. Presents reports to leadership. | Visibility dashboard, cost attribution by project, productivity trends, team-level reports  | Cost per project, active devs, task volume |
+| Developer                 | Uses Claude Code daily. Needs personal task history. May be required by PM to install Afterburn.                                 | Personal task log, usage history, quick review of what the AI changed per task, file review | My tasks today, tokens used, files changed |
+| Freelancer / Solo Founder | Works across multiple client projects. Wants to understand which projects consume AI budget.                                     | Per-project cost breakdown, monthly spend summary per client                                | Cost by project, monthly total             |
+| Finance / Ops Reviewer    | Reviews monthly tool spend. Validates AI subscription ROI for budget decisions.                                                  | Exportable cost reports, monthly trend, developer breakdown                                 | Monthly cost, cost vs. last month          |
 
-Afterburn's primary interface is a single CLI command with sensible defaults and progressive disclosure of options.
+---
 
-#### Core Commands
+## 5. System Architecture
+
+### 5.1 High-Level Components
+
+| Component                       | Description                                                                                                                                                                                                         |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Afterburn CLI (npm package)** | Installed on each developer machine via `npx afterburn init`. Registers Claude Code hooks. Captures task-level events. Authenticates with cloud using workspace API key. Sends telemetry payloads to the cloud API. |
+| **Claude Code Hook Layer**      | Uses Claude Code's native hook system (`PostToolUse`, `Stop`, `Notification` events) to capture task completion signals without modifying the developer workflow.                                                   |
+| **Telemetry Payload**           | Structured JSON record per completed task: tokens in/out/cache, cost estimate, files changed, tools invoked, project slug, developer alias, timestamp, duration.                                                    |
+| **Afterburn Cloud API**         | Receives telemetry from all CLI instances in a workspace. Stores in per-workspace database. Handles authentication, rate limiting, and strict data isolation between workspaces.                                    |
+| **Cloud Dashboard (Web App)**   | Next.js SPA. PM and developer views. Real-time data. Filterable by developer, project, date range, and tool. Full reporting and CSV export.                                                                         |
+| **Workspace API Key**           | One key per workspace, generated by the admin/PM from the dashboard. Shared with all developers during onboarding. No per-developer key management.                                                                 |
+
+### 5.2 Authentication & Identity Model
+
+> **One workspace API key.** The workspace key authenticates the CLI to the cloud — it says "this data belongs to Workspace X". Developer identity is separate: a name/alias the developer sets during `afterburn init`, stored locally, and sent as a field in every telemetry payload. This mirrors how Sentry, PostHog, and Datadog work: one project/org key + individual identity on top.
+
+Per-developer API keys were explicitly considered and rejected. Reasons: onboarding overhead (12 keys instead of 1), fragmented key rotation, no actual security benefit in a shared-visibility model, and unnecessary complexity for developers.
+
+### 5.3 Hook Scope — Global vs Project
+
+The CLI supports two hook registration modes, chosen during setup:
+
+| Mode             | Description                                                                                                                                                                                                                                                                                                         |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Global**       | Hook written to `~/.claude/settings.json`. Fires for every Claude Code session on the developer's machine. Project is auto-detected from git remote URL or directory name. Developer can exclude specific directories with `afterburn project ignore`. Recommended for teams where the PM wants full visibility.    |
+| **Project-only** | Hook written to `.claude/settings.json` inside the current repository. Only fires when Claude Code runs inside that specific repo. Project name is set explicitly during init. Good for developers who want selective tracking. Optional: commit the hook file to the repo so teammates are auto-prompted on clone. |
+
+In both modes, the developer can always override the project tag per-directory with `afterburn project set <name>`, and the hook scope is shown in `afterburn status`.
+
+### 5.4 Data Model — Task Record
+
+| Field               | Type & Description                                                             |
+| ------------------- | ------------------------------------------------------------------------------ |
+| `task_id`           | UUID — unique per task                                                         |
+| `workspace_id`      | UUID — workspace identifier (from API key lookup)                              |
+| `developer_alias`   | String — name set by developer during init                                     |
+| `project_slug`      | String — from git remote, directory name, or `afterburn project set`           |
+| `tool_source`       | Enum — `claude_code` \| `codex` (Phase 2)                                      |
+| `model_name`        | String — e.g. `claude-sonnet-4-5` (from session log)                           |
+| `input_tokens`      | Integer — input token count                                                    |
+| `output_tokens`     | Integer — output token count                                                   |
+| `cache_tokens`      | Integer — cache read tokens                                                    |
+| `cost_usd`          | Decimal — estimated cost using Anthropic model pricing                         |
+| `files_changed`     | Integer — number of files modified                                             |
+| `tools_used`        | `Array<{ name: string; count: number }>` — e.g. `[{Edit:4},{Read:6},{Bash:3}]` |
+| `task_duration_sec` | Integer — elapsed time from first tool call to stop hook                       |
+| `hook_scope`        | Enum — `global` \| `project`                                                   |
+| `timestamp`         | DateTime — UTC task completion time                                            |
+| `cli_version`       | String — Afterburn CLI version                                                 |
+
+---
+
+## 6. CLI — Feature Specification
+
+### 6.1 Installation & Setup Flow
+
+The developer runs one command. The setup wizard handles everything:
 
 ```bash
-afterburn ./                        # Full analysis, current directory
-afterburn ./ --explain              # Include LLM-powered explanations
-afterburn ./ --since="2 hours ago"  # Scope to recent session
-afterburn ./ --output ./docs/       # Custom output path
-afterburn ./ --json                 # Machine-readable output
-afterburn ./ --ci                   # CI mode (exit code based on risk)
-afterburn init                      # Create .afterburnrc config file
-afterburn config set llm.provider anthropic
-afterburn config set llm.apiKey sk-...
+npx afterburn init
 ```
 
-#### Configuration (.afterburnrc)
+**Setup steps in order:**
 
-```json
-{
-  "language": "auto",
-  "sessionWindow": "4h",
-  "rules": {
-    "hardcodedCredentials": "error",
-    "missingErrorHandling": "warn",
-    "duplicateLogic": "warn",
-    "hallucinatedPackages": "error",
-    "optimisticTypes": "info"
-  },
-  "ignore": ["*.test.ts", "*.spec.js"],
-  "llm": {
-    "provider": "anthropic",
-    "model": "claude-sonnet-4-20250514",
-    "apiKey": "env:ANTHROPIC_API_KEY"
-  }
-}
-```
+1. Prompt for workspace API key (provided by PM from dashboard)
+2. Authenticate against Afterburn Cloud — display workspace name on success
+3. Set developer alias (name shown in dashboard)
+4. Choose hook scope: **Global** (recommended) or **Project-only**
+5. If Global: auto-detect current project from git remote. Ask for optional fallback name if no git remote found.
+6. If Project-only: confirm project name from git remote suggestion. Ask whether to commit `.claude/settings.json` to the repo.
+7. Register hooks in the appropriate `settings.json` file
+8. Display success message with dashboard URL
 
-### 5.2 Report Modules (Detailed)
+### 6.2 CLI Command Reference
 
-#### Module 1: Risk Report
+| Command                            | Description                                                                    |
+| ---------------------------------- | ------------------------------------------------------------------------------ |
+| `npx afterburn init`               | First-time setup: authenticate, set alias, choose scope, register hooks        |
+| `afterburn status`                 | Show connection, scope, active hooks, tracked projects, today's personal usage |
+| `afterburn project set <name>`     | Tag current directory as a named project (overrides git remote detection)      |
+| `afterburn project list`           | Show all directory → project mappings on this machine                          |
+| `afterburn project ignore`         | Exclude current directory from tracking                                        |
+| `afterburn project unignore`       | Re-enable tracking for a previously ignored directory                          |
+| `afterburn log`                    | Show last 10 tasks synced from this machine (local cache)                      |
+| `afterburn log --all`              | Show full local task history                                                   |
+| `afterburn sync`                   | Manually push any buffered/pending task records                                |
+| `afterburn config`                 | Open config or re-run setup wizard                                             |
+| `afterburn config --scope global`  | Switch hook scope to global                                                    |
+| `afterburn config --scope project` | Switch hook scope to project-only                                              |
+| `afterburn logout`                 | Remove credentials and unregister all hooks                                    |
+| `afterburn --version`              | Show CLI version                                                               |
 
-**Tier:** Free (Static Analysis)
+### 6.3 Hook Integration — Claude Code
 
-Scans changed files for patterns that AI coding tools commonly produce incorrectly. Each rule has a severity level (error, warn, info) and produces annotated output with file path, line number, code snippet, and explanation.
+Afterburn integrates with Claude Code using three hook events:
 
-**Rule catalog (v0.1):**
+| Hook             | Purpose                                                                                                                                                    |
+| ---------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Stop**         | Primary trigger. Fires when a task completes. Afterburn reads the session log, builds the `TaskRecord`, and syncs to cloud. One task record per Stop hook. |
+| **PostToolUse**  | Fires after each individual tool invocation. Accumulates the `tools_used` array (Edit, Read, Bash, TodoWrite, etc.) before Stop fires.                     |
+| **Notification** | Fires on session limit warnings. Reserved for future use.                                                                                                  |
 
-| Rule ID | Pattern | Severity | Description |
-|---|---|---|---|
-| AB001 | Hardcoded Credentials | Error | Detects API keys, passwords, tokens, and connection strings in source code |
-| AB002 | Generic Error Swallowing | Warning | try/catch blocks with empty catch or console.log-only handling |
-| AB003 | Optimistic Type Assertions | Warning | TypeScript `as any`, non-null assertions (!), type casting without validation |
-| AB004 | Duplicate Logic | Warning | Substantially similar function bodies across files (>80% AST similarity) |
-| AB005 | Missing Null/Undefined Checks | Info | Function parameters used without nullish guards |
-| AB006 | Hardcoded URLs/Config | Warning | URLs, ports, hostnames that should be environment variables |
-| AB007 | Security Anti-Patterns | Error | MD5/SHA1 for passwords, SQL concatenation, missing auth middleware |
-| AB008 | Over-Abstraction | Info | Wrapper functions that add no logic, interfaces with single implementation |
-| AB009 | Missing Timeout Config | Warning | HTTP/fetch calls without timeout, database queries without limits |
-| AB010 | TODO/FIXME from AI | Info | AI-generated placeholder comments indicating incomplete implementation |
+The CLI reads token counts, model name, and tool list from Claude Code's local session log at `~/.claude/projects/{hash}/sessions/`. No network interception or proxying.
 
-#### Module 2: Dependency Audit
+### 6.4 Project Auto-Detection Logic
 
-**Tier:** Free (Static Analysis + Registry API)
+When a Stop hook fires, project slug is resolved in this priority order:
 
-Identifies every new dependency introduced in the session and verifies it against package registries. This is critical because AI tools sometimes "hallucinate" package names — generating import statements for packages that don't exist.
+1. Explicit override set by `afterburn project set <name>` for this directory
+2. Git remote URL — parsed to extract the repository name
+3. Global default fallback name set during init (if any)
+4. Directory name as last resort
 
-- Lists all new packages added to package.json, requirements.txt, or import statements
-- Checks npm registry and/or PyPI for existence, version, last publish date, weekly downloads, and known vulnerabilities
-- Flags hallucinated packages (import exists but package doesn't) as critical errors
-- Highlights packages with no recent updates (>12 months) or very low adoption (<100 weekly downloads)
+If no git remote is found and no override is set, the hook output warns the developer to run `afterburn project set <name>`. The task still syncs — it appears as `untagged` in the dashboard. Tasks are never silently dropped.
 
-#### Module 3: Session Diff Summary
+### 6.5 Offline Buffering
 
-**Tier:** Free (Static Analysis)
-
-A structured changelog of everything that changed in the session, organized by file. Unlike a raw git diff, this adds context: lines added/removed, change category, and a complexity score based on cyclomatic complexity delta.
-
-#### Module 4: Architecture Decision Record
-
-**Tier:** Pro (LLM-Powered, Bring-Your-Own-Key)
-
-The LLM analyzes the session diff in the context of the existing codebase and generates structured ADRs explaining: what technology decisions were made, what alternatives existed, why the chosen approach fits, and what trade-offs were accepted. This is the "why" that static analysis cannot provide.
-
-#### Module 5: Intent-Based Changelog
-
-**Tier:** Pro (LLM-Powered)
-
-Groups changes by purpose rather than file, answering "what was the developer trying to accomplish?" Example: "Added JWT authentication with refresh token rotation" rather than listing 7 files that changed.
+If the Afterburn Cloud API is unreachable, task records are buffered locally in `~/.afterburn/buffer/`. On the next successful connection, all buffered records are flushed automatically in chronological order. Manual flush available via `afterburn sync`. Buffer capped at 50 records — developer is warned if the cap is approached.
 
 ---
 
-## 6. Output Specification
+## 7. Dashboard — Feature Specification
 
-### 6.1 Report Structure (.afterburn.md)
+### 7.1 Overview Page
 
-The primary output is a markdown file designed to be committed alongside code:
+Default landing page for PMs and team leads.
 
-```markdown
-# Afterburn Session Report
-_Generated: 2026-03-07 14:32 UTC | Session: 2h 15m | Files: 12_
+- Metric cards: total tokens, estimated cost, tasks completed, active devs today — with period selector (7 days / 30 days / this month)
+- Team activity heatmap — GitHub-style grid showing daily task volume across all developers for the past 26 weeks
+- Live task feed — last 5 tasks across the team, updating in real time via SSE
+- Top projects by token volume — horizontal bar chart
 
-## Session Summary
-12 files changed | +347 / -89 lines | 3 new dependencies
+### 7.2 Task Feed Page
 
-## Risk Report (2 errors, 4 warnings)
-❌ AB001 src/config.ts:14 — Hardcoded API key detected
-❌ AB007 src/auth.ts:42 — MD5 used for password hashing
-⚠️  AB002 src/api.ts:78 — Empty catch block swallows errors
-...
+Chronological log of all tasks across all developers. Filterable by developer, project, date range, and tool source.
 
-## Dependency Audit
-✅ jsonwebtoken@9.0.2 — 1.2M weekly downloads, updated 3mo ago
-⚠️  bcrypt-lite@0.1.3 — 23 weekly downloads, last updated 14mo ago
-❌ super-auth-utils — PACKAGE NOT FOUND (hallucinated?)
+- Each row: developer, project, token count, estimated cost, files changed, tools summary, duration, time
+- Click any row to expand full task detail
+- Summary bar: total tasks, total cost, total tokens for the active filters
+- CSV export button
 
-## Changes by File
-| File | Category | +/- | Complexity |
-|------|----------|-----|------------|
-| src/auth.ts | New Feature | +89/-0 | +12 |
-...
+#### 7.2.1 Task Detail Panel
 
-## [Pro] Architecture Decisions
-### Chose Express over Fastify
-Express was selected for its middleware ecosystem...
-```
+When a task row is expanded, three sections appear inline:
 
-### 6.2 Terminal Output
+| Section             | Content                                                                                                                                                                                                                 |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Token breakdown** | Input tokens, output tokens, cache read tokens, estimated cost — four stat boxes                                                                                                                                        |
+| **Tools used**      | Horizontal bar chart: each tool (Read, Edit, Bash, TodoWrite, etc.) with call count and plain-language annotation                                                                                                       |
+| **Files changed**   | List of modified files with `+lines` / `−lines` per file. Each file has a review status badge: `pending review` or `✓ reviewed`. Review toggle is a v1.1 feature — rendered as static with "coming v1.1" label in v1.0. |
 
-Rich terminal output using chalk for colors and ora for progress spinners. Mirrors the markdown structure but uses ANSI formatting for readability. Summary statistics are shown first, followed by errors, then warnings.
+### 7.3 Developers Page
 
-### 6.3 JSON Output (--json)
+Per-developer breakdown table. Clicking a developer row opens their 14-day activity bar chart inline.
 
-Machine-readable output for CI/CD integration. Includes all data from the markdown report in structured JSON format, suitable for piping to other tools or uploading to dashboards.
+- Table columns: developer alias, hook scope (global / project), tasks, tokens, estimated cost, files changed, activity bar
+- Inactive developers (0 tasks in the period) appear at the bottom
+
+### 7.4 Projects Page
+
+Per-project breakdown showing token consumption and cost contribution.
+
+- Table columns: project name, tasks, tokens, cost, contributors (avatars), share bar
+- Contributor attribution: which developers worked on each project and their percentage share
+- Warning callout when untagged tasks are present, with instruction to run `afterburn project set`
+
+### 7.5 Cost & Usage Page
+
+Read-only cost visibility. **No budget limits. No alert thresholds. No configurable spending caps. The numbers are purely informational.**
+
+- Metric cards: total cost this month, total tokens, total tasks, average cost per task
+- Monthly cost trend bar chart (6 months)
+- Cost by project — horizontal bars with dollar amounts
+- Cost by developer table — tasks, tokens, cost, share bar
+- CSV export
+
+### 7.6 Reports Page
+
+- Weekly summary report: auto-generated every Monday. Cost, task summary, top projects, developer breakdown. PDF and CSV download.
+- Monthly cost report: full breakdown on 1st of each month. PDF and CSV download.
+- Scheduled email delivery: configurable on/off per report type. Informational only — no thresholds or alerts.
+
+### 7.7 Settings Page
+
+#### 7.7.1 Workspace API Key
+
+One key for the entire workspace. Displayed at creation and after rotation. Two actions available: **Copy** and **Rotate**.
+
+- Rotating the key immediately invalidates the old one
+- All developers must re-run `afterburn config` with the new key after rotation
+- Key format: `ab-ws-{36 hex chars}`
+- Displayed as `ab-ws-••••••••••••••••••••••••` with Copy enabled only immediately after generation/rotation
+
+#### 7.7.2 Developer Roster
+
+Auto-populated as developers self-register using the workspace key. No manual key generation per developer.
+
+- Shows: developer alias, hook scope, status (active / left)
+- PM can mark a developer as inactive (preserves historical data)
+- **Invite developer** button: sends email with workspace key + setup instructions
+
+#### 7.7.3 Workspace Config
+
+- Workspace name (editable)
+- Plan and seat count (links to billing)
+- Data retention (12 months default)
+- Scheduled report toggles: weekly digest, monthly cost report, daily summary
 
 ---
 
-## 7. Competitive Positioning
+## 8. Technical Requirements
 
-### 7.1 Why Not a DIY Pre-Commit Hook?
+### 8.1 Tech Stack
 
-The strongest objection to Afterburn is: "Why not just add an LLM call to my pre-commit hook?" This is a legitimate question. Here's the honest answer:
+#### Web App (`apps/web`)
 
-- **Session-level context** — A pre-commit hook sees one commit in isolation. Afterburn sees the full session: multiple commits, progression of changes, what was tried and reverted, relationships between files changed together.
-- **Curated AI-specific ruleset** — A generic LLM prompt gives inconsistent results. Afterburn has a versioned, tested ruleset specifically targeting patterns that Cursor, Claude Code, and Copilot get wrong. Institutional knowledge baked into the tool.
-- **Hallucinated package detection** — An LLM cannot reliably tell you if a package exists. Afterburn deterministically checks registries.
-- **Historical trending (Pro)** — A pre-commit hook is stateless. Afterburn tracks patterns over time: AI reliance trends, recurring risk categories, quality scores per module.
-- **Consistency** — LLM outputs vary every run. Afterburn's static analysis core gives deterministic, reproducible results.
+| Layer         | Choice                                               |
+| ------------- | ---------------------------------------------------- |
+| Framework     | Next.js 15 (App Router)                              |
+| Language      | TypeScript (strict)                                  |
+| Styling       | Tailwind CSS v4                                      |
+| Components    | shadcn/ui                                            |
+| ORM           | Drizzle ORM                                          |
+| Database      | PostgreSQL (Neon / Supabase in prod, Docker locally) |
+| Data fetching | TanStack Query v5 (client); Server Components (SSR)  |
+| Auth          | NextAuth.js v5 — email magic link                    |
+| Real-time     | Server-Sent Events via Next.js Route Handler         |
+| Deployment    | Vercel                                               |
 
-> **THE ESLINT ANALOGY**
+#### CLI (`packages/cli`)
+
+| Layer             | Choice                                      |
+| ----------------- | ------------------------------------------- |
+| Language          | TypeScript (strict)                         |
+| CLI framework     | Commander.js                                |
+| Dev runner        | tsx                                         |
+| Build             | tsup (single CJS bundle, zero runtime deps) |
+| Terminal colours  | chalk                                       |
+| Spinners          | ora                                         |
+| Config management | conf                                        |
+| Shell commands    | execa                                       |
+| HTTP client       | native `fetch` (Node 18+)                   |
+| Validation        | zod (shared)                                |
+
+### 8.2 CLI Requirements
+
+| Requirement       | Specification                                                                                                                                                  |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Runtime           | Node.js 18+ (LTS). Distributed via npm/npx.                                                                                                                    |
+| Platform support  | macOS, Linux, Windows (WSL2)                                                                                                                                   |
+| Dependencies      | Zero required runtime dependencies bundled by tsup                                                                                                             |
+| Hook registration | Must not break existing Claude Code functionality. Graceful fallback if hook registration fails. Always merge into existing `settings.json` — never overwrite. |
+| Offline buffering | Tasks buffered to `~/.afterburn/buffer/` when API unreachable. Auto-flush on reconnect. Cap at 50 records.                                                     |
+| Config storage    | `~/.afterburn/config.json` managed by `conf` package                                                                                                           |
+
+### 8.3 Cloud / API Requirements
+
+| Requirement    | Specification                                                                                         |
+| -------------- | ----------------------------------------------------------------------------------------------------- |
+| API            | REST, JSON, HTTPS only. `Authorization: Bearer <workspace_key>` header.                               |
+| Auth           | One workspace API key. Bcrypt-hashed before storage — never stored in plaintext.                      |
+| Rate limiting  | 100 task records / minute per workspace. Return `429` with `Retry-After: 60`.                         |
+| Data isolation | Strict row-level security. Every query on `tasks` table must filter by `workspace_id`. No exceptions. |
+| Database       | PostgreSQL with index on `(workspace_id, created_at)` for all dashboard queries                       |
+| Uptime         | 99.5% for Beta, 99.9% for GA                                                                          |
+| Real-time      | SSE for live task feed on Overview page                                                               |
+
+### 8.4 Privacy & Security
+
+> **What Afterburn captures (metadata only):** token counts, tool names and call counts, file change counts, timestamps, cost estimates, developer alias, project slug, duration, model name.
 >
-> Anyone can ask ChatGPT to review their code. But ESLint exists — and 24 million projects use it — because people want maintained, configurable, reproducible, team-shareable analysis. Afterburn is ESLint for the AI coding era: the maintained, opinionated version of what someone would hack together and abandon in a week.
+> **What Afterburn never captures:** prompt text, AI response text, code content, file names, file paths, diff content.
 
-### 7.2 Competitive Landscape
-
-| Competitor | Focus | Afterburn Advantage |
-|---|---|---|
-| ESLint / Biome | Generic JavaScript linting | No AI-specific rules, no session context, no documentation generation |
-| SonarQube | Enterprise code quality | Heavy, server-based, no AI awareness, not CLI-first |
-| CodeRabbit | AI-powered PR review | Generic suggestions, no AI-pattern specialization, SaaS-only |
-| Langfuse / LangSmith | LLM observability | Agent-focused, not coding-session-focused, cost is secondary |
-| AI Code Detectors (Span) | Detection of AI-written code | Detection ≠ quality; tells you WHO, not WHETHER it's safe to ship |
-| Pre-commit LLM hooks | DIY code review | Stateless, inconsistent, unmaintained, single-commit isolation |
-
-### 7.3 Three-Pillar Differentiation
-
-No existing tool combines these three capabilities in a single CLI:
-
-1. **Post-session documentation generation** — structured reports from git diffs
-2. **AI-specific static analysis** — curated ruleset targeting patterns AI tools get wrong
-3. **Deterministic zero-LLM-cost core** — 70% of value with no API keys or network calls
+- All data encrypted in transit (TLS 1.3) and at rest (AES-256)
+- Developer aliases can be pseudonymised at workspace level if required
+- Data retention: 12 months default, configurable per workspace
+- GDPR-ready: data export and deletion on request within 30 days
+- Workspace API key bcrypt-hashed before storage, never stored in plaintext
 
 ---
 
-## 8. Business Model
+## 9. Phased Roadmap
 
-### 8.1 Pricing Tiers
-
-| Feature | Free (OSS) | Pro ($12/mo) | Enterprise |
-|---|---|---|---|
-| Core CLI | ✅ | ✅ | ✅ |
-| Risk Report (static analysis) | ✅ | ✅ | ✅ |
-| Dependency Audit | ✅ | ✅ | ✅ |
-| Session Diff Summary (by file) | ✅ | ✅ | ✅ |
-| Session Statistics | ✅ | ✅ | ✅ |
-| LLM Readable Summary (BYOK) | — | ✅ (primary value) | ✅ |
-| Intent-Based Changelog (LLM) | — | ✅ | ✅ |
-| Architecture Decision Records (LLM) | — | ✅ | ✅ |
-| Trade-off Analysis (LLM) | — | ✅ | ✅ |
-| Historical Trending | — | ✅ | ✅ |
-| Team Sharing Dashboard | — | ✅ | ✅ |
-| CI/CD Integration (exit codes) | ✅ (basic) | ✅ (full) | ✅ |
-| Custom Rule Configuration | ✅ (local) | ✅ (synced) | ✅ |
-| Org-Wide Compliance Reports | — | — | ✅ |
-| Audit Trails | — | — | ✅ |
-| SSO / SAML | — | — | ✅ |
-| Priority Support | — | Email | Dedicated |
-
-### 8.2 Revenue Model & BYOK Economics
-
-Open-source core (static analysis only) drives adoption and community contributions. Pro tier unlocks the LLM-powered readable summaries at $12/month — priced below developer discretionary spending thresholds (no manager approval needed). Enterprise tier is custom-priced for teams needing compliance and audit features.
-
-**Critical cost advantage:** Because users bring their own API keys, Afterburn's cost structure is pure software margin. The only infrastructure costs are npm hosting (free), a lightweight license verification endpoint, and the optional Pro dashboard. There is zero per-usage cost to Afterburn regardless of how many sessions a user runs. The user pays their LLM provider directly (~$0.01–0.05 per session), and Afterburn collects a flat $12/month subscription.
-
-#### Revenue Projections (Conservative)
-
-| Milestone | Timeline | Users (Free) | Pro Subscribers | MRR |
-|---|---|---|---|---|
-| Beta Launch | Q2 2026 | 500 | 0 | $0 |
-| v1.0 Stable | Q3 2026 | 2,000 | 50 | $600 |
-| Growth Phase | Q4 2026 | 5,000 | 200 | $2,400 |
-| Maturity | Q2 2027 | 15,000 | 750 | $9,000 |
-
-### 8.3 Distribution Strategy
-
-- **npm as primary distribution** — `npm install -g afterburn`
-- **GitHub stars/community as growth engine** — open-source CLI drives organic discovery
-- **Content marketing via Hashim's LinkedIn/X audience** — practical tutorials, Claude Code tips, "what AI gets wrong" content series
-- **Product Hunt launch at v1.0**
-- **Conference talks / dev community posts** on AI code accountability
+| Phase                      | Scope                                                                                                                                                                                                                                                                                                                                                                       | Timeline |
+| -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| **Phase 1 — MVP (Beta)**   | CLI for Claude Code only. Stop and PostToolUse hook integration. Global and project-scope setup. One workspace API key model. Dashboard: Overview, Task Feed with expanded detail (tokens + tools + file review placeholder), Developers, Projects, Cost & Usage (read-only), Reports (weekly + monthly), Settings (API key + roster). CSV export. Scheduled email reports. | Q3 2026  |
+| **Phase 2 — Multi-Tool**   | Codex integration via wrapper/script approach. Tool source filter in all dashboard views. Comparative efficiency analytics: Claude Code vs Codex per task type. Multi-model cost pricing table.                                                                                                                                                                             | Q4 2026  |
+| **Phase 3 — Intelligence** | File change review feature — mark files as reviewed, add notes per file. AI-generated task summaries (BYOK model). Productivity scoring. Anomaly detection (unusual token spikes). Integration with project management tools (Jira, Linear, Asana).                                                                                                                         | Q1 2027  |
+| **Phase 4 — Enterprise**   | SSO / SAML. Role-based access control. On-premise deployment option. SLA and compliance features. Advanced BI tool integration (Looker, Tableau). Custom data retention. Annual contract pricing.                                                                                                                                                                           | Q2 2027  |
 
 ---
 
-## 9. Development Roadmap
+## 10. Pricing Model
 
-### 9.1 Phase 1: Foundation (Weeks 1–4)
+| Plan                         | Target                          | Features                                                                                                                                                                            |
+| ---------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Free**                     | Solo dev evaluating the product | 1 developer, 30-day data retention, basic dashboard only (Overview + Task Feed). No exports, no email reports.                                                                      |
+| **Team ($X / seat / month)** | 5–50 developer teams            | All dashboard pages, full reports (PDF + CSV), 12-month retention, scheduled email digests, developer roster management, invite flow, workspace API key rotation. Priority support. |
+| **Enterprise (Custom)**      | 50+ developer orgs              | Everything in Team plus: SSO/SAML, RBAC, on-premise option, dedicated support, SLA, custom retention, BI integrations. Annual contract.                                             |
 
-**Goal: Working CLI that generates a basic report from git diffs.**
-
-- Set up TypeScript project with npm packaging
-- Implement git diff parser (simple-git integration)
-- Build 4 core rules: AB001 (credentials), AB002 (error swallowing), AB003 (type assertions), AB006 (hardcoded config)
-- Implement npm registry checker for hallucinated package detection
-- Generate markdown report (.afterburn.md)
-- Terminal output with colors (chalk) and progress (ora)
-- Publish to npm as v0.1.0-beta
-
-### 9.2 Phase 2: Rule Engine + Config (Weeks 5–8)
-
-**Goal: Configurable rule engine with full v0.1 rule catalog.**
-
-- Implement remaining rules (AB004 through AB010)
-- Add .afterburnrc configuration support
-- Add `--since` flag for session scoping
-- Add `--json` output for CI/CD
-- Add `--ci` mode with exit codes based on severity
-- Tree-sitter integration for multi-language AST parsing
-- PyPI registry checker (Python support)
-- Publish v0.1.0 stable
-
-### 9.3 Phase 3: LLM Layer + Pro (Weeks 9–12)
-
-**Goal: Ship LLM-powered features and Pro tier.**
-
-- Implement BYOK LLM integration (Vercel AI SDK or raw fetch)
-- Build Architecture Decision Record generation
-- Build Intent-Based Changelog generation
-- Add `--explain` flag
-- Build license verification / Pro gating
-- Set up Stripe billing for Pro tier ($12/mo)
-- Publish v0.2.0 (Pro launch)
-
-### 9.4 Phase 4: Teams + Dashboard (Weeks 13–20)
-
-**Goal: Team features, historical trending, hosted dashboard.**
-
-- Build web dashboard for Pro users (report history, trends)
-- Implement team sharing (invite teammates, shared reports)
-- Historical trend analysis ("your AI reliance increased 30% this month")
-- GitHub Action for automated CI/CD integration
-- Custom rule authoring (user-defined patterns)
-- Publish v1.0.0
-
-### 9.5 Future Roadmap (Post v1.0)
-
-| Feature | Description | Priority |
-|---|---|---|
-| Python CLI port | `pip install afterburn` for Python-first teams | High |
-| VS Code extension | Inline risk annotations in editor after sessions | Medium |
-| Cursor/Copilot plugins | Auto-trigger Afterburn after AI coding sessions | Medium |
-| Org-wide compliance | Enterprise tier: audit trails, policy enforcement, SSO | Medium |
-| MCP Server | Expose Afterburn as an MCP tool for AI agents | Low |
-| Local LLM support | Ollama integration for zero-API-cost explanations | Low |
+> _Note: Team tier pricing to be validated through customer discovery. Initial hypothesis: $8–15 / developer / month._
 
 ---
 
-## 10. Success Metrics
+## 11. Success Metrics
 
-### 10.1 North Star Metric
-
-> **NORTH STAR**
->
-> Weekly `--explain` runs — developers running `afterburn ./ --explain` (LLM-powered summary) at least once per week. This measures adoption of the primary value feature, not just static analysis. Secondary metric: total CLI runs (including free tier).
-
-### 10.2 Key Performance Indicators
-
-| KPI | Target (6 months) | Measurement |
-|---|---|---|
-| npm installs (total) | 10,000+ | npm download stats |
-| Weekly active runs | 2,000+ | Anonymous telemetry (opt-in) |
-| GitHub stars | 1,500+ | GitHub |
-| Pro conversion rate | 3–5% of active users | Stripe / license checks |
-| Monthly recurring revenue | $2,400+ | Stripe |
-| Average risk findings per session | Track trend | Aggregated anonymous data |
-| User retention (30-day) | 40%+ | Telemetry |
-| Mean time to first report | <30 seconds | Performance benchmarks |
-
-### 10.3 Quality Gates for Launch
-
-- **v0.1 beta:** CLI generates accurate report for a 50-file TypeScript project in <30 seconds
-- **v0.1 beta:** Zero false positives on hallucinated package detection
-- **v0.1 beta:** All 10 rules produce accurate results on a curated test suite of 50 AI-generated code samples
-- **v0.1 stable:** Report has been personally used by Hashim on 20+ real coding sessions
-- **v1.0:** Pro features validated by 10+ beta testers
+| Metric                          | Target (6 months post-Beta)                                 |
+| ------------------------------- | ----------------------------------------------------------- |
+| Monthly Active Workspaces       | 50+ paying teams                                            |
+| CLI Installs                    | 500+ developer installs                                     |
+| Task Records Processed          | 1M+ task records / month                                    |
+| Net Promoter Score (NPS)        | > 40 among PM personas                                      |
+| Monthly Churn (Team plan)       | < 5%                                                        |
+| Time to First Task Tracked      | < 10 minutes from signup to first task visible in dashboard |
+| Developer Setup Completion Rate | > 80% of invited developers complete init within 48h        |
 
 ---
 
-## 11. Risks & Mitigations
+## 12. Risks & Mitigations
 
-| Risk | Severity | Likelihood | Mitigation |
-|---|---|---|---|
-| AI coding tools add built-in review | High | Medium | Focus on post-session documentation (not review). Even if Cursor adds review, it won't generate committable ADRs. |
-| Low free-to-paid conversion | Medium | Medium | Ensure free tier is genuinely useful. Pro must add clear, measurable value (LLM explanations, trends). |
-| Rule false positives erode trust | High | Medium | Invest heavily in test suite. Dogfood on real projects. Default to info severity for uncertain patterns. |
-| Tree-sitter complexity for multi-lang | Medium | High | Start with TypeScript/JavaScript only. Add Python in Phase 2. Defer other languages to community. |
-| LLM provider API changes | Low | Medium | Abstract behind Vercel AI SDK. Support multiple providers from day one. |
-| Competitor enters with more resources | Medium | Medium | Move fast, build community, accumulate rules. Open-source moat makes forking easy but contributing easier. |
-| User privacy concerns (code analysis) | Medium | Low | Local-first by design. No code leaves the machine unless user opts into LLM features with their own key. |
-
----
-
-## 12. Open Questions
-
-Decisions to be resolved before or during Phase 1:
-
-1. **Session boundary detection** — How does Afterburn determine where a "session" starts and ends? Options: time-based window (default 4h), explicit markers (afterburn start/stop), or git branch boundaries.
-2. **Monorepo support** — Should v0.1 support monorepos with multiple package.json files, or scope to single-package projects only?
-3. **Rule contribution model** — How do external contributors add rules? Plugin system vs. core-only for v1.0?
-4. **Telemetry opt-in/out** — What anonymous usage data should be collected for the north star metric? Must be clearly opt-in.
-5. **Naming: afterburn vs. alternatives** — Final name decision. Alternatives considered: ignite, debrief, postmortem. Afterburn is current frontrunner.
-6. **License model** — MIT for CLI core? What license for Pro-only modules?
+| Risk                                                                          | Mitigation                                                                                                                                                                                                                                                                         |
+| ----------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Anthropic changes Claude Code hook schema or restricts third-party hook usage | Monitor Anthropic changelog. Abstract the hook integration layer so it can be updated independently of the rest of the CLI. Do not hard-code field names from the session log.                                                                                                     |
+| Developers resist being tracked — privacy and surveillance concerns           | Be fully transparent: metadata only, zero code content captured. Make hook output visible in terminal so developers always see what is sent. Make opt-out easy (`afterburn project ignore`, `afterburn logout`). Frame it as a benefit to developers too — their own task history. |
+| Cost estimation inaccuracy                                                    | Use publicly documented Anthropic model pricing. Display estimates with `~$` prefix in all UIs. Update the pricing table promptly when Anthropic publishes changes.                                                                                                                |
+| Low adoption in teams — PM buys, devs don't install                           | Minimise install friction to a single command. Provide PM-shareable onboarding guide. Build bulk invite flow so PM can send workspace key + instructions to all developers in one action.                                                                                          |
+| Competitor replicates the team-level feature set                              | ccusage has 10.7k stars and is moving fast. Afterburn's moat is the PM-facing cloud layer, the setup UX, and depth of task-level detail. Ship Phase 1 fast. The task detail panel and review workflow (Phase 3) are hard to replicate quickly.                                     |
+| Codex integration complexity in Phase 2                                       | OpenAI Codex may not have a native hook API equivalent to Claude Code's. Research before committing to Phase 2 architecture. A wrapper-script approach may be needed.                                                                                                              |
+| Workspace key compromise                                                      | Key rotation is one click. All developers re-run `afterburn config` with the new key. Consider adding key expiry and rotation reminders in a future version.                                                                                                                       |
 
 ---
 
-*End of Document*
+## 13. Open Questions
+
+Decisions to resolve before or during Phase 1 development:
+
+1. Should developers be able to see each other's task logs, or only their own? Default proposal: PM can see all; developer can see only themselves. Confirm with early customers.
+
+2. What is the right cost estimation precision to display? Show as `~$0.079` (approximate) or calculate precisely from token counts × model pricing? Approximate is safer given pricing changes.
+
+3. Should Afterburn offer a self-hosted / on-premise option in Phase 1 for privacy-sensitive teams, or defer to Phase 4 Enterprise?
+
+4. Is there an Anthropic usage API (separate from local log parsing) that could provide more reliable token data in the future? Monitor Anthropic's API roadmap.
+
+5. Which project management integration should be prioritised in Phase 3: Jira, Linear, or Asana?
+
+6. Should the file review feature (task detail panel) be built in v1.0 as a basic toggle, or deferred fully to v1.1?
+
+---
+
+_End of Document_
+
+_Afterburn PRD v2.0 · March 2026 · Internal Use Only_
