@@ -8,11 +8,16 @@ import {
   DEFAULT_PROVIDER,
 } from "@afterburn/shared";
 
+interface HookEntry {
+  type: "command";
+  command: string;
+}
+
 interface ProviderSettings {
   hooks?: {
-    Stop?: { command: string }[];
-    PostToolUse?: { command: string }[];
-    Notification?: { command: string }[];
+    Stop?: HookEntry[];
+    PostToolUse?: HookEntry[];
+    Notification?: HookEntry[];
   };
   [key: string]: unknown;
 }
@@ -22,7 +27,7 @@ interface ProviderSettings {
  */
 interface ProviderHookConfig {
   settingsPath: (scope: "global" | "project", cwd: string) => string;
-  hooks: Record<string, { command: string }[]>;
+  hooks: Record<string, HookEntry[]>;
 }
 
 const PROVIDER_HOOK_CONFIGS: Record<ProviderId, ProviderHookConfig | null> = {
@@ -34,9 +39,9 @@ const PROVIDER_HOOK_CONFIGS: Record<ProviderId, ProviderHookConfig | null> = {
       return path.join(cwd, ".claude", "settings.json");
     },
     hooks: {
-      Stop: [{ command: "afterburn hook stop" }],
-      PostToolUse: [{ command: "afterburn hook post-tool-use" }],
-      Notification: [{ command: "afterburn hook notification" }],
+      Stop: [{ type: "command", command: "afterburn hook stop" }],
+      PostToolUse: [{ type: "command", command: "afterburn hook post-tool-use" }],
+      Notification: [{ type: "command", command: "afterburn hook notification" }],
     },
   },
   // Codex will be added when implemented

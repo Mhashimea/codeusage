@@ -35,6 +35,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
+          console.log("[auth] Missing email or password");
           return null;
         }
 
@@ -52,10 +53,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           .where(eq(workspaces.name, email))
           .limit(1);
 
+        console.log("[auth] Looking up workspace for:", email);
+        console.log("[auth] Found workspaces:", existingWorkspace.length);
+
         if (existingWorkspace.length > 0) {
           const workspace = existingWorkspace[0];
+          console.log("[auth] Workspace ID:", workspace.id);
+          console.log("[auth] Hash exists:", !!workspace.api_key_hash);
+
           // Verify password against api_key_hash (repurposed for MVP)
           const isValid = await bcrypt.compare(password, workspace.api_key_hash);
+          console.log("[auth] Password valid:", isValid);
 
           if (isValid) {
             return {
@@ -67,6 +75,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
         }
 
+        console.log("[auth] Authorization failed");
         return null;
       },
     }),
