@@ -70,6 +70,8 @@ export interface AfterBurnConfig {
   default_project: string;
   /** Maps directory path to project slug, or "__ignored__" to skip */
   project_overrides: Record<string, string>;
+  /** Optional custom API URL (for development/self-hosted) */
+  api_url?: string;
 }
 
 /**

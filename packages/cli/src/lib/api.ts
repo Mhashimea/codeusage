@@ -1,7 +1,16 @@
 import type { TelemetryPayload } from "@afterburn/shared";
 import { getConfig } from "./config.js";
 
-const API_BASE = process.env.AFTERBURN_API_URL || "https://app.afterburn.dev";
+const DEFAULT_API_URL = "https://app.afterburn.dev";
+
+function getApiBase(): string {
+  // Priority: env var > config > default
+  if (process.env.AFTERBURN_API_URL) {
+    return process.env.AFTERBURN_API_URL;
+  }
+  const config = getConfig();
+  return config.api_url || DEFAULT_API_URL;
+}
 
 export interface ApiResult {
   success: boolean;
@@ -26,7 +35,7 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
   }
 
   try {
-    const response = await fetch(`${API_BASE}/api/v1/tasks`, {
+    const response = await fetch(`${getApiBase()}/api/v1/tasks`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -72,7 +81,7 @@ export async function validateApiKey(
   apiKey: string
 ): Promise<{ valid: boolean; workspace?: WorkspaceInfo; error?: string }> {
   try {
-    const response = await fetch(`${API_BASE}/api/v1/auth/validate`, {
+    const response = await fetch(`${getApiBase()}/api/v1/auth/validate`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${apiKey}`,

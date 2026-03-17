@@ -1,12 +1,27 @@
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
+import { execa } from "execa";
 import {
   type ProviderId,
   getProviderById,
   isProviderActive,
   DEFAULT_PROVIDER,
 } from "@afterburn/shared";
+
+/**
+ * Get git root directory for the current working directory
+ */
+async function getGitRoot(cwd: string): Promise<string | null> {
+  try {
+    const { stdout } = await execa("git", ["rev-parse", "--show-toplevel"], {
+      cwd,
+    });
+    return stdout.trim();
+  } catch {
+    return null;
+  }
+}
 
 export interface SessionData {
   input_tokens: number;
@@ -47,18 +62,20 @@ export function getSessionParser(
 // === Claude Code Session Parser ===
 
 function getClaudeProjectHash(cwd: string): string {
-  // Claude Code uses base64url encoding of the cwd
-  return Buffer.from(cwd).toString("base64url");
+  // Claude Code replaces "/" and spaces with "-" in the path
+  return cwd.replace(/[/ ]/g, "-");
 }
 
 async function findLatestClaudeSession(
   projectPath: string
 ): Promise<string | null> {
-  const sessionsPath = path.join(projectPath, "sessions");
-
   try {
-    const files = await fs.readdir(sessionsPath);
-    const jsonlFiles = files.filter((f) => f.endsWith(".jsonl"));
+    // Session files are directly in the project folder (not in a sessions/ subdirectory)
+    const files = await fs.readdir(projectPath);
+    // Filter for session files (UUID.jsonl format, exclude agent- prefixed files)
+    const jsonlFiles = files.filter(
+      (f) => f.endsWith(".jsonl") && !f.startsWith("agent-")
+    );
 
     if (jsonlFiles.length === 0) return null;
 
@@ -67,14 +84,14 @@ async function findLatestClaudeSession(
     let latestMtime = 0;
 
     for (const file of jsonlFiles) {
-      const stat = await fs.stat(path.join(sessionsPath, file));
+      const stat = await fs.stat(path.join(projectPath, file));
       if (stat.mtimeMs > latestMtime) {
         latestMtime = stat.mtimeMs;
         latestFile = file;
       }
     }
 
-    return path.join(sessionsPath, latestFile);
+    return path.join(projectPath, latestFile);
   } catch {
     return null;
   }
@@ -86,7 +103,11 @@ async function findLatestClaudeSession(
 async function parseClaudeCodeSession(
   cwd: string
 ): Promise<SessionData | null> {
-  const projectHash = getClaudeProjectHash(cwd);
+  // Claude Code uses the git root directory for session storage
+  const gitRoot = await getGitRoot(cwd);
+  const projectDir = gitRoot || cwd;
+
+  const projectHash = getClaudeProjectHash(projectDir);
   const projectPath = path.join(
     os.homedir(),
     ".claude",
@@ -121,29 +142,34 @@ async function parseClaudeCodeSession(
           if (!endTime || ts > endTime) endTime = ts;
         }
 
-        // Extract token usage
-        if (entry.usage) {
-          inputTokens += entry.usage.input_tokens || 0;
-          outputTokens += entry.usage.output_tokens || 0;
-          cacheTokens += entry.usage.cache_read_input_tokens || 0;
-        }
+        // Extract from message object (Claude Code session format)
+        const message = entry.message;
+        if (message) {
+          // Extract token usage from message.usage
+          if (message.usage) {
+            inputTokens += message.usage.input_tokens || 0;
+            outputTokens += message.usage.output_tokens || 0;
+            cacheTokens += message.usage.cache_read_input_tokens || 0;
+          }
 
-        // Extract model
-        if (entry.model) {
-          model = entry.model;
-        }
+          // Extract model from message.model
+          if (message.model) {
+            model = message.model;
+          }
 
-        // Track tool usage
-        if (entry.type === "tool_use" && entry.name) {
-          toolCounts[entry.name] = (toolCounts[entry.name] || 0) + 1;
-        }
+          // Track tool usage from message.content array
+          if (Array.isArray(message.content)) {
+            for (const block of message.content) {
+              if (block.type === "tool_use" && block.name) {
+                toolCounts[block.name] = (toolCounts[block.name] || 0) + 1;
 
-        // Track file changes (Edit, Write tools)
-        if (
-          entry.type === "tool_use" &&
-          (entry.name === "Edit" || entry.name === "Write")
-        ) {
-          filesChanged++;
+                // Track file changes (Edit, Write tools)
+                if (block.name === "Edit" || block.name === "Write") {
+                  filesChanged++;
+                }
+              }
+            }
+          }
         }
       } catch {
         // Skip malformed lines
@@ -198,14 +224,12 @@ export async function getSessionsDirectory(
   // Provider-specific session directories
   switch (providerId) {
     case "claude_code": {
-      const projectHash = getClaudeProjectHash(cwd);
-      return path.join(
-        os.homedir(),
-        ".claude",
-        "projects",
-        projectHash,
-        "sessions"
-      );
+      // Claude Code uses the git root directory for session storage
+      const gitRoot = await getGitRoot(cwd);
+      const projectDir = gitRoot || cwd;
+      const projectHash = getClaudeProjectHash(projectDir);
+      // Session files are directly in the project folder
+      return path.join(os.homedir(), ".claude", "projects", projectHash);
     }
     case "codex":
       // Will be implemented when Codex support is added
