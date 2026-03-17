@@ -4,7 +4,6 @@ import {
   estimateCost,
   type TelemetryPayload,
   getProviderById,
-  DEFAULT_PROVIDER,
 } from "@afterburn/shared";
 import { getConfig, isConfigured, getProvider } from "../lib/config.js";
 import { parseSessionLog } from "../lib/session-log.js";
@@ -15,6 +14,13 @@ import {
   getBufferedTasks,
   removeBufferedTask,
 } from "../lib/buffer.js";
+import {
+  loadSessionState,
+  saveSessionState,
+  calculateDelta,
+  cleanupOldSessionStates,
+  type SessionState,
+} from "../lib/session-state.js";
 
 const CLI_VERSION = "0.1.0";
 
@@ -60,12 +66,47 @@ export const hookStopCommand = new Command("stop")
       return;
     }
 
-    // Build payload
+    // Load previous session state to calculate deltas
+    const previousState = await loadSessionState(session.session_id);
+
+    // Calculate delta values (only what changed since last task)
+    const delta = calculateDelta(
+      {
+        input_tokens: session.input_tokens,
+        output_tokens: session.output_tokens,
+        cache_tokens: session.cache_tokens,
+        files_changed: session.files_changed,
+        tool_counts: session.tool_counts,
+      },
+      previousState
+    );
+
+    // Skip if no actual changes (avoid duplicate syncs)
+    if (
+      delta.input_tokens === 0 &&
+      delta.output_tokens === 0 &&
+      delta.tools_used.length === 0
+    ) {
+      if (options.dryRun) {
+        console.log(chalk.yellow("No new activity since last sync"));
+      }
+      return;
+    }
+
+    // Calculate duration since last task (or session start)
+    let taskDuration = session.duration_sec;
+    if (previousState && session.end_time && previousState.last_timestamp) {
+      taskDuration = Math.round(
+        (session.end_time - previousState.last_timestamp) / 1000
+      );
+    }
+
+    // Build payload with delta values
     const cost = estimateCost(
       session.model,
-      session.input_tokens,
-      session.output_tokens,
-      session.cache_tokens
+      delta.input_tokens,
+      delta.output_tokens,
+      delta.cache_tokens
     );
 
     const payload: TelemetryPayload = {
@@ -73,13 +114,13 @@ export const hookStopCommand = new Command("stop")
       project_slug: projectSlug || "untagged",
       tool_source: providerId,
       model_name: session.model,
-      input_tokens: session.input_tokens,
-      output_tokens: session.output_tokens,
-      cache_tokens: session.cache_tokens,
+      input_tokens: delta.input_tokens,
+      output_tokens: delta.output_tokens,
+      cache_tokens: delta.cache_tokens,
       cost_usd: cost,
-      files_changed: session.files_changed,
-      tools_used: session.tools_used,
-      task_duration_sec: session.duration_sec,
+      files_changed: delta.files_changed,
+      tools_used: delta.tools_used,
+      task_duration_sec: taskDuration,
       hook_scope: config.hook_scope,
       cli_version: CLI_VERSION,
     };
@@ -125,8 +166,40 @@ export const hookStopCommand = new Command("stop")
 
     if (result.success) {
       console.log(chalk.green("✓ Task synced"));
+
+      // Save current cumulative state for next delta calculation
+      const newState: SessionState = {
+        session_id: session.session_id,
+        input_tokens: session.input_tokens,
+        output_tokens: session.output_tokens,
+        cache_tokens: session.cache_tokens,
+        files_changed: session.files_changed,
+        tool_counts: session.tool_counts,
+        last_timestamp: session.end_time || Date.now(),
+        updated_at: new Date().toISOString(),
+      };
+      await saveSessionState(newState);
+
+      // Periodically clean up old session states
+      if (Math.random() < 0.1) {
+        // 10% chance on each sync
+        cleanupOldSessionStates().catch(() => {});
+      }
     } else {
       console.log(chalk.yellow(`Buffered: ${result.error}`));
       await bufferTask(payload);
+
+      // Still save state even when buffering to avoid double-counting
+      const newState: SessionState = {
+        session_id: session.session_id,
+        input_tokens: session.input_tokens,
+        output_tokens: session.output_tokens,
+        cache_tokens: session.cache_tokens,
+        files_changed: session.files_changed,
+        tool_counts: session.tool_counts,
+        last_timestamp: session.end_time || Date.now(),
+        updated_at: new Date().toISOString(),
+      };
+      await saveSessionState(newState);
     }
   });

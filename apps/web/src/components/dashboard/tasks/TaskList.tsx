@@ -197,18 +197,11 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
 
       {/* Task Detail Sheet */}
       <Sheet open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
-        <SheetContent className="w-[500px] sm:max-w-[500px]">
-          <SheetHeader>
+        <SheetContent className="w-[450px] sm:max-w-[450px] p-6">
+          <SheetHeader className="pb-4">
             <SheetTitle>Task Details</SheetTitle>
           </SheetHeader>
-          {selectedTask && (
-            <div className="mt-6">
-              <TaskDetailPanel
-                task={selectedTask}
-                onClose={() => setSelectedTask(null)}
-              />
-            </div>
-          )}
+          {selectedTask && <TaskDetailPanel task={selectedTask} />}
         </SheetContent>
       </Sheet>
     </div>

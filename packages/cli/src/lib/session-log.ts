@@ -24,13 +24,17 @@ async function getGitRoot(cwd: string): Promise<string | null> {
 }
 
 export interface SessionData {
+  session_id: string;
   input_tokens: number;
   output_tokens: number;
   cache_tokens: number;
   model: string;
   tools_used: { name: string; count: number }[];
+  tool_counts: Record<string, number>;
   files_changed: number;
   duration_sec: number;
+  start_time: number | null;
+  end_time: number | null;
 }
 
 /**
@@ -118,6 +122,9 @@ async function parseClaudeCodeSession(
   const sessionFile = await findLatestClaudeSession(projectPath);
   if (!sessionFile) return null;
 
+  // Extract session ID from filename (e.g., "abc123.jsonl" -> "abc123")
+  const sessionId = path.basename(sessionFile, ".jsonl");
+
   try {
     const content = await fs.readFile(sessionFile, "utf-8");
     const lines = content.trim().split("\n").filter(Boolean);
@@ -184,13 +191,17 @@ async function parseClaudeCodeSession(
       startTime && endTime ? Math.round((endTime - startTime) / 1000) : 0;
 
     return {
+      session_id: sessionId,
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       cache_tokens: cacheTokens,
       model,
       tools_used,
+      tool_counts: toolCounts,
       files_changed: filesChanged,
       duration_sec,
+      start_time: startTime,
+      end_time: endTime,
     };
   } catch {
     return null;

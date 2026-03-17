@@ -306,9 +306,24 @@ During `afterburn init`, the CLI writes to one of two files:
 ```json
 {
   "hooks": {
-    "Stop": [{ "command": "afterburn hook stop" }],
-    "PostToolUse": [{ "command": "afterburn hook post-tool-use" }],
-    "Notification": [{ "command": "afterburn hook notification" }]
+    "Stop": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "afterburn hook stop" }]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "afterburn hook post-tool-use" }]
+      }
+    ],
+    "Notification": [
+      {
+        "matcher": "",
+        "hooks": [{ "type": "command", "command": "afterburn hook notification" }]
+      }
+    ]
   }
 }
 ```

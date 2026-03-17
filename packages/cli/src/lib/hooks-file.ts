@@ -8,9 +8,21 @@ import {
   DEFAULT_PROVIDER,
 } from "@afterburn/shared";
 
-interface HookEntry {
+/**
+ * Individual hook command definition
+ */
+interface HookCommand {
   type: "command";
   command: string;
+}
+
+/**
+ * Hook entry with matcher and nested hooks array
+ * This is the Claude Code settings.json structure
+ */
+interface HookEntry {
+  matcher: string;
+  hooks: HookCommand[];
 }
 
 interface ProviderSettings {
@@ -30,6 +42,16 @@ interface ProviderHookConfig {
   hooks: Record<string, HookEntry[]>;
 }
 
+/**
+ * Helper to create a hook entry with the correct structure
+ */
+function createHookEntry(command: string): HookEntry {
+  return {
+    matcher: "",
+    hooks: [{ type: "command", command }],
+  };
+}
+
 const PROVIDER_HOOK_CONFIGS: Record<ProviderId, ProviderHookConfig | null> = {
   claude_code: {
     settingsPath: (scope, cwd) => {
@@ -39,9 +61,9 @@ const PROVIDER_HOOK_CONFIGS: Record<ProviderId, ProviderHookConfig | null> = {
       return path.join(cwd, ".claude", "settings.json");
     },
     hooks: {
-      Stop: [{ type: "command", command: "afterburn hook stop" }],
-      PostToolUse: [{ type: "command", command: "afterburn hook post-tool-use" }],
-      Notification: [{ type: "command", command: "afterburn hook notification" }],
+      Stop: [createHookEntry("afterburn hook stop")],
+      PostToolUse: [createHookEntry("afterburn hook post-tool-use")],
+      Notification: [createHookEntry("afterburn hook notification")],
     },
   },
   // Codex will be added when implemented
@@ -102,8 +124,10 @@ export async function registerHooks(
   for (const [hookType, hookDef] of Object.entries(config.hooks)) {
     const existingHooks =
       settings.hooks[hookType as keyof typeof settings.hooks] || [];
-    const hasAfterburn = existingHooks.some((h) =>
-      h.command.startsWith("afterburn")
+
+    // Check if any existing hook entry contains an afterburn command
+    const hasAfterburn = existingHooks.some((entry) =>
+      entry.hooks?.some((h) => h.command.startsWith("afterburn"))
     );
 
     if (!hasAfterburn) {
@@ -142,8 +166,10 @@ export async function unregisterHooks(
         keyof typeof settings.hooks
       >) {
         if (settings.hooks[hookType]) {
+          // Filter out hook entries that contain afterburn commands
           settings.hooks[hookType] = settings.hooks[hookType]!.filter(
-            (h) => !h.command.startsWith("afterburn")
+            (entry) =>
+              !entry.hooks?.some((h) => h.command.startsWith("afterburn"))
           );
         }
       }
@@ -172,8 +198,9 @@ export async function areHooksRegistered(
     const settings: ProviderSettings = JSON.parse(content);
 
     if (settings.hooks?.Stop) {
-      return settings.hooks.Stop.some((h) =>
-        h.command.startsWith("afterburn")
+      // Check if any hook entry contains an afterburn command
+      return settings.hooks.Stop.some((entry) =>
+        entry.hooks?.some((h) => h.command.startsWith("afterburn"))
       );
     }
   } catch {
