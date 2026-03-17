@@ -1,6 +1,12 @@
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
+import {
+  type ProviderId,
+  getProviderById,
+  isProviderActive,
+  DEFAULT_PROVIDER,
+} from "@afterburn/shared";
 
 export interface SessionData {
   input_tokens: number;
@@ -12,12 +18,42 @@ export interface SessionData {
   duration_sec: number;
 }
 
-function getProjectHash(cwd: string): string {
+/**
+ * Session parser function type
+ */
+type SessionParser = (cwd: string) => Promise<SessionData | null>;
+
+/**
+ * Registry of session parsers by provider
+ */
+const SESSION_PARSERS: Record<ProviderId, SessionParser | null> = {
+  claude_code: parseClaudeCodeSession,
+  codex: null, // Will be implemented when Codex support is added
+};
+
+/**
+ * Get session parser for a provider
+ */
+export function getSessionParser(
+  providerId: ProviderId
+): SessionParser | null {
+  const provider = getProviderById(providerId);
+  if (!provider || !isProviderActive(providerId)) {
+    return null;
+  }
+  return SESSION_PARSERS[providerId];
+}
+
+// === Claude Code Session Parser ===
+
+function getClaudeProjectHash(cwd: string): string {
   // Claude Code uses base64url encoding of the cwd
   return Buffer.from(cwd).toString("base64url");
 }
 
-async function findLatestSession(projectPath: string): Promise<string | null> {
+async function findLatestClaudeSession(
+  projectPath: string
+): Promise<string | null> {
   const sessionsPath = path.join(projectPath, "sessions");
 
   try {
@@ -44,11 +80,21 @@ async function findLatestSession(projectPath: string): Promise<string | null> {
   }
 }
 
-export async function parseSessionLog(cwd: string): Promise<SessionData | null> {
-  const projectHash = getProjectHash(cwd);
-  const projectPath = path.join(os.homedir(), ".claude", "projects", projectHash);
+/**
+ * Parse Claude Code session log
+ */
+async function parseClaudeCodeSession(
+  cwd: string
+): Promise<SessionData | null> {
+  const projectHash = getClaudeProjectHash(cwd);
+  const projectPath = path.join(
+    os.homedir(),
+    ".claude",
+    "projects",
+    projectHash
+  );
 
-  const sessionFile = await findLatestSession(projectPath);
+  const sessionFile = await findLatestClaudeSession(projectPath);
   if (!sessionFile) return null;
 
   try {
@@ -125,7 +171,46 @@ export async function parseSessionLog(cwd: string): Promise<SessionData | null> 
   }
 }
 
-export async function getSessionsDirectory(cwd: string): Promise<string> {
-  const projectHash = getProjectHash(cwd);
-  return path.join(os.homedir(), ".claude", "projects", projectHash, "sessions");
+// === Main API ===
+
+/**
+ * Parse session log for the given provider
+ * Uses provider-specific parser based on the configured provider
+ */
+export async function parseSessionLog(
+  cwd: string,
+  providerId: ProviderId = DEFAULT_PROVIDER
+): Promise<SessionData | null> {
+  const parser = getSessionParser(providerId);
+  if (!parser) {
+    return null;
+  }
+  return parser(cwd);
+}
+
+/**
+ * Get sessions directory for a provider
+ */
+export async function getSessionsDirectory(
+  cwd: string,
+  providerId: ProviderId = DEFAULT_PROVIDER
+): Promise<string | null> {
+  // Provider-specific session directories
+  switch (providerId) {
+    case "claude_code": {
+      const projectHash = getClaudeProjectHash(cwd);
+      return path.join(
+        os.homedir(),
+        ".claude",
+        "projects",
+        projectHash,
+        "sessions"
+      );
+    }
+    case "codex":
+      // Will be implemented when Codex support is added
+      return null;
+    default:
+      return null;
+  }
 }

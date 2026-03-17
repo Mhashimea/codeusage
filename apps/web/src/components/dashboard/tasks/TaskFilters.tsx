@@ -11,18 +11,24 @@ import {
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { X } from "lucide-react";
+import { getAllProviders } from "@afterburn/shared";
 
 interface TaskFiltersProps {
   developers: string[];
   projects: string[];
+  providers?: string[];
 }
 
-export function TaskFilters({ developers, projects }: TaskFiltersProps) {
+export function TaskFilters({ developers, projects, providers = [] }: TaskFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const currentDeveloper = searchParams.get("developer") || "";
   const currentProject = searchParams.get("project") || "";
+  const currentProvider = searchParams.get("provider") || "";
+
+  // Get provider display names
+  const allProviders = getAllProviders();
 
   const updateFilter = useCallback(
     (key: string, value: string) => {
@@ -43,13 +49,13 @@ export function TaskFilters({ developers, projects }: TaskFiltersProps) {
     router.push("/tasks");
   }, [router]);
 
-  const hasFilters = currentDeveloper || currentProject;
+  const hasFilters = currentDeveloper || currentProject || currentProvider;
 
   return (
     <div className="flex items-center gap-4">
       <Select
         value={currentDeveloper || "all"}
-        onValueChange={(value) => updateFilter("developer", value)}
+        onValueChange={(value) => updateFilter("developer", value ?? "all")}
       >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="All developers" />
@@ -66,7 +72,7 @@ export function TaskFilters({ developers, projects }: TaskFiltersProps) {
 
       <Select
         value={currentProject || "all"}
-        onValueChange={(value) => updateFilter("project", value)}
+        onValueChange={(value) => updateFilter("project", value ?? "all")}
       >
         <SelectTrigger className="w-[180px]">
           <SelectValue placeholder="All projects" />
@@ -78,6 +84,26 @@ export function TaskFilters({ developers, projects }: TaskFiltersProps) {
               {proj}
             </SelectItem>
           ))}
+        </SelectContent>
+      </Select>
+
+      <Select
+        value={currentProvider || "all"}
+        onValueChange={(value) => updateFilter("provider", value ?? "all")}
+      >
+        <SelectTrigger className="w-[180px]">
+          <SelectValue placeholder="All providers" />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="all">All providers</SelectItem>
+          {providers.map((providerId) => {
+            const providerInfo = allProviders.find((p) => p.id === providerId);
+            return (
+              <SelectItem key={providerId} value={providerId}>
+                {providerInfo?.displayName || providerId}
+              </SelectItem>
+            );
+          })}
         </SelectContent>
       </Select>
 

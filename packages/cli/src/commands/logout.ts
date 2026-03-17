@@ -1,9 +1,10 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import * as readline from "readline";
-import { clearConfig, getConfig, isConfigured } from "../lib/config.js";
+import { clearConfig, getConfig, isConfigured, getProvider } from "../lib/config.js";
 import { unregisterHooks } from "../lib/hooks-file.js";
 import { clearBuffer } from "../lib/buffer.js";
+import { getProviderById } from "@afterburn/shared";
 
 function confirm(question: string): Promise<boolean> {
   const rl = readline.createInterface({
@@ -40,13 +41,15 @@ export const logoutCommand = new Command("logout")
 
     const config = getConfig();
     const cwd = process.cwd();
+    const providerId = getProvider();
+    const providerInfo = getProviderById(providerId);
 
     console.log(chalk.dim("\nCleaning up..."));
 
-    // Unregister hooks from both scopes
-    await unregisterHooks("global", cwd);
-    await unregisterHooks("project", cwd);
-    console.log(chalk.dim("  ✓ Hooks unregistered"));
+    // Unregister hooks from both scopes for the current provider
+    await unregisterHooks("global", cwd, providerId);
+    await unregisterHooks("project", cwd, providerId);
+    console.log(chalk.dim(`  ✓ ${providerInfo?.displayName || providerId} hooks unregistered`));
 
     // Clear buffer
     const bufferedCount = await clearBuffer();

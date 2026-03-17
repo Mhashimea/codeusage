@@ -1,7 +1,12 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { estimateCost, type TelemetryPayload } from "@afterburn/shared";
-import { getConfig, isConfigured } from "../lib/config.js";
+import {
+  estimateCost,
+  type TelemetryPayload,
+  getProviderById,
+  DEFAULT_PROVIDER,
+} from "@afterburn/shared";
+import { getConfig, isConfigured, getProvider } from "../lib/config.js";
 import { parseSessionLog } from "../lib/session-log.js";
 import { detectProjectSlug } from "../lib/git.js";
 import { sendTask } from "../lib/api.js";
@@ -14,7 +19,7 @@ import {
 const CLI_VERSION = "0.1.0";
 
 export const hookStopCommand = new Command("stop")
-  .description("Handle Claude Code stop hook (internal)")
+  .description("Handle AI coding tool stop hook (internal)")
   .option("--dry-run", "Parse session but don't send to API")
   .action(async (options) => {
     // Silent exit if not configured
@@ -24,6 +29,10 @@ export const hookStopCommand = new Command("stop")
 
     const config = getConfig();
     const cwd = process.cwd();
+
+    // Get provider from config (with migration fallback)
+    const providerId = getProvider();
+    const providerInfo = getProviderById(providerId);
 
     // Check for ignored directory
     if (config.project_overrides[cwd] === "__ignored__") {
@@ -42,8 +51,8 @@ export const hookStopCommand = new Command("stop")
       }
     }
 
-    // Parse session log
-    const session = await parseSessionLog(cwd);
+    // Parse session log for the configured provider
+    const session = await parseSessionLog(cwd, providerId);
     if (!session) {
       if (options.dryRun) {
         console.log(chalk.yellow("Could not parse session log"));
@@ -62,7 +71,7 @@ export const hookStopCommand = new Command("stop")
     const payload: TelemetryPayload = {
       developer_alias: config.developer_alias,
       project_slug: projectSlug || "untagged",
-      tool_source: "claude_code",
+      tool_source: providerId,
       model_name: session.model,
       input_tokens: session.input_tokens,
       output_tokens: session.output_tokens,
@@ -77,6 +86,7 @@ export const hookStopCommand = new Command("stop")
 
     if (options.dryRun) {
       console.log(chalk.bold("\n📊 Session Summary (dry run)\n"));
+      console.log(`Provider: ${chalk.cyan(providerInfo?.displayName || providerId)}`);
       console.log(`Project: ${chalk.cyan(payload.project_slug)}`);
       console.log(`Model: ${chalk.cyan(payload.model_name)}`);
       console.log(

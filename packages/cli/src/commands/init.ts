@@ -6,6 +6,12 @@ import { setFullConfig, getConfig, isConfigured } from "../lib/config.js";
 import { validateApiKey } from "../lib/api.js";
 import { detectProjectSlug } from "../lib/git.js";
 import { registerHooks } from "../lib/hooks-file.js";
+import {
+  getAllProviders,
+  getProviderById,
+  isProviderActive,
+  type ProviderId,
+} from "@afterburn/shared";
 
 function prompt(question: string): Promise<string> {
   const rl = readline.createInterface({
@@ -23,11 +29,18 @@ function prompt(question: string): Promise<string> {
 
 function promptSelect(
   question: string,
-  options: { label: string; value: string }[]
+  options: { label: string; value: string; disabled?: boolean }[]
 ): Promise<string> {
   console.log(question);
+  const enabledOptions = options.filter((opt) => !opt.disabled);
+
   options.forEach((opt, i) => {
-    console.log(chalk.dim(`  ${i + 1}) ${opt.label}`));
+    if (opt.disabled) {
+      console.log(chalk.gray(`     ${opt.label} ${chalk.italic("[Coming Soon]")}`));
+    } else {
+      const enabledIndex = enabledOptions.findIndex((e) => e.value === opt.value) + 1;
+      console.log(chalk.dim(`  ${enabledIndex}) ${opt.label}`));
+    }
   });
 
   return new Promise((resolve) => {
@@ -36,13 +49,13 @@ function promptSelect(
       output: process.stdout,
     });
 
-    rl.question(chalk.dim("Enter choice (1-" + options.length + "): "), (answer) => {
+    rl.question(chalk.dim("Enter choice (1-" + enabledOptions.length + "): "), (answer) => {
       rl.close();
       const index = parseInt(answer.trim(), 10) - 1;
-      if (index >= 0 && index < options.length) {
-        resolve(options[index].value);
+      if (index >= 0 && index < enabledOptions.length) {
+        resolve(enabledOptions[index].value);
       } else {
-        resolve(options[0].value); // Default to first option
+        resolve(enabledOptions[0].value); // Default to first option
       }
     });
   });
@@ -57,7 +70,9 @@ export const initCommand = new Command("init")
     // Check if already configured
     if (isConfigured() && !options.force) {
       const config = getConfig();
+      const providerInfo = getProviderById(config.provider);
       console.log(chalk.yellow("Already configured for workspace."));
+      console.log(chalk.dim(`Provider: ${providerInfo?.displayName || config.provider}`));
       console.log(chalk.dim(`Developer: ${config.developer_alias}`));
       console.log(chalk.dim(`Scope: ${config.hook_scope}`));
       console.log(
@@ -66,7 +81,28 @@ export const initCommand = new Command("init")
       return;
     }
 
-    // Step 1: Get workspace key
+    // Step 1: Select AI coding tool
+    const providers = getAllProviders();
+    const providerOptions = providers.map((p) => ({
+      label: `${p.displayName} - ${p.description}`,
+      value: p.id,
+      disabled: p.status !== "active",
+    }));
+
+    const selectedProvider = await promptSelect(
+      chalk.cyan("Select your AI coding tool:"),
+      providerOptions
+    );
+
+    const providerInfo = getProviderById(selectedProvider);
+    if (!providerInfo || !isProviderActive(selectedProvider)) {
+      console.log(chalk.red("\nSelected provider is not available yet.\n"));
+      process.exit(1);
+    }
+
+    console.log(chalk.dim(`\nUsing ${providerInfo.displayName}\n`));
+
+    // Step 2: Get workspace key (renumbered after provider selection)
     console.log(
       chalk.dim("Get your workspace key from the Afterburn dashboard Settings page.\n")
     );
@@ -128,22 +164,27 @@ export const initCommand = new Command("init")
 
     console.log(chalk.dim(`\nDetected project: ${detectedProject}`));
 
-    // Step 6: Register hooks
-    const hookSpinner = ora("Registering Claude Code hooks...").start();
+    // Step 7: Register hooks
+    const hookSpinner = ora(`Registering ${providerInfo.displayName} hooks...`).start();
 
     try {
-      await registerHooks(hookScope as "global" | "project", cwd);
-      hookSpinner.succeed("Hooks registered");
+      await registerHooks(
+        hookScope as "global" | "project",
+        cwd,
+        selectedProvider as ProviderId
+      );
+      hookSpinner.succeed(`${providerInfo.displayName} hooks registered`);
     } catch (err) {
       hookSpinner.fail("Failed to register hooks");
       console.log(chalk.red(`\n${(err as Error).message}\n`));
       process.exit(1);
     }
 
-    // Step 7: Save config
+    // Step 8: Save config
     setFullConfig({
       workspace_key: workspaceKey,
       developer_alias: finalAlias,
+      provider: selectedProvider as ProviderId,
       hook_scope: hookScope as "global" | "project",
       default_project: detectedProject,
       project_overrides: {},
@@ -151,7 +192,7 @@ export const initCommand = new Command("init")
 
     // Success!
     console.log(chalk.green("\n✅ Afterburn is ready!\n"));
-    console.log(chalk.dim("Your Claude Code sessions will now be tracked."));
+    console.log(chalk.dim(`Your ${providerInfo.displayName} sessions will now be tracked.`));
     console.log(chalk.dim("View your dashboard at: https://app.afterburn.dev\n"));
 
     console.log(chalk.bold("Quick commands:"));

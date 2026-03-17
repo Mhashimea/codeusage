@@ -1,9 +1,10 @@
 import { Command } from "commander";
 import chalk from "chalk";
-import { getConfig, isConfigured, getConfigPath } from "../lib/config.js";
+import { getConfig, isConfigured, getConfigPath, getProvider } from "../lib/config.js";
 import { areHooksRegistered, getSettingsPath } from "../lib/hooks-file.js";
 import { getBufferCount } from "../lib/buffer.js";
 import { detectProjectSlug } from "../lib/git.js";
+import { getProviderById } from "@afterburn/shared";
 
 export const statusCommand = new Command("status")
   .description("Show current Afterburn configuration and connection status")
@@ -18,28 +19,33 @@ export const statusCommand = new Command("status")
     const config = getConfig();
     const cwd = process.cwd();
 
+    // Get provider info
+    const providerId = getProvider();
+    const providerInfo = getProviderById(providerId);
+
     // Connection info
     console.log(chalk.bold("Connection:"));
     const maskedKey = config.workspace_key.slice(0, 10) + "••••••••••••";
     console.log(chalk.dim(`  API Key: ${maskedKey}`));
     console.log(chalk.dim(`  Developer: ${config.developer_alias}`));
+    console.log(chalk.cyan(`  Provider: ${providerInfo?.displayName || providerId}`));
     console.log(chalk.dim(`  Scope: ${config.hook_scope}`));
 
     // Hook status
     console.log(chalk.bold("\nHooks:"));
-    const globalHooks = await areHooksRegistered("global", cwd);
-    const projectHooks = await areHooksRegistered("project", cwd);
+    const globalHooks = await areHooksRegistered("global", cwd, providerId);
+    const projectHooks = await areHooksRegistered("project", cwd, providerId);
 
     if (globalHooks) {
-      console.log(chalk.green(`  ✓ Global hooks registered`));
-      console.log(chalk.dim(`    ${getSettingsPath("global", cwd)}`));
+      console.log(chalk.green(`  ✓ Global hooks registered for ${providerInfo?.displayName || providerId}`));
+      console.log(chalk.dim(`    ${getSettingsPath("global", cwd, providerId)}`));
     } else {
       console.log(chalk.dim(`  ○ Global hooks not registered`));
     }
 
     if (projectHooks) {
-      console.log(chalk.green(`  ✓ Project hooks registered`));
-      console.log(chalk.dim(`    ${getSettingsPath("project", cwd)}`));
+      console.log(chalk.green(`  ✓ Project hooks registered for ${providerInfo?.displayName || providerId}`));
+      console.log(chalk.dim(`    ${getSettingsPath("project", cwd, providerId)}`));
     } else {
       console.log(chalk.dim(`  ○ Project hooks not registered`));
     }

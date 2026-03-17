@@ -52,6 +52,7 @@ export const taskRecordSchema = telemetryPayloadSchema.extend({
 export const afterBurnConfigSchema = z.object({
   workspace_key: z.string(),
   developer_alias: z.string(),
+  provider: toolSourceSchema.default("claude_code"),
   hook_scope: hookScopeSchema,
   default_project: z.string(),
   project_overrides: z.record(z.string(), z.string()),

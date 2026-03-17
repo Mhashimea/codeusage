@@ -4,6 +4,7 @@ import { formatCost, formatTokens } from "@afterburn/shared";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ProviderBadge } from "@/components/shared/ProviderBadge";
 import {
   Clock,
   Coins,
@@ -13,6 +14,7 @@ import {
   User,
   FolderKanban,
   Calendar,
+  Bot,
 } from "lucide-react";
 
 interface ToolUsage {
@@ -25,6 +27,7 @@ interface TaskDetailPanelProps {
     id: string;
     developer_alias: string;
     project_slug: string;
+    tool_source: string;
     model_name: string;
     input_tokens: number;
     output_tokens: number;
@@ -83,6 +86,11 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
             <FolderKanban className="h-4 w-4 text-muted-foreground" />
             <span className="text-muted-foreground">Project:</span>
             <span className="font-medium">{task.project_slug}</span>
+          </div>
+          <div className="flex items-center gap-2 text-sm">
+            <Bot className="h-4 w-4 text-muted-foreground" />
+            <span className="text-muted-foreground">Provider:</span>
+            <ProviderBadge providerId={task.tool_source} />
           </div>
           <div className="flex items-center gap-2 text-sm">
             <Cpu className="h-4 w-4 text-muted-foreground" />

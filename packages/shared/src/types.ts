@@ -64,6 +64,8 @@ export interface TelemetryPayload {
 export interface AfterBurnConfig {
   workspace_key: string;
   developer_alias: string;
+  /** Selected AI coding tool provider */
+  provider: ToolSource;
   hook_scope: HookScope;
   default_project: string;
   /** Maps directory path to project slug, or "__ignored__" to skip */

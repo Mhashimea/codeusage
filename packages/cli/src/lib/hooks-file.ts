@@ -1,8 +1,14 @@
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
+import {
+  type ProviderId,
+  getProviderById,
+  isProviderActive,
+  DEFAULT_PROVIDER,
+} from "@afterburn/shared";
 
-interface ClaudeSettings {
+interface ProviderSettings {
   hooks?: {
     Stop?: { command: string }[];
     PostToolUse?: { command: string }[];
@@ -11,30 +17,73 @@ interface ClaudeSettings {
   [key: string]: unknown;
 }
 
-const AFTERBURN_HOOKS = {
-  Stop: [{ command: "afterburn hook stop" }],
-  PostToolUse: [{ command: "afterburn hook post-tool-use" }],
-  Notification: [{ command: "afterburn hook notification" }],
+/**
+ * Provider-specific hook configurations
+ */
+interface ProviderHookConfig {
+  settingsPath: (scope: "global" | "project", cwd: string) => string;
+  hooks: Record<string, { command: string }[]>;
+}
+
+const PROVIDER_HOOK_CONFIGS: Record<ProviderId, ProviderHookConfig | null> = {
+  claude_code: {
+    settingsPath: (scope, cwd) => {
+      if (scope === "global") {
+        return path.join(os.homedir(), ".claude", "settings.json");
+      }
+      return path.join(cwd, ".claude", "settings.json");
+    },
+    hooks: {
+      Stop: [{ command: "afterburn hook stop" }],
+      PostToolUse: [{ command: "afterburn hook post-tool-use" }],
+      Notification: [{ command: "afterburn hook notification" }],
+    },
+  },
+  // Codex will be added when implemented
+  codex: null,
 };
+
+/**
+ * Get hook config for a provider
+ */
+export function getProviderHookConfig(
+  providerId: ProviderId
+): ProviderHookConfig | null {
+  const provider = getProviderById(providerId);
+  if (!provider || !isProviderActive(providerId)) {
+    return null;
+  }
+  return PROVIDER_HOOK_CONFIGS[providerId];
+}
 
 export function getSettingsPath(
   scope: "global" | "project",
-  cwd: string
+  cwd: string,
+  providerId: ProviderId = DEFAULT_PROVIDER
 ): string {
-  if (scope === "global") {
-    return path.join(os.homedir(), ".claude", "settings.json");
+  const config = PROVIDER_HOOK_CONFIGS[providerId];
+  if (!config) {
+    throw new Error(`Provider ${providerId} does not support hooks`);
   }
-  return path.join(cwd, ".claude", "settings.json");
+  return config.settingsPath(scope, cwd);
 }
 
 export async function registerHooks(
   scope: "global" | "project",
-  cwd: string
+  cwd: string,
+  providerId: ProviderId = DEFAULT_PROVIDER
 ): Promise<void> {
-  const filePath = getSettingsPath(scope, cwd);
+  const config = getProviderHookConfig(providerId);
+  if (!config) {
+    throw new Error(
+      `Provider ${providerId} does not support hooks or is not active`
+    );
+  }
+
+  const filePath = config.settingsPath(scope, cwd);
 
   // Read existing file or start with empty object
-  let settings: ClaudeSettings = {};
+  let settings: ProviderSettings = {};
   try {
     const content = await fs.readFile(filePath, "utf-8");
     settings = JSON.parse(content);
@@ -45,7 +94,7 @@ export async function registerHooks(
   // Merge hooks (don't overwrite existing hooks from other tools)
   settings.hooks = settings.hooks || {};
 
-  for (const [hookType, hookDef] of Object.entries(AFTERBURN_HOOKS)) {
+  for (const [hookType, hookDef] of Object.entries(config.hooks)) {
     const existingHooks =
       settings.hooks[hookType as keyof typeof settings.hooks] || [];
     const hasAfterburn = existingHooks.some((h) =>
@@ -69,16 +118,24 @@ export async function registerHooks(
 
 export async function unregisterHooks(
   scope: "global" | "project",
-  cwd: string
+  cwd: string,
+  providerId: ProviderId = DEFAULT_PROVIDER
 ): Promise<void> {
-  const filePath = getSettingsPath(scope, cwd);
+  const config = getProviderHookConfig(providerId);
+  if (!config) {
+    return; // Provider doesn't support hooks, nothing to unregister
+  }
+
+  const filePath = config.settingsPath(scope, cwd);
 
   try {
     const content = await fs.readFile(filePath, "utf-8");
-    const settings: ClaudeSettings = JSON.parse(content);
+    const settings: ProviderSettings = JSON.parse(content);
 
     if (settings.hooks) {
-      for (const hookType of ["Stop", "PostToolUse", "Notification"] as const) {
+      for (const hookType of Object.keys(config.hooks) as Array<
+        keyof typeof settings.hooks
+      >) {
         if (settings.hooks[hookType]) {
           settings.hooks[hookType] = settings.hooks[hookType]!.filter(
             (h) => !h.command.startsWith("afterburn")
@@ -95,13 +152,19 @@ export async function unregisterHooks(
 
 export async function areHooksRegistered(
   scope: "global" | "project",
-  cwd: string
+  cwd: string,
+  providerId: ProviderId = DEFAULT_PROVIDER
 ): Promise<boolean> {
-  const filePath = getSettingsPath(scope, cwd);
+  const config = getProviderHookConfig(providerId);
+  if (!config) {
+    return false; // Provider doesn't support hooks
+  }
+
+  const filePath = config.settingsPath(scope, cwd);
 
   try {
     const content = await fs.readFile(filePath, "utf-8");
-    const settings: ClaudeSettings = JSON.parse(content);
+    const settings: ProviderSettings = JSON.parse(content);
 
     if (settings.hooks?.Stop) {
       return settings.hooks.Stop.some((h) =>

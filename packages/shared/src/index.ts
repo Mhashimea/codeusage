@@ -12,6 +12,19 @@ export type {
   ModelPricing,
 } from "./types.js";
 
+// Provider registry
+export type { ProviderStatus, ProviderId, ProviderInfo } from "./providers.js";
+export {
+  PROVIDERS,
+  getAllProviders,
+  getActiveProviders,
+  getComingSoonProviders,
+  getProviderById,
+  isProviderActive,
+  isValidProviderId,
+  DEFAULT_PROVIDER,
+} from "./providers.js";
+
 // Schemas
 export {
   toolUsageSchema,

@@ -36,7 +36,7 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
     });
 
     if (response.status === 201) {
-      const data = await response.json();
+      const data = (await response.json()) as { task_id: string };
       return { success: true, task_id: data.task_id };
     }
 
@@ -55,7 +55,7 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
       };
     }
 
-    const errorData = await response.json().catch(() => ({}));
+    const errorData = (await response.json().catch(() => ({}))) as { error?: string };
     return {
       success: false,
       error: errorData.error || `API error: ${response.status}`,
@@ -80,7 +80,7 @@ export async function validateApiKey(
     });
 
     if (response.status === 200) {
-      const data = await response.json();
+      const data = (await response.json()) as { workspace_id: string; workspace_name: string };
       return {
         valid: true,
         workspace: {

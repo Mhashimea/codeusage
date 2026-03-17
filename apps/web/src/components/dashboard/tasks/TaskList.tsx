@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { DataTable } from "@/components/shared/DataTable";
 import { TaskDetailPanel } from "@/components/shared/TaskDetailPanel";
+import { ProviderBadge } from "@/components/shared/ProviderBadge";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +42,7 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
     const headers = [
       "Developer",
       "Project",
+      "Provider",
       "Model",
       "Input Tokens",
       "Output Tokens",
@@ -54,6 +56,7 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
     const rows = tasks.map((task) => [
       task.developer_alias,
       task.project_slug,
+      task.tool_source,
       task.model_name,
       task.input_tokens,
       task.output_tokens,
@@ -89,6 +92,13 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
       header: "Project",
       render: (task: Task) => (
         <Badge variant="secondary">{task.project_slug}</Badge>
+      ),
+    },
+    {
+      key: "tool_source",
+      header: "Provider",
+      render: (task: Task) => (
+        <ProviderBadge providerId={task.tool_source} showLabel={false} />
       ),
     },
     {
