@@ -435,7 +435,7 @@ pnpm install
 
 # Dev
 pnpm dev                          # all packages
-pnpm --filter web dev             # Next.js on :3000
+pnpm --filter web dev             # Next.js on :3003
 pnpm --filter cli dev             # CLI watch mode (tsx watch)
 
 # Database
@@ -467,7 +467,7 @@ node packages/cli/dist/index.js hook stop --dry-run
 # apps/web/.env.local
 DATABASE_URL="postgresql://postgres:password@localhost:5432/afterburn"
 NEXTAUTH_SECRET="dev-secret-change-in-prod"
-NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_URL="http://localhost:3003"
 
 # apps/web (Vercel — production)
 DATABASE_URL="postgresql://..."   # Neon or Supabase
