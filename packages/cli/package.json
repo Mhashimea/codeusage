@@ -16,7 +16,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "tsup",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist"
+    "clean": "rm -rf dist",
+    "pack:tarball": "pnpm build && npm pack"
   },
   "dependencies": {
     "@afterburn/shared": "workspace:*",
@@ -35,5 +36,10 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Mhashimea/afterburn.git",
+    "directory": "packages/cli"
   }
 }

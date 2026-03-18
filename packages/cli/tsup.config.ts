@@ -6,12 +6,14 @@ export default defineConfig({
   target: "node18",
   outDir: "dist",
   clean: true,
-  dts: true,
+  dts: false,
   splitting: false,
-  sourcemap: true,
+  sourcemap: false,
   minify: false,
   shims: true,
   banner: {
     js: "#!/usr/bin/env node",
   },
+  // Bundle @afterburn/shared for standalone distribution
+  noExternal: ["@afterburn/shared"],
 });

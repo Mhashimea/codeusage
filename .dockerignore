@@ -1,0 +1,28 @@
+# Dependencies
+node_modules
+**/node_modules
+
+# Build outputs
+.next
+apps/web/.next
+packages/cli/dist
+packages/shared/dist
+
+# Development
+.git
+.gitignore
+*.md
+!README.md
+
+# IDE
+.vscode
+.idea
+
+# Misc
+.DS_Store
+*.log
+.env*.local
+
+# Test
+coverage
+.nyc_output

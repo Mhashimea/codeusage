@@ -49,3 +49,4 @@ drizzle/*.sql
 .cache/
 tmp/
 temp/
+*.tgz
