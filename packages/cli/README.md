@@ -11,12 +11,25 @@ Track your team's AI coding tool usage with zero friction. The Afterburn CLI int
 
 ## Installation
 
-```bash
-# Global installation (recommended)
-npm install -g afterburn
+### From GitHub Release (Team Members)
 
-# Or as a dev dependency
-npm install --save-dev afterburn
+```bash
+# Install from GitHub Release
+npm install -g https://github.com/radixhr/afterburn/releases/download/cli-v0.1.0/afterburn-0.1.0.tgz
+```
+
+### From Local File
+
+If you downloaded the tarball:
+
+```bash
+npm install -g ./afterburn-0.1.0.tgz
+```
+
+### Verify Installation
+
+```bash
+afterburn --version
 ```
 
 **Requirements:** Node.js 18+
@@ -25,7 +38,7 @@ npm install --save-dev afterburn
 
 ### 1. Get Your Workspace Key
 
-Sign in to [app.afterburn.dev](https://app.afterburn.dev) and copy your workspace API key from **Settings**. The key looks like `ab-ws-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`.
+Sign in to [afterburn.text2charts.com](https://afterburn.text2charts.com) and copy your workspace API key from **Settings**. The key looks like `ab-ws-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx`.
 
 ### 2. Initialize
 
@@ -59,7 +72,7 @@ That's it. Every time you complete a task, Afterburn automatically captures:
 - Files changed
 - Task duration
 
-View your data at [app.afterburn.dev](https://app.afterburn.dev).
+View your data at [afterburn.text2charts.com](https://afterburn.text2charts.com).
 
 ## Commands
 
@@ -254,7 +267,7 @@ Configuration is stored at `~/.afterburn/config.json`:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `AFTERBURN_API_URL` | API base URL | `https://app.afterburn.dev` |
+| `AFTERBURN_API_URL` | API base URL | `https://afterburn.text2charts.com` |
 
 For local development:
 
