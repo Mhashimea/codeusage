@@ -21,6 +21,8 @@
   },
   "dependencies": {
     "@afterburn/shared": "workspace:*",
+    "@inquirer/input": "^5.0.10",
+    "@inquirer/select": "^5.1.2",
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "conf": "^13.1.0",

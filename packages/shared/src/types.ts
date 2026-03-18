@@ -35,6 +35,7 @@ export interface TaskRecord {
   task_duration_sec: number;
   hook_scope: HookScope;
   cli_version: string;
+  session_id?: string; // Claude Code or Codex session identifier
   created_at: string; // ISO 8601 timestamp
 }
 
@@ -56,6 +57,7 @@ export interface TelemetryPayload {
   task_duration_sec: number;
   hook_scope: HookScope;
   cli_version: string;
+  session_id?: string; // Claude Code or Codex session identifier
 }
 
 /**

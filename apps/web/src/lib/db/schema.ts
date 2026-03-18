@@ -47,6 +47,7 @@ export const tasks = pgTable(
     task_duration_sec: integer("task_duration_sec").notNull().default(0),
     hook_scope: text("hook_scope").notNull().default("global"), // global | project
     cli_version: text("cli_version"),
+    session_id: text("session_id"), // Claude Code or Codex session identifier
     created_at: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [

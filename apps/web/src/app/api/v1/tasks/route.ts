@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
       task_duration_sec: payload.task_duration_sec,
       hook_scope: payload.hook_scope,
       cli_version: payload.cli_version,
+      session_id: payload.session_id,
     });
 
     // 7. Broadcast new task to connected dashboard clients

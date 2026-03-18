@@ -8,6 +8,13 @@
       "when": 1773567236139,
       "tag": "0000_chief_the_anarchist",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1773833381137,
+      "tag": "0001_brave_captain_midlands",
+      "breakpoints": true
     }
   ]
 }

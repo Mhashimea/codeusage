@@ -1,7 +1,8 @@
 import { Command } from "commander";
 import chalk from "chalk";
 import ora from "ora";
-import * as readline from "readline";
+import select from "@inquirer/select";
+import input from "@inquirer/input";
 import { setFullConfig, getConfig, isConfigured } from "../lib/config.js";
 import { validateApiKey } from "../lib/api.js";
 import { detectProjectSlug } from "../lib/git.js";
@@ -12,54 +13,6 @@ import {
   isProviderActive,
   type ProviderId,
 } from "@afterburn/shared";
-
-function prompt(question: string): Promise<string> {
-  const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout,
-  });
-
-  return new Promise((resolve) => {
-    rl.question(question, (answer) => {
-      rl.close();
-      resolve(answer.trim());
-    });
-  });
-}
-
-function promptSelect(
-  question: string,
-  options: { label: string; value: string; disabled?: boolean }[]
-): Promise<string> {
-  console.log(question);
-  const enabledOptions = options.filter((opt) => !opt.disabled);
-
-  options.forEach((opt, i) => {
-    if (opt.disabled) {
-      console.log(chalk.gray(`     ${opt.label} ${chalk.italic("[Coming Soon]")}`));
-    } else {
-      const enabledIndex = enabledOptions.findIndex((e) => e.value === opt.value) + 1;
-      console.log(chalk.dim(`  ${enabledIndex}) ${opt.label}`));
-    }
-  });
-
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({
-      input: process.stdin,
-      output: process.stdout,
-    });
-
-    rl.question(chalk.dim("Enter choice (1-" + enabledOptions.length + "): "), (answer) => {
-      rl.close();
-      const index = parseInt(answer.trim(), 10) - 1;
-      if (index >= 0 && index < enabledOptions.length) {
-        resolve(enabledOptions[index].value);
-      } else {
-        resolve(enabledOptions[0].value); // Default to first option
-      }
-    });
-  });
-}
 
 export const initCommand = new Command("init")
   .description("Initialize Afterburn CLI and connect to your workspace")
@@ -83,16 +36,18 @@ export const initCommand = new Command("init")
 
     // Step 1: Select AI coding tool
     const providers = getAllProviders();
-    const providerOptions = providers.map((p) => ({
-      label: `${p.displayName} - ${p.description}`,
+    const providerChoices = providers.map((p) => ({
+      name: p.status === "active"
+        ? `${p.displayName} - ${p.description}`
+        : chalk.gray(`${p.displayName} - ${p.description} [Coming Soon]`),
       value: p.id,
       disabled: p.status !== "active",
     }));
 
-    const selectedProvider = await promptSelect(
-      chalk.cyan("Select your AI coding tool:"),
-      providerOptions
-    );
+    const selectedProvider = await select({
+      message: "Select your AI coding tool:",
+      choices: providerChoices,
+    });
 
     const providerInfo = getProviderById(selectedProvider);
     if (!providerInfo || !isProviderActive(selectedProvider)) {
@@ -104,22 +59,21 @@ export const initCommand = new Command("init")
 
     // Step 2: Get workspace key (renumbered after provider selection)
     console.log(
-      chalk.dim("Get your workspace key from the Afterburn dashboard Settings page.\n")
+      chalk.dim("\nGet your workspace key from the Afterburn dashboard Settings page.\n")
     );
 
-    const workspaceKey = await prompt(chalk.cyan("Workspace API key: "));
-
-    if (!workspaceKey) {
-      console.log(chalk.red("\nWorkspace key is required.\n"));
-      process.exit(1);
-    }
-
-    if (!workspaceKey.startsWith("ab-ws-")) {
-      console.log(
-        chalk.red("\nInvalid key format. Keys start with 'ab-ws-'.\n")
-      );
-      process.exit(1);
-    }
+    const workspaceKey = await input({
+      message: "Workspace API key:",
+      validate: (value) => {
+        if (!value.trim()) {
+          return "Workspace key is required";
+        }
+        if (!value.startsWith("ab-ws-")) {
+          return "Invalid key format. Keys start with 'ab-ws-'";
+        }
+        return true;
+      },
+    });
 
     // Step 2: Validate key with API
     const spinner = ora("Validating workspace key...").start();
@@ -137,26 +91,25 @@ export const initCommand = new Command("init")
     // Step 3: Get developer alias
     const defaultAlias =
       process.env.USER || process.env.USERNAME || "developer";
-    const developerAlias = await prompt(
-      chalk.cyan(`Your name/alias [${defaultAlias}]: `)
-    );
-
-    const finalAlias = developerAlias || defaultAlias;
+    const finalAlias = await input({
+      message: "Your name/alias:",
+      default: defaultAlias,
+    });
 
     // Step 4: Choose hook scope
-    const hookScope = await promptSelect(
-      chalk.cyan("\nHook registration scope:"),
-      [
+    const hookScope = await select({
+      message: "Hook registration scope:",
+      choices: [
         {
-          label: "Global (recommended) - track all projects",
+          name: "Global (recommended) - track all projects",
           value: "global",
         },
         {
-          label: "Project only - track only this directory",
+          name: "Project only - track only this directory",
           value: "project",
         },
-      ]
-    );
+      ],
+    });
 
     // Step 5: Detect project
     const cwd = process.cwd();

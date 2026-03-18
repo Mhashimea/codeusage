@@ -35,6 +35,7 @@ export const telemetryPayloadSchema = z.object({
   task_duration_sec: z.number().int().min(0),
   hook_scope: hookScopeSchema,
   cli_version: z.string().min(1).max(50),
+  session_id: z.string().max(200).optional(),
 });
 
 /**

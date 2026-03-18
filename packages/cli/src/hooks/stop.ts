@@ -123,6 +123,7 @@ export const hookStopCommand = new Command("stop")
       task_duration_sec: taskDuration,
       hook_scope: config.hook_scope,
       cli_version: CLI_VERSION,
+      session_id: session.session_id,
     };
 
     if (options.dryRun) {
