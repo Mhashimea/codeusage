@@ -1,7 +1,7 @@
 import type { TelemetryPayload } from "@afterburn/shared";
 import { getConfig } from "./config.js";
 
-const DEFAULT_API_URL = "https://app.afterburn.dev";
+const DEFAULT_API_URL = "https://afterburn.text2charts.com";
 
 function getApiBase(): string {
   // Priority: env var > config > default
