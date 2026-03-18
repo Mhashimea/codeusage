@@ -6,7 +6,14 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Flame, Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -46,12 +53,20 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold">Create your workspace</CardTitle>
-          <CardDescription>
-            Set up your Afterburn workspace to start tracking AI coding activity
-          </CardDescription>
+      <Card className="w-full max-w-sm px-2">
+        <CardHeader className="text-center space-y-4 pb-2">
+          <div className="flex items-center justify-center gap-2">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500">
+              <Flame className="h-5 w-5 text-white" />
+            </div>
+            <span className="text-xl font-semibold">Afterburn</span>
+          </div>
+          <div>
+            <CardTitle className="text-2xl">Create workspace</CardTitle>
+            <CardDescription>
+              Set up your account to get started
+            </CardDescription>
+          </div>
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
@@ -61,7 +76,7 @@ export default function RegisterPage() {
               </div>
             )}
             <div className="space-y-2">
-              <Label htmlFor="workspaceName">Workspace Name</Label>
+              <Label htmlFor="workspaceName">Workspace name</Label>
               <Input
                 id="workspaceName"
                 type="text"
@@ -97,18 +112,23 @@ export default function RegisterPage() {
                 disabled={isLoading}
               />
             </div>
-          </CardContent>
-          <CardFooter className="flex flex-col space-y-4">
             <Button type="submit" className="w-full" disabled={isLoading}>
-              {isLoading ? "Creating workspace..." : "Create workspace"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                "Create workspace"
+              )}
             </Button>
-            <p className="text-sm text-muted-foreground text-center">
+            <p className="text-center text-sm text-muted-foreground pt-2">
               Already have an account?{" "}
-              <Link href="/login" className="text-primary hover:underline">
+              <Link href="/login" className="text-foreground hover:underline">
                 Sign in
               </Link>
             </p>
-          </CardFooter>
+          </CardContent>
         </form>
       </Card>
     </div>

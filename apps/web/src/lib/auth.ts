@@ -69,7 +69,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             return {
               id: workspace.id,
               email: email,
-              name: email,
+              name: workspace.display_name || email,
               workspaceId: workspace.id,
             };
           }

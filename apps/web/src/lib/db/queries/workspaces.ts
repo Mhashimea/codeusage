@@ -73,12 +73,12 @@ export async function rotateApiKey(workspaceId: string) {
 }
 
 /**
- * Update workspace name
+ * Update workspace display name
  */
-export async function updateWorkspaceName(workspaceId: string, name: string) {
+export async function updateWorkspaceDisplayName(workspaceId: string, displayName: string) {
   const [workspace] = await db
     .update(workspaces)
-    .set({ name })
+    .set({ display_name: displayName })
     .where(eq(workspaces.id, workspaceId))
     .returning();
 

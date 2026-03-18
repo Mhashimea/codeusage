@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { updateWorkspaceName } from "@/lib/db/queries/workspaces";
+import { updateWorkspaceDisplayName } from "@/lib/db/queries/workspaces";
 
 /**
  * PATCH /api/v1/workspaces/update
@@ -18,24 +18,24 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name } = body;
+    const { displayName } = body;
 
-    if (!name || typeof name !== "string" || name.trim().length === 0) {
+    if (!displayName || typeof displayName !== "string" || displayName.trim().length === 0) {
       return NextResponse.json(
-        { error: "Name is required" },
+        { error: "Display name is required" },
         { status: 400 }
       );
     }
 
-    const workspace = await updateWorkspaceName(
+    const workspace = await updateWorkspaceDisplayName(
       session.user.workspaceId,
-      name.trim()
+      displayName.trim()
     );
 
     return NextResponse.json({
       workspace: {
         id: workspace.id,
-        name: workspace.name,
+        displayName: workspace.display_name,
         plan: workspace.plan,
       },
     });

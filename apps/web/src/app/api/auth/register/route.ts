@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
       .insert(workspaces)
       .values({
         name: email, // Using email as name for lookup in auth
+        display_name: workspaceName, // User's display name
         api_key_hash: passwordHash, // Repurposed for password in MVP
         plan: "free",
       })

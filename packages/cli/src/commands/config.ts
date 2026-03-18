@@ -84,6 +84,22 @@ configCommand
     console.log(chalk.dim(`  ${oldAlias} → ${name}\n`));
   });
 
+configCommand
+  .command("set-key <api-key>")
+  .description("Update the workspace API key")
+  .action(async (apiKey: string) => {
+    if (!apiKey.startsWith("ab-ws-")) {
+      console.log(chalk.red("\nInvalid API key format. Key should start with 'ab-ws-'\n"));
+      return;
+    }
+
+    setConfig("workspace_key", apiKey);
+
+    const maskedKey = apiKey.slice(0, 10) + "••••••••••••";
+    console.log(chalk.green(`\n✓ API key updated`));
+    console.log(chalk.dim(`  New key: ${maskedKey}\n`));
+  });
+
 // Default action (no subcommand)
 configCommand.action(async () => {
   // Run 'show' by default
