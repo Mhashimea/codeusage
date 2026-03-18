@@ -14,16 +14,20 @@ Track your team's AI coding tool usage with zero friction. The Afterburn CLI int
 ### From GitHub Release (Team Members)
 
 ```bash
-# Install from GitHub Release
-npm install -g https://github.com/radixhr/afterburn/releases/download/cli-v0.1.0/afterburn-0.1.0.tgz
+# Download the tarball
+curl -L -o afterburn-0.1.0.tgz https://github.com/radixhr/afterburn/releases/download/cli-v0.1.0/afterburn-0.1.0.tgz
+
+# Install globally
+npm install -g ./afterburn-0.1.0.tgz
+
+# Clean up
+rm afterburn-0.1.0.tgz
 ```
 
-### From Local File
-
-If you downloaded the tarball:
+### One-liner (macOS/Linux)
 
 ```bash
-npm install -g ./afterburn-0.1.0.tgz
+curl -L -o /tmp/afterburn.tgz https://github.com/radixhr/afterburn/releases/download/cli-v0.1.0/afterburn-0.1.0.tgz && npm install -g /tmp/afterburn.tgz && rm /tmp/afterburn.tgz
 ```
 
 ### Verify Installation
