@@ -1,45 +1,48 @@
 # syntax=docker/dockerfile:1
 
-FROM node:20-alpine AS base
-RUN corepack enable && corepack prepare pnpm@latest --activate
+FROM oven/bun:1 AS base
 
 # Install dependencies
 FROM base AS deps
 WORKDIR /app
 
 # Copy workspace files
-COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+COPY package.json bun.lock ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/shared/package.json ./packages/shared/
+COPY packages/cli/package.json ./packages/cli/
 
-RUN pnpm install --frozen-lockfile
+RUN bun install --frozen-lockfile
 
 # Build the app
 FROM base AS builder
 WORKDIR /app
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/apps/web/node_modules ./apps/web/node_modules
-COPY --from=deps /app/packages/shared/node_modules ./packages/shared/node_modules
+# Install Node.js for Next.js build (Next.js requires Node)
+RUN apt-get update && apt-get install -y nodejs npm && rm -rf /var/lib/apt/lists/*
 
+COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build shared package first
-RUN pnpm --filter @afterburn/shared build
+RUN bun run --filter @afterburn/shared build
 
 # Build Next.js app
 ENV NEXT_TELEMETRY_DISABLED=1
-RUN pnpm --filter web build
+RUN bun run --filter web build
 
 # Production runner
 FROM base AS runner
 WORKDIR /app
 
+# Install Node.js for running Next.js
+RUN apt-get update && apt-get install -y nodejs && rm -rf /var/lib/apt/lists/*
+
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
+RUN groupadd --system --gid 1001 nodejs
+RUN useradd --system --uid 1001 nextjs
 
 # Copy built assets
 COPY --from=builder /app/apps/web/public ./apps/web/public
