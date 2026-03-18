@@ -13,22 +13,30 @@ Track your team's AI coding tool usage with zero friction. The Afterburn CLI int
 
 ### From GitHub Release (Team Members)
 
+Since the repo is private, you need the GitHub CLI (`gh`) authenticated with access to the radixhr organization.
+
 ```bash
-# Download the tarball
-curl -L -o afterburn-0.1.0.tgz https://github.com/radixhr/afterburn/releases/download/cli-v0.1.0/afterburn-0.1.0.tgz
+# Download the tarball (requires gh auth)
+gh release download cli-v0.1.0 --repo radixhr/afterburn --pattern "*.tgz" --dir /tmp
 
 # Install globally
-npm install -g ./afterburn-0.1.0.tgz
+npm install -g /tmp/afterburn-0.1.0.tgz
 
 # Clean up
-rm afterburn-0.1.0.tgz
+rm /tmp/afterburn-0.1.0.tgz
 ```
 
 ### One-liner (macOS/Linux)
 
 ```bash
-curl -L -o /tmp/afterburn.tgz https://github.com/radixhr/afterburn/releases/download/cli-v0.1.0/afterburn-0.1.0.tgz && npm install -g /tmp/afterburn.tgz && rm /tmp/afterburn.tgz
+gh release download cli-v0.1.0 --repo radixhr/afterburn --pattern "*.tgz" --dir /tmp && npm install -g /tmp/afterburn-0.1.0.tgz && rm /tmp/afterburn-0.1.0.tgz
 ```
+
+### Prerequisites
+
+1. Install GitHub CLI: `brew install gh`
+2. Authenticate: `gh auth login`
+3. Ensure you have access to the radixhr organization
 
 ### Verify Installation
 
