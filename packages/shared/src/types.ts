@@ -7,6 +7,15 @@ export interface ToolUsage {
 }
 
 /**
+ * Represents a file change with addition/deletion stats
+ */
+export interface FileChangeDetail {
+  path: string;
+  additions: number;
+  deletions: number;
+}
+
+/**
  * Tool source - which AI coding tool generated the task
  */
 export type ToolSource = "claude_code" | "codex";
@@ -31,6 +40,7 @@ export interface TaskRecord {
   cache_tokens: number;
   cost_usd: number;
   files_changed: number;
+  files_changed_details: FileChangeDetail[];
   tools_used: ToolUsage[];
   task_duration_sec: number;
   hook_scope: HookScope;
@@ -53,6 +63,7 @@ export interface TelemetryPayload {
   cache_tokens: number;
   cost_usd: number;
   files_changed: number;
+  files_changed_details: FileChangeDetail[];
   tools_used: ToolUsage[];
   task_duration_sec: number;
   hook_scope: HookScope;

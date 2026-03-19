@@ -22,7 +22,7 @@ import {
   type SessionState,
 } from "../lib/session-state.js";
 
-const CLI_VERSION = "0.1.0";
+const CLI_VERSION = "0.1.4";
 
 export const hookStopCommand = new Command("stop")
   .description("Handle AI coding tool stop hook (internal)")
@@ -76,6 +76,7 @@ export const hookStopCommand = new Command("stop")
         output_tokens: session.output_tokens,
         cache_tokens: session.cache_tokens,
         files_changed: session.files_changed,
+        files_changed_details: session.files_changed_details,
         tool_counts: session.tool_counts,
       },
       previousState
@@ -119,6 +120,7 @@ export const hookStopCommand = new Command("stop")
       cache_tokens: delta.cache_tokens,
       cost_usd: cost,
       files_changed: delta.files_changed,
+      files_changed_details: delta.files_changed_details,
       tools_used: delta.tools_used,
       task_duration_sec: taskDuration,
       hook_scope: config.hook_scope,
@@ -169,12 +171,19 @@ export const hookStopCommand = new Command("stop")
       console.log(chalk.green("✓ Task synced"));
 
       // Save current cumulative state for next delta calculation
+      // Convert files_changed_details to file_stats record
+      const file_stats: Record<string, { additions: number; deletions: number }> = {};
+      for (const file of session.files_changed_details) {
+        file_stats[file.path] = { additions: file.additions, deletions: file.deletions };
+      }
+
       const newState: SessionState = {
         session_id: session.session_id,
         input_tokens: session.input_tokens,
         output_tokens: session.output_tokens,
         cache_tokens: session.cache_tokens,
         files_changed: session.files_changed,
+        file_stats,
         tool_counts: session.tool_counts,
         last_timestamp: session.end_time || Date.now(),
         updated_at: new Date().toISOString(),
@@ -191,12 +200,19 @@ export const hookStopCommand = new Command("stop")
       await bufferTask(payload);
 
       // Still save state even when buffering to avoid double-counting
+      // Convert files_changed_details to file_stats record
+      const bufferedFileStats: Record<string, { additions: number; deletions: number }> = {};
+      for (const file of session.files_changed_details) {
+        bufferedFileStats[file.path] = { additions: file.additions, deletions: file.deletions };
+      }
+
       const newState: SessionState = {
         session_id: session.session_id,
         input_tokens: session.input_tokens,
         output_tokens: session.output_tokens,
         cache_tokens: session.cache_tokens,
         files_changed: session.files_changed,
+        file_stats: bufferedFileStats,
         tool_counts: session.tool_counts,
         last_timestamp: session.end_time || Date.now(),
         updated_at: new Date().toISOString(),

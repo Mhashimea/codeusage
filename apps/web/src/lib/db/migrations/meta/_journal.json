@@ -15,6 +15,13 @@
       "when": 1773833381137,
       "tag": "0001_brave_captain_midlands",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1773928612647,
+      "tag": "0002_marvelous_junta",
+      "breakpoints": true
     }
   ]
 }

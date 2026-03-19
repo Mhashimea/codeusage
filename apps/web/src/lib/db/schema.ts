@@ -8,7 +8,7 @@ import {
   jsonb,
   index,
 } from "drizzle-orm/pg-core";
-import type { ToolUsage } from "@afterburn/shared";
+import type { ToolUsage, FileChangeDetail } from "@afterburn/shared";
 
 /**
  * Workspaces table
@@ -44,6 +44,7 @@ export const tasks = pgTable(
     cache_tokens: integer("cache_tokens").notNull().default(0),
     cost_usd: numeric("cost_usd", { precision: 10, scale: 6 }).notNull(),
     files_changed: integer("files_changed").notNull().default(0),
+    files_changed_details: jsonb("files_changed_details").$type<FileChangeDetail[]>().notNull().default([]),
     tools_used: jsonb("tools_used").$type<ToolUsage[]>().notNull().default([]),
     task_duration_sec: integer("task_duration_sec").notNull().default(0),
     hook_scope: text("hook_scope").notNull().default("global"), // global | project

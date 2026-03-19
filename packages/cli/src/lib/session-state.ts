@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
+import type { FileChangeDetail } from "@afterburn/shared";
 
 /**
  * Stores cumulative session values to calculate deltas between tasks
@@ -11,6 +12,8 @@ export interface SessionState {
   output_tokens: number;
   cache_tokens: number;
   files_changed: number;
+  /** Cumulative additions/deletions per file path */
+  file_stats: Record<string, { additions: number; deletions: number }>;
   tool_counts: Record<string, number>;
   last_timestamp: number;
   updated_at: string;
@@ -88,6 +91,7 @@ export function calculateDelta(
     output_tokens: number;
     cache_tokens: number;
     files_changed: number;
+    files_changed_details: FileChangeDetail[];
     tool_counts: Record<string, number>;
   },
   previous: SessionState | null
@@ -96,6 +100,7 @@ export function calculateDelta(
   output_tokens: number;
   cache_tokens: number;
   files_changed: number;
+  files_changed_details: FileChangeDetail[];
   tools_used: { name: string; count: number }[];
 } {
   if (!previous) {
@@ -105,6 +110,7 @@ export function calculateDelta(
       output_tokens: current.output_tokens,
       cache_tokens: current.cache_tokens,
       files_changed: current.files_changed,
+      files_changed_details: current.files_changed_details,
       tools_used: Object.entries(current.tool_counts).map(([name, count]) => ({
         name,
         count,
@@ -122,11 +128,38 @@ export function calculateDelta(
     }
   }
 
+  // Calculate file change deltas
+  const prevFileStats = previous.file_stats || {};
+  const deltaFileDetails: FileChangeDetail[] = [];
+
+  for (const file of current.files_changed_details) {
+    const prevStats = prevFileStats[file.path];
+    if (!prevStats) {
+      // New file - include all changes
+      deltaFileDetails.push(file);
+    } else {
+      // Existing file - calculate delta
+      const deltaAdditions = Math.max(0, file.additions - prevStats.additions);
+      const deltaDeletions = Math.max(0, file.deletions - prevStats.deletions);
+      if (deltaAdditions > 0 || deltaDeletions > 0) {
+        deltaFileDetails.push({
+          path: file.path,
+          additions: deltaAdditions,
+          deletions: deltaDeletions,
+        });
+      }
+    }
+  }
+
+  // Count unique files with changes
+  const filesChangedDelta = deltaFileDetails.length;
+
   return {
     input_tokens: Math.max(0, current.input_tokens - previous.input_tokens),
     output_tokens: Math.max(0, current.output_tokens - previous.output_tokens),
     cache_tokens: Math.max(0, current.cache_tokens - previous.cache_tokens),
-    files_changed: Math.max(0, current.files_changed - previous.files_changed),
+    files_changed: filesChangedDelta,
+    files_changed_details: deltaFileDetails,
     tools_used: Object.entries(deltaToolCounts).map(([name, count]) => ({
       name,
       count,

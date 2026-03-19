@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCost, formatTokens, PROVIDERS, type ProviderId } from "@afterburn/shared";
+import { formatCost, formatTokens, PROVIDERS, type ProviderId, type FileChangeDetail } from "@afterburn/shared";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -31,6 +31,7 @@ interface TaskDetailPanelProps {
     cache_tokens: number;
     cost_usd: number | string;
     files_changed: number;
+    files_changed_details?: FileChangeDetail[];
     tools_used: ToolUsage[];
     task_duration_sec: number;
     hook_scope: string;
@@ -135,6 +136,46 @@ export function TaskDetailPanel({ task }: TaskDetailPanelProps) {
           </div>
         </div>
       </div>
+
+      {/* Files Changed */}
+      {task.files_changed_details && task.files_changed_details.length > 0 && (
+        <>
+          <Separator />
+          <div>
+            <div className="mb-3 flex items-center gap-2">
+              <FileCode className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm font-medium text-muted-foreground">Files Changed</h4>
+            </div>
+            <div className="space-y-1.5">
+              {task.files_changed_details.map((file) => {
+                // Get just the filename from the path
+                const filename = file.path.split('/').pop() || file.path;
+                // Get the directory path
+                const dirPath = file.path.includes('/')
+                  ? file.path.substring(0, file.path.lastIndexOf('/'))
+                  : '';
+
+                return (
+                  <div key={file.path} className="flex items-center justify-between text-sm font-mono">
+                    <div className="flex-1 min-w-0 mr-3">
+                      <span className="text-foreground">{filename}</span>
+                      {dirPath && (
+                        <span className="text-muted-foreground text-xs ml-1 truncate">
+                          {dirPath}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0 text-xs">
+                      <span className="text-green-500">+{file.additions}</span>
+                      <span className="text-red-500">-{file.deletions}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Tools Used */}
       {task.tools_used && task.tools_used.length > 0 && (

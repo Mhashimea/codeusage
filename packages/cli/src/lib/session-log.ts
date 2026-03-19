@@ -4,6 +4,7 @@ import os from "os";
 import { execa } from "execa";
 import {
   type ProviderId,
+  type FileChangeDetail,
   getProviderById,
   isProviderActive,
   DEFAULT_PROVIDER,
@@ -32,6 +33,7 @@ export interface SessionData {
   tools_used: { name: string; count: number }[];
   tool_counts: Record<string, number>;
   files_changed: number;
+  files_changed_details: FileChangeDetail[];
   duration_sec: number;
   start_time: number | null;
   end_time: number | null;
@@ -134,7 +136,7 @@ async function parseClaudeCodeSession(
     let cacheTokens = 0;
     let model = "claude-sonnet-4-5";
     const toolCounts: Record<string, number> = {};
-    let filesChanged = 0;
+    const fileChanges: Map<string, { additions: number; deletions: number }> = new Map();
     let startTime: number | null = null;
     let endTime: number | null = null;
 
@@ -170,9 +172,33 @@ async function parseClaudeCodeSession(
               if (block.type === "tool_use" && block.name) {
                 toolCounts[block.name] = (toolCounts[block.name] || 0) + 1;
 
-                // Track file changes (Edit, Write tools)
-                if (block.name === "Edit" || block.name === "Write") {
-                  filesChanged++;
+                // Track file changes with additions/deletions
+                if (block.name === "Edit") {
+                  const filePath = block.input?.file_path;
+                  if (filePath && typeof filePath === "string") {
+                    const oldString = block.input?.old_string || "";
+                    const newString = block.input?.new_string || "";
+                    const deletions = oldString.split("\n").length;
+                    const additions = newString.split("\n").length;
+
+                    const existing = fileChanges.get(filePath) || { additions: 0, deletions: 0 };
+                    fileChanges.set(filePath, {
+                      additions: existing.additions + additions,
+                      deletions: existing.deletions + deletions,
+                    });
+                  }
+                } else if (block.name === "Write") {
+                  const filePath = block.input?.file_path;
+                  if (filePath && typeof filePath === "string") {
+                    const content = block.input?.content || "";
+                    const additions = content.split("\n").length;
+
+                    const existing = fileChanges.get(filePath) || { additions: 0, deletions: 0 };
+                    fileChanges.set(filePath, {
+                      additions: existing.additions + additions,
+                      deletions: existing.deletions,
+                    });
+                  }
                 }
               }
             }
@@ -190,6 +216,15 @@ async function parseClaudeCodeSession(
     const duration_sec =
       startTime && endTime ? Math.round((endTime - startTime) / 1000) : 0;
 
+    // Convert file changes map to array
+    const files_changed_details: FileChangeDetail[] = Array.from(fileChanges.entries()).map(
+      ([path, stats]) => ({
+        path,
+        additions: stats.additions,
+        deletions: stats.deletions,
+      })
+    );
+
     return {
       session_id: sessionId,
       input_tokens: inputTokens,
@@ -198,7 +233,8 @@ async function parseClaudeCodeSession(
       model,
       tools_used,
       tool_counts: toolCounts,
-      files_changed: filesChanged,
+      files_changed: fileChanges.size,
+      files_changed_details,
       duration_sec,
       start_time: startTime,
       end_time: endTime,

@@ -14,7 +14,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { formatCost, formatTokens } from "@afterburn/shared";
-import { Download } from "lucide-react";
+import { Download, RefreshCw } from "lucide-react";
 import type { Task } from "@/lib/db/schema";
 
 interface TaskListProps {
@@ -30,6 +30,14 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    router.refresh();
+    // Reset after a short delay since router.refresh() doesn't return a promise
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
 
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -48,7 +56,7 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
       "Output Tokens",
       "Cache Tokens",
       "Cost (USD)",
-      "Files Changed",
+      "Files",
       "Duration (sec)",
       "Created At",
     ];
@@ -174,10 +182,16 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
             <span className="font-medium">{formatTokens(totalTokens)}</span>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={handleExportCSV}>
-          <Download className="mr-2 h-4 w-4" />
-          Export CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
+            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+          <Button variant="outline" size="sm" onClick={handleExportCSV}>
+            <Download className="mr-2 h-4 w-4" />
+            Export CSV
+          </Button>
+        </div>
       </div>
 
       {/* Data Table */}
