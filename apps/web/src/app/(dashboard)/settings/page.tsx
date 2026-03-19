@@ -34,7 +34,7 @@ async function SettingsContent() {
       <WorkspaceConfig workspace={workspace} />
 
       {/* API Key */}
-      <ApiKeySection workspaceId={workspace.id} />
+      <ApiKeySection workspaceId={workspace.id} hasExistingKey={!!workspace.api_key_hash} />
 
       {/* Developer Roster */}
       <DeveloperRoster workspaceId={workspace.id} />
@@ -49,7 +49,7 @@ async function SettingsContent() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg bg-muted p-4 font-mono text-sm">
-            npm install -g afterburn
+            npm install -g @hashim_ea/afterburn
           </div>
           <div className="text-sm text-muted-foreground">
             After installation, run <code className="rounded bg-muted px-1">afterburn init</code> and

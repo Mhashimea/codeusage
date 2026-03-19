@@ -18,7 +18,8 @@ export const workspaces = pgTable("workspaces", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(), // Used for email lookup in auth
   display_name: text("display_name"), // User's display name
-  api_key_hash: text("api_key_hash").notNull().unique(), // bcrypt hash — never store plaintext
+  password_hash: text("password_hash"), // bcrypt hash for login password
+  api_key_hash: text("api_key_hash").notNull().unique(), // bcrypt hash for CLI API key
   plan: text("plan").notNull().default("free"), // free | team | enterprise
   created_at: timestamp("created_at").defaultNow().notNull(),
 });

@@ -197,11 +197,13 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
 
       {/* Task Detail Sheet */}
       <Sheet open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
-        <SheetContent className="w-[450px] sm:max-w-[450px] p-6">
-          <SheetHeader className="pb-4">
+        <SheetContent className="w-[450px] sm:max-w-[450px] p-6 flex flex-col">
+          <SheetHeader className="pb-4 shrink-0">
             <SheetTitle>Task Details</SheetTitle>
           </SheetHeader>
-          {selectedTask && <TaskDetailPanel task={selectedTask} />}
+          <div className="flex-1 overflow-y-auto">
+            {selectedTask && <TaskDetailPanel task={selectedTask} />}
+          </div>
         </SheetContent>
       </Sheet>
     </div>

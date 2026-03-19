@@ -39,27 +39,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash password (stored in api_key_hash for MVP - will be refactored with proper users table)
+    // Hash password for login
     const passwordHash = await bcrypt.hash(password, 10);
 
-    // Create workspace
+    // Generate API key for CLI usage
+    const { generateApiKey, hashApiKey } = await import("@/lib/api-key");
+    const apiKey = generateApiKey();
+    const apiKeyHash = await hashApiKey(apiKey);
+
+    // Create workspace with separate password_hash and api_key_hash
     const [workspace] = await db
       .insert(workspaces)
       .values({
         name: email, // Using email as name for lookup in auth
         display_name: workspaceName, // User's display name
-        api_key_hash: passwordHash, // Repurposed for password in MVP
+        password_hash: passwordHash, // For login authentication
+        api_key_hash: apiKeyHash, // For CLI API key
         plan: "free",
       })
       .returning();
-
-    // Generate actual API key for CLI usage
-    const { generateApiKey, hashApiKey } = await import("@/lib/api-key");
-    const apiKey = generateApiKey();
-    const apiKeyHash = await hashApiKey(apiKey);
-
-    // Update workspace with real API key (we'll need to add a separate field)
-    // For now, we'll handle API key separately in settings
 
     return NextResponse.json({
       success: true,

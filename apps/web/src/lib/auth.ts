@@ -59,10 +59,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (existingWorkspace.length > 0) {
           const workspace = existingWorkspace[0];
           console.log("[auth] Workspace ID:", workspace.id);
-          console.log("[auth] Hash exists:", !!workspace.api_key_hash);
+          console.log("[auth] Password hash exists:", !!workspace.password_hash);
 
-          // Verify password against api_key_hash (repurposed for MVP)
-          const isValid = await bcrypt.compare(password, workspace.api_key_hash);
+          // Verify password against password_hash (separate from api_key_hash)
+          if (!workspace.password_hash) {
+            console.log("[auth] No password hash set for this workspace");
+            return null;
+          }
+
+          const isValid = await bcrypt.compare(password, workspace.password_hash);
           console.log("[auth] Password valid:", isValid);
 
           if (isValid) {

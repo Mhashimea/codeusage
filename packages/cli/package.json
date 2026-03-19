@@ -1,6 +1,6 @@
 {
-  "name": "afterburn",
-  "version": "0.1.0",
+  "name": "@hashim_ea/afterburn",
+  "version": "0.1.2",
   "description": "CLI for Afterburn - AI coding tool intelligence platform",
   "author": "Hashim",
   "license": "MIT",
@@ -14,7 +14,7 @@
   ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsup",
+    "build": "node scripts/build.js",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
     "pack:tarball": "pnpm build && npm pack"
@@ -37,10 +37,5 @@
   },
   "engines": {
     "node": ">=18.0.0"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/radixhr/afterburn.git",
-    "directory": "packages/cli"
   }
 }

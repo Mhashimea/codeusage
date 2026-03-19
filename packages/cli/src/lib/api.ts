@@ -80,8 +80,10 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
 export async function validateApiKey(
   apiKey: string
 ): Promise<{ valid: boolean; workspace?: WorkspaceInfo; error?: string }> {
+  const apiUrl = `${getApiBase()}/api/v1/auth/validate`;
+
   try {
-    const response = await fetch(`${getApiBase()}/api/v1/auth/validate`, {
+    const response = await fetch(apiUrl, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${apiKey}`,
@@ -103,11 +105,14 @@ export async function validateApiKey(
       return { valid: false, error: "Invalid API key" };
     }
 
-    return { valid: false, error: `Unexpected response: ${response.status}` };
+    const errorBody = await response.text().catch(() => "");
+    return { valid: false, error: `Unexpected response ${response.status} from ${apiUrl}: ${errorBody}` };
   } catch (err) {
+    const error = err as Error;
+    const cause = error.cause ? ` (cause: ${JSON.stringify(error.cause)})` : "";
     return {
       valid: false,
-      error: `Network error: ${(err as Error).message}`,
+      error: `Network error connecting to ${apiUrl}: ${error.message}${cause}`,
     };
   }
 }
