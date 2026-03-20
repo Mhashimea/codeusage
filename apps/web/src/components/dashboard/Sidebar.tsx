@@ -103,10 +103,15 @@ export function Sidebar() {
                   {userInitials}
                 </AvatarFallback>
               </Avatar>
-              <div className="flex-1 text-left truncate">
+              <div className="flex-1 text-left min-w-0">
                 <p className="text-sm font-medium text-foreground truncate">
-                  {session?.user?.name || session?.user?.email || "User"}
+                  {session?.user?.name || "User"}
                 </p>
+                {session?.user?.email && (
+                  <p className="text-xs text-muted-foreground truncate">
+                    {session.user.email}
+                  </p>
+                )}
               </div>
               <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
             </DropdownMenuTrigger>

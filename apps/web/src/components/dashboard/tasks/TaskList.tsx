@@ -211,7 +211,7 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
 
       {/* Task Detail Sheet */}
       <Sheet open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
-        <SheetContent className="w-[450px] sm:max-w-[450px] p-6 flex flex-col">
+        <SheetContent className="w-[520px] sm:max-w-[520px] p-6 flex flex-col">
           <SheetHeader className="pb-4 shrink-0">
             <SheetTitle>Task Details</SheetTitle>
           </SheetHeader>
