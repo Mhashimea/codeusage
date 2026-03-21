@@ -137,7 +137,7 @@ afterburn/
 │           ├── schemas.ts            # Zod schemas matching types
 │           └── cost.ts               # estimateCost(), formatCost(), MODEL_PRICING
 ├── CLAUDE.md
-├── pnpm-workspace.yaml
+├── turbo.json
 └── package.json
 ```
 
@@ -410,9 +410,9 @@ Do not hardcode colour values like `bg-slate-900`. Use the semantic tokens so li
 - Never edit migration files manually after generation
 
 ```bash
-pnpm db:generate    # generate migration from schema changes
-pnpm db:migrate     # apply pending migrations
-pnpm db:studio      # open Drizzle Studio (local browser)
+bun db:generate     # generate migration from schema changes
+bun db:migrate      # apply pending migrations
+bun db:studio       # open Drizzle Studio (local browser)
 ```
 
 ---
@@ -446,26 +446,26 @@ pnpm db:studio      # open Drizzle Studio (local browser)
 
 ```bash
 # Install
-pnpm install
+bun install
 
 # Dev
-pnpm dev                          # all packages
-pnpm --filter web dev             # Next.js on :3003
-pnpm --filter cli dev             # CLI watch mode (tsx watch)
+bun dev                           # all packages
+bun --filter web dev              # Next.js on :3003
+bun --filter cli dev              # CLI watch mode (tsx watch)
 
 # Database
-pnpm db:generate                  # generate migration
-pnpm db:migrate                   # apply migrations
-pnpm db:studio                    # Drizzle Studio
+bun db:generate                   # generate migration
+bun db:migrate                    # apply migrations
+bun db:studio                     # Drizzle Studio
 
 # Build
-pnpm build                        # all packages
-pnpm --filter cli build           # CLI only (tsup → dist/)
+bun run build                     # all packages
+bun --filter cli build            # CLI only (tsup → dist/)
 
 # Quality
-pnpm typecheck                    # tsc --noEmit across all
-pnpm lint                         # eslint
-pnpm test                         # vitest
+bun typecheck                     # tsc --noEmit across all
+bun lint                          # eslint
+bun test                          # vitest
 
 # shadcn (run from apps/web/)
 cd apps/web && npx shadcn@latest add <component>

@@ -17,7 +17,7 @@
     "build": "node scripts/build.js",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist",
-    "pack:tarball": "pnpm build && npm pack"
+    "pack:tarball": "bun run build && npm pack"
   },
   "dependencies": {
     "@inquirer/input": "^5.0.10",
