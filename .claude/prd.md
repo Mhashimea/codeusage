@@ -1,10 +1,11 @@
 # Afterburn — Product Requirements Document
 
-**Version:** v2.0 — Final
+**Version:** v2.1 — Updated
 **Author:** Hashim (@hashim_ea)
 **Date:** March 2026
-**Status:** Final — Ready for Development
+**Status:** In Development — Phase 1 MVP
 **Target Launch:** Q3 2026 (Beta)
+**Last Updated:** March 2026 (synced with codebase)
 
 ---
 
@@ -124,11 +125,34 @@ Existing tools fall into two categories, neither of which solves the team-level 
 
 ### 5.2 Authentication & Identity Model
 
-> **One workspace API key.** The workspace key authenticates the CLI to the cloud — it says "this data belongs to Workspace X". Developer identity is separate: a name/alias the developer sets during `afterburn init`, stored locally, and sent as a field in every telemetry payload. This mirrors how Sentry, PostHog, and Datadog work: one project/org key + individual identity on top.
+**Two authentication layers:**
+
+1. **Dashboard Auth (Web App):** Email/password authentication via NextAuth.js credentials provider. Users register with email, password, and workspace name. Password is bcrypt-hashed before storage.
+
+2. **CLI Auth (API Key):** One workspace API key authenticates CLI instances to the cloud. The key says "this data belongs to Workspace X". Developer identity is separate: a name/alias set during `afterburn init`, stored locally, and sent as a field in every telemetry payload.
+
+> This mirrors how Sentry, PostHog, and Datadog work: one project/org key + individual identity on top.
 
 Per-developer API keys were explicitly considered and rejected. Reasons: onboarding overhead (12 keys instead of 1), fragmented key rotation, no actual security benefit in a shared-visibility model, and unnecessary complexity for developers.
 
-### 5.3 Hook Scope — Global vs Project
+### 5.3 Provider Architecture
+
+The CLI supports multiple AI coding tool providers through a registry pattern defined in `packages/shared/src/providers.ts`:
+
+| Provider     | Status       | Description                           |
+| ------------ | ------------ | ------------------------------------- |
+| Claude Code  | **Active**   | Full integration via native hooks     |
+| Codex        | Coming Soon  | Planned for Phase 2                   |
+
+Each provider has:
+- Unique ID (`claude_code`, `codex`)
+- Display name and description
+- Status indicator (active, coming_soon, beta)
+- Session log parser (provider-specific)
+
+The CLI's `afterburn provider` command group allows listing, viewing, and switching providers.
+
+### 5.4 Hook Scope — Global vs Project
 
 The CLI supports two hook registration modes, chosen during setup:
 
@@ -139,26 +163,36 @@ The CLI supports two hook registration modes, chosen during setup:
 
 In both modes, the developer can always override the project tag per-directory with `afterburn project set <name>`, and the hook scope is shown in `afterburn status`.
 
-### 5.4 Data Model — Task Record
+### 5.5 Data Model — Task Record
 
-| Field               | Type & Description                                                             |
-| ------------------- | ------------------------------------------------------------------------------ |
-| `task_id`           | UUID — unique per task                                                         |
-| `workspace_id`      | UUID — workspace identifier (from API key lookup)                              |
-| `developer_alias`   | String — name set by developer during init                                     |
-| `project_slug`      | String — from git remote, directory name, or `afterburn project set`           |
-| `tool_source`       | Enum — `claude_code` \| `codex` (Phase 2)                                      |
-| `model_name`        | String — e.g. `claude-sonnet-4-5` (from session log)                           |
-| `input_tokens`      | Integer — input token count                                                    |
-| `output_tokens`     | Integer — output token count                                                   |
-| `cache_tokens`      | Integer — cache read tokens                                                    |
-| `cost_usd`          | Decimal — estimated cost using Anthropic model pricing                         |
-| `files_changed`     | Integer — number of files modified                                             |
-| `tools_used`        | `Array<{ name: string; count: number }>` — e.g. `[{Edit:4},{Read:6},{Bash:3}]` |
-| `task_duration_sec` | Integer — elapsed time from first tool call to stop hook                       |
-| `hook_scope`        | Enum — `global` \| `project`                                                   |
-| `timestamp`         | DateTime — UTC task completion time                                            |
-| `cli_version`       | String — Afterburn CLI version                                                 |
+| Field                   | Type & Description                                                                              |
+| ----------------------- | ----------------------------------------------------------------------------------------------- |
+| `task_id`               | UUID — unique per task                                                                          |
+| `workspace_id`          | UUID — workspace identifier (from API key lookup)                                               |
+| `developer_alias`       | String — name set by developer during init                                                      |
+| `project_slug`          | String — from git remote, directory name, or `afterburn project set`                            |
+| `tool_source`           | Enum — `claude_code` \| `codex` (Phase 2)                                                       |
+| `model_name`            | String — e.g. `claude-sonnet-4-5` (from session log)                                            |
+| `input_tokens`          | Integer — input token count                                                                     |
+| `output_tokens`         | Integer — output token count                                                                    |
+| `cache_tokens`          | Integer — cache read tokens                                                                     |
+| `cost_usd`              | Decimal (10,6) — estimated cost using Anthropic model pricing                                   |
+| `files_changed`         | Integer — number of files modified                                                              |
+| `files_changed_details` | JSONB — array of `{ path: string; additions: number; deletions: number }` per file              |
+| `tools_used`            | JSONB — `Array<{ name: string; count: number }>` — e.g. `[{Edit:4},{Read:6},{Bash:3}]`          |
+| `task_duration_sec`     | Integer — elapsed time from first tool call to stop hook                                        |
+| `hook_scope`            | Enum — `global` \| `project`                                                                    |
+| `session_id`            | String — provider-specific session identifier for delta tracking                                |
+| `timestamp`             | DateTime — UTC task completion time (`created_at`)                                              |
+| `cli_version`           | String — Afterburn CLI version                                                                  |
+
+### 5.6 Session State Tracking
+
+The CLI maintains per-session state to calculate **delta values** (only what changed since the last task). This prevents double-counting when multiple Stop hooks fire in the same session.
+
+- **Storage:** `~/.afterburn/sessions/{session-id}.json`
+- **Fields tracked:** cumulative tokens (input/output/cache), files_changed, per-file stats, tool counts, last timestamp
+- **Auto-cleanup:** Session state files older than 30 days are periodically deleted (10% chance per sync)
 
 ---
 
@@ -174,33 +208,47 @@ npx afterburn init
 
 **Setup steps in order:**
 
-1. Prompt for workspace API key (provided by PM from dashboard)
-2. Authenticate against Afterburn Cloud — display workspace name on success
-3. Set developer alias (name shown in dashboard)
-4. Choose hook scope: **Global** (recommended) or **Project-only**
-5. If Global: auto-detect current project from git remote. Ask for optional fallback name if no git remote found.
-6. If Project-only: confirm project name from git remote suggestion. Ask whether to commit `.claude/settings.json` to the repo.
-7. Register hooks in the appropriate `settings.json` file
-8. Display success message with dashboard URL
+1. Select AI coding tool provider (Claude Code active, Codex coming soon)
+2. Prompt for workspace API key (provided by PM from dashboard)
+3. Validate API key against Afterburn Cloud via `/api/v1/auth/validate` — display workspace name on success
+4. Set developer alias (defaults to `$USER` environment variable)
+5. Choose hook scope: **Global** (recommended) or **Project-only**
+6. Auto-detect current project from git remote URL
+7. Register hooks in the appropriate `settings.json` file (merge, never overwrite)
+8. Save configuration to `~/.afterburn/config.json` via `conf` package
+9. Display success message with next steps
+
+Supports `--force` flag to reinitialize an existing configuration.
 
 ### 6.2 CLI Command Reference
 
 | Command                            | Description                                                                    |
 | ---------------------------------- | ------------------------------------------------------------------------------ |
-| `npx afterburn init`               | First-time setup: authenticate, set alias, choose scope, register hooks        |
-| `afterburn status`                 | Show connection, scope, active hooks, tracked projects, today's personal usage |
+| `npx afterburn init`               | First-time setup: authenticate, set alias, choose provider, choose scope, register hooks. Supports `--force` flag to reinitialize. |
+| `afterburn status`                 | Show connection info (masked API key), developer alias, provider, hook scope, current project, buffered task count, config file path |
 | `afterburn project set <name>`     | Tag current directory as a named project (overrides git remote detection)      |
 | `afterburn project list`           | Show all directory → project mappings on this machine                          |
-| `afterburn project ignore`         | Exclude current directory from tracking                                        |
+| `afterburn project ignore`         | Exclude current directory from tracking (marks as `__ignored__`)               |
 | `afterburn project unignore`       | Re-enable tracking for a previously ignored directory                          |
-| `afterburn log`                    | Show last 10 tasks synced from this machine (local cache)                      |
-| `afterburn log --all`              | Show full local task history                                                   |
-| `afterburn sync`                   | Manually push any buffered/pending task records                                |
-| `afterburn config`                 | Open config or re-run setup wizard                                             |
-| `afterburn config --scope global`  | Switch hook scope to global                                                    |
-| `afterburn config --scope project` | Switch hook scope to project-only                                              |
-| `afterburn logout`                 | Remove credentials and unregister all hooks                                    |
+| `afterburn project current`        | Show project for current directory (override or auto-detected)                 |
+| `afterburn provider list`          | Show all providers with status badges (active/coming soon)                     |
+| `afterburn provider current`       | Show currently configured provider                                             |
+| `afterburn provider switch <id>`   | Switch providers (unregister old hooks, register new)                          |
+| `afterburn sync`                   | Manually flush all buffered task records to API                                |
+| `afterburn config show`            | Display current configuration (masked API key, developer, scope, overrides)    |
+| `afterburn config scope <type>`    | Change hook scope (global → project or vice versa)                             |
+| `afterburn config alias <name>`    | Change developer alias                                                         |
+| `afterburn config set-key <key>`   | Update workspace API key                                                       |
+| `afterburn logout`                 | Unregister hooks from both scopes, clear buffered tasks, clear local config. Requires confirmation (unless `--force`). |
 | `afterburn --version`              | Show CLI version                                                               |
+
+#### Hook Commands (called by AI coding tools)
+
+| Command                            | Description                                                                    |
+| ---------------------------------- | ------------------------------------------------------------------------------ |
+| `afterburn hook stop`              | Main task capture hook — fired when session ends. Parses session log, calculates deltas, syncs to cloud. Supports `--dry-run` flag for testing. |
+| `afterburn hook post-tool-use`     | Reserved for future real-time tool accumulation (currently no-op)              |
+| `afterburn hook notification`      | Reserved for future notifications (currently no-op)                            |
 
 ### 6.3 Hook Integration — Claude Code
 
@@ -237,19 +285,29 @@ If the Afterburn Cloud API is unreachable, task records are buffered locally in 
 
 Default landing page for PMs and team leads.
 
-- Metric cards: total tokens, estimated cost, tasks completed, active devs today — with period selector (7 days / 30 days / this month)
+- **7 Metric cards** with period selector (30 days / 90 days / 1 year / all-time):
+  - Total Cost — estimated spend for the period
+  - Total Tokens — combined input + output + cache tokens
+  - Tasks Completed — number of tasks tracked
+  - Active Developers — unique developers with activity
+  - Cache Tokens — cache read tokens (cost savings indicator)
+  - Files Changed — total files modified across all tasks
+  - Total Duration — cumulative task duration
 - Team activity heatmap — GitHub-style grid showing daily task volume across all developers for the past 26 weeks
-- Live task feed — last 5 tasks across the team, updating in real time via SSE
-- Top projects by token volume — horizontal bar chart
+- Top Projects card — top 5 projects by token volume
+- Recent Tasks feed — last 5 tasks across the team, updating in real time via SSE
+- Suspense boundaries with skeleton loaders for smooth loading states
 
 ### 7.2 Task Feed Page
 
-Chronological log of all tasks across all developers. Filterable by developer, project, date range, and tool source.
+Chronological log of all tasks across all developers. Filterable by developer and project.
 
-- Each row: developer, project, token count, estimated cost, files changed, tools summary, duration, time
-- Click any row to expand full task detail
-- Summary bar: total tasks, total cost, total tokens for the active filters
-- CSV export button
+- Pagination: 20 tasks per page
+- Task count display showing total matching tasks
+- Column headers: developer, project, model, tokens, files, date
+- Each row: developer alias, project slug, model name, token count, files changed count, timestamp
+- Click any row to expand full task detail in TaskDetailPanel
+- Filters for developer and project selection
 
 #### 7.2.1 Task Detail Panel
 
@@ -335,7 +393,7 @@ Auto-populated as developers self-register using the workspace key. No manual ke
 | ORM           | Drizzle ORM                                          |
 | Database      | PostgreSQL (Neon / Supabase in prod, Docker locally) |
 | Data fetching | TanStack Query v5 (client); Server Components (SSR)  |
-| Auth          | NextAuth.js v5 — email magic link                    |
+| Auth          | NextAuth.js v5 — email/password (credentials provider) |
 | Real-time     | Server-Sent Events via Next.js Route Handler         |
 | Deployment    | Vercel                                               |
 
@@ -349,6 +407,7 @@ Auto-populated as developers self-register using the workspace key. No manual ke
 | Build             | tsup (single CJS bundle, zero runtime deps) |
 | Terminal colours  | chalk                                       |
 | Spinners          | ora                                         |
+| Interactive prompts | inquirer                                  |
 | Config management | conf                                        |
 | Shell commands    | execa                                       |
 | HTTP client       | native `fetch` (Node 18+)                   |
@@ -373,15 +432,41 @@ Auto-populated as developers self-register using the workspace key. No manual ke
 | Auth           | One workspace API key. Bcrypt-hashed before storage — never stored in plaintext.                      |
 | Rate limiting  | 100 task records / minute per workspace. Return `429` with `Retry-After: 60`.                         |
 | Data isolation | Strict row-level security. Every query on `tasks` table must filter by `workspace_id`. No exceptions. |
-| Database       | PostgreSQL with index on `(workspace_id, created_at)` for all dashboard queries                       |
+| Database       | PostgreSQL with indexes: `(workspace_id, created_at)`, `(workspace_id, developer_alias)`, `(workspace_id, project_slug)` |
 | Uptime         | 99.5% for Beta, 99.9% for GA                                                                          |
 | Real-time      | SSE for live task feed on Overview page                                                               |
 
-### 8.4 Privacy & Security
+### 8.4 API Endpoints
 
-> **What Afterburn captures (metadata only):** token counts, tool names and call counts, file change counts, timestamps, cost estimates, developer alias, project slug, duration, model name.
+| Endpoint                          | Method | Description                                                    |
+| --------------------------------- | ------ | -------------------------------------------------------------- |
+| `/api/v1/tasks`                   | POST   | Task ingestion — receives telemetry from CLI                   |
+| `/api/v1/auth/validate`           | GET    | Validate API key — returns workspace info for CLI init         |
+| `/api/v1/workspaces/rotate-key`   | POST   | Rotate workspace API key — invalidates old key immediately     |
+| `/api/v1/workspaces/update`       | PATCH  | Update workspace display name                                  |
+| `/api/v1/developers`              | GET    | Get all developers for workspace with stats                    |
+| `/api/v1/stream`                  | GET    | SSE endpoint for live task feed (30-second heartbeat)          |
+| `/api/auth/register`              | POST   | User/workspace registration with email, password, workspace name |
+
+All API endpoints require authentication via `Authorization: Bearer <api_key>` header (except `/api/auth/register`).
+
+### 8.5 Model Pricing
+
+Cost estimation uses publicly documented Anthropic model pricing. The pricing table is defined in `packages/shared/src/cost.ts` and supports 12+ Claude models:
+
+| Model Family | Models Supported |
+| ------------ | ---------------- |
+| Opus         | claude-opus-4, claude-opus-4-5 |
+| Sonnet       | claude-sonnet-4, claude-sonnet-4-5, claude-3-5-sonnet-20241022, claude-3-5-sonnet-20240620, claude-3-sonnet-20240229 |
+| Haiku        | claude-haiku-4, claude-haiku-4-5, claude-3-5-haiku-20241022, claude-3-haiku-20240307 |
+
+Pricing includes input, output, and cache token rates per model. Update the pricing table and `PRICING_LAST_UPDATED` constant when Anthropic publishes pricing changes.
+
+### 8.6 Privacy & Security
+
+> **What Afterburn captures (metadata only):** token counts, tool names and call counts, file change counts, file paths with line additions/deletions, timestamps, cost estimates, developer alias, project slug, duration, model name, session ID.
 >
-> **What Afterburn never captures:** prompt text, AI response text, code content, file names, file paths, diff content.
+> **What Afterburn never captures:** prompt text, AI response text, code content, diff content, file contents.
 
 - All data encrypted in transit (TLS 1.3) and at rest (AES-256)
 - Developer aliases can be pseudonymised at workspace level if required
@@ -462,4 +547,4 @@ Decisions to resolve before or during Phase 1 development:
 
 _End of Document_
 
-_Afterburn PRD v2.0 · March 2026 · Internal Use Only_
+_Afterburn PRD v2.1 · March 2026 · Internal Use Only_
