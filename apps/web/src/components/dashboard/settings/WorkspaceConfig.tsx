@@ -6,7 +6,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Check, Pencil } from "lucide-react";
 import type { Workspace } from "@/lib/db/schema";
 
@@ -40,8 +39,6 @@ export function WorkspaceConfig({ workspace }: WorkspaceConfigProps) {
       setIsSaving(false);
     }
   };
-
-  const planBadgeVariant = workspace.plan === "free" ? "secondary" : "default";
 
   return (
     <Card>
@@ -102,20 +99,6 @@ export function WorkspaceConfig({ workspace }: WorkspaceConfigProps) {
         <div className="space-y-2">
           <Label>Email</Label>
           <p className="text-sm text-muted-foreground">{workspace.name}</p>
-        </div>
-
-        <div className="space-y-2">
-          <Label>Plan</Label>
-          <div className="flex items-center gap-2">
-            <Badge variant={planBadgeVariant} className="capitalize">
-              {workspace.plan}
-            </Badge>
-            {workspace.plan === "free" && (
-              <span className="text-sm text-muted-foreground">
-                Upgrade to unlock more features
-              </span>
-            )}
-          </div>
         </div>
 
         <div className="space-y-2">
