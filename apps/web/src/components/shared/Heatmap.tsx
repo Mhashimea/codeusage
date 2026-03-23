@@ -2,14 +2,13 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useState, useEffect } from "react";
 
 interface HeatmapProps {
-  data: Record<string, number>;
-  year: number;
+  initialData: Record<string, number>;
+  initialYear: number;
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -31,11 +30,38 @@ function getFirstDayOfMonth(year: number, month: number): number {
   return new Date(year, month, 1).getDay();
 }
 
-export function Heatmap({ data, year }: HeatmapProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+export function Heatmap({ initialData, initialYear }: HeatmapProps) {
+  const [year, setYear] = useState(initialYear);
+  const [data, setData] = useState<Record<string, number>>(initialData);
+  const [loading, setLoading] = useState(false);
+
   const today = new Date();
   const currentYear = today.getFullYear();
+
+  // Fetch data when year changes
+  useEffect(() => {
+    if (year === initialYear) {
+      setData(initialData);
+      return;
+    }
+
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`/api/v1/activity?year=${year}`);
+        if (res.ok) {
+          const newData = await res.json();
+          setData(newData);
+        }
+      } catch (error) {
+        console.error("Failed to fetch activity data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [year, initialYear, initialData]);
 
   // Find max value for intensity calculation
   const maxCount = Math.max(...Object.values(data), 1);
@@ -44,11 +70,9 @@ export function Heatmap({ data, year }: HeatmapProps) {
   const totalTasks = Object.values(data).reduce((sum, count) => sum + count, 0);
   const activeDays = Object.values(data).filter(count => count > 0).length;
 
-  const changeYear = useCallback((newYear: number) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set("activityYear", newYear.toString());
-    router.push(`/?${params.toString()}`);
-  }, [router, searchParams]);
+  const changeYear = (newYear: number) => {
+    setYear(newYear);
+  };
 
   return (
     <Card>
@@ -56,7 +80,13 @@ export function Heatmap({ data, year }: HeatmapProps) {
         <div>
           <CardTitle className="text-base font-medium">Activity</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">
-            {totalTasks.toLocaleString()} tasks across {activeDays} days
+            {loading ? (
+              <span className="inline-flex items-center gap-1">
+                <Loader2 className="h-3 w-3 animate-spin" /> Loading...
+              </span>
+            ) : (
+              <>{totalTasks.toLocaleString()} tasks across {activeDays} days</>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -65,6 +95,7 @@ export function Heatmap({ data, year }: HeatmapProps) {
             size="icon"
             className="h-8 w-8"
             onClick={() => changeYear(year - 1)}
+            disabled={loading}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
@@ -74,14 +105,14 @@ export function Heatmap({ data, year }: HeatmapProps) {
             size="icon"
             className="h-8 w-8"
             onClick={() => changeYear(year + 1)}
-            disabled={year >= currentYear}
+            disabled={year >= currentYear || loading}
           >
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
       </CardHeader>
       <CardContent>
-        <div className="overflow-x-auto">
+        <div className={cn("overflow-x-auto transition-opacity", loading && "opacity-50")}>
           {/* Month grid */}
           <div className="grid grid-cols-6 lg:grid-cols-12 gap-3">
             {MONTHS.map((monthName, monthIndex) => {

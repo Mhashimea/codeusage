@@ -16,7 +16,6 @@ interface PageProps {
   searchParams: Promise<{
     startDate?: string;
     endDate?: string;
-    activityYear?: string;
   }>;
 }
 
@@ -67,13 +66,13 @@ async function OverviewContent({ searchParams }: PageProps) {
   const workspaceId = session.user.workspaceId;
   const params = await searchParams;
   const { startDate, endDate, label: periodLabel } = parseDateRange(params.startDate, params.endDate);
-  const activityYear = params.activityYear ? parseInt(params.activityYear, 10) : new Date().getFullYear();
+  const currentYear = new Date().getFullYear();
 
   const [stats, recentTasks, topProjects, dailyActivity] = await Promise.all([
     getTaskStats(workspaceId, { startDate, endDate }),
     getTasksByWorkspace(workspaceId, { limit: 5 }),
     getTopProjects(workspaceId, { startDate, endDate, limit: 5 }),
-    getDailyActivity(workspaceId, { year: activityYear }),
+    getDailyActivity(workspaceId, { year: currentYear }),
   ]);
 
   const totalTokens = stats.total_input_tokens + stats.total_output_tokens;
@@ -198,7 +197,7 @@ async function OverviewContent({ searchParams }: PageProps) {
       </div>
 
       {/* Activity Heatmap */}
-      <Heatmap data={dailyActivity} year={activityYear} />
+      <Heatmap initialData={dailyActivity} initialYear={currentYear} />
 
       {/* Two Column Layout: Projects + Recent Tasks */}
       <div className="grid gap-6 lg:grid-cols-2">
