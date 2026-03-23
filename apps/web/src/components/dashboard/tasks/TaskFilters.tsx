@@ -1,7 +1,9 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
+import { format, parse } from "date-fns";
+import { DateRange } from "react-day-picker";
 import {
   Select,
   SelectContent,
@@ -10,24 +12,21 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { X, Calendar } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { X, Calendar as CalendarIcon } from "lucide-react";
 import { getAllProviders } from "@afterburn/shared";
+import { cn } from "@/lib/utils";
 
 interface TaskFiltersProps {
   developers: string[];
   projects: string[];
   providers?: string[];
 }
-
-const DATE_RANGES = [
-  { value: "all", label: "All time" },
-  { value: "today", label: "Today" },
-  { value: "7d", label: "Last 7 days" },
-  { value: "30d", label: "Last 30 days" },
-  { value: "90d", label: "Last 90 days" },
-  { value: "this_month", label: "This month" },
-  { value: "last_month", label: "Last month" },
-];
 
 export function TaskFilters({ developers, projects, providers = [] }: TaskFiltersProps) {
   const router = useRouter();
@@ -36,10 +35,23 @@ export function TaskFilters({ developers, projects, providers = [] }: TaskFilter
   const currentDeveloper = searchParams.get("developer") || "";
   const currentProject = searchParams.get("project") || "";
   const currentProvider = searchParams.get("provider") || "";
-  const currentDateRange = searchParams.get("date") || "";
+  const startDateParam = searchParams.get("startDate") || "";
+  const endDateParam = searchParams.get("endDate") || "";
 
   // Get provider display names
   const allProviders = getAllProviders();
+
+  // Parse date range from URL params
+  const dateRange = useMemo<DateRange | undefined>(() => {
+    if (!startDateParam) return undefined;
+    try {
+      const from = parse(startDateParam, "yyyy-MM-dd", new Date());
+      const to = endDateParam ? parse(endDateParam, "yyyy-MM-dd", new Date()) : from;
+      return { from, to };
+    } catch {
+      return undefined;
+    }
+  }, [startDateParam, endDateParam]);
 
   const updateFilter = useCallback(
     (key: string, value: string) => {
@@ -56,33 +68,71 @@ export function TaskFilters({ developers, projects, providers = [] }: TaskFilter
     [router, searchParams]
   );
 
+  const updateDateRange = useCallback(
+    (range: DateRange | undefined) => {
+      const params = new URLSearchParams(searchParams.toString());
+      if (range?.from) {
+        params.set("startDate", format(range.from, "yyyy-MM-dd"));
+        if (range.to) {
+          params.set("endDate", format(range.to, "yyyy-MM-dd"));
+        } else {
+          params.delete("endDate");
+        }
+      } else {
+        params.delete("startDate");
+        params.delete("endDate");
+      }
+      // Reset to page 1 when filters change
+      params.delete("page");
+      router.push(`/tasks?${params.toString()}`);
+    },
+    [router, searchParams]
+  );
+
   const clearFilters = useCallback(() => {
     router.push("/tasks");
   }, [router]);
 
-  const hasFilters = currentDeveloper || currentProject || currentProvider || currentDateRange;
+  const hasFilters = currentDeveloper || currentProject || currentProvider || startDateParam;
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      {/* Date Range Filter */}
-      <Select
-        value={currentDateRange || "all"}
-        onValueChange={(value) => updateFilter("date", value ?? "all")}
-      >
-        <SelectTrigger className="w-[160px]">
-          <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-          <SelectValue>
-            {DATE_RANGES.find((r) => r.value === (currentDateRange || "all"))?.label || "All time"}
-          </SelectValue>
-        </SelectTrigger>
-        <SelectContent>
-          {DATE_RANGES.map((range) => (
-            <SelectItem key={range.value} value={range.value}>
-              {range.label}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+      {/* Date Range Picker */}
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            className={cn(
+              "w-[260px] justify-start text-left font-normal",
+              !dateRange && "text-muted-foreground"
+            )}
+          >
+            <CalendarIcon className="mr-2 h-4 w-4" />
+            {dateRange?.from ? (
+              dateRange.to ? (
+                <>
+                  {format(dateRange.from, "LLL dd, y")} -{" "}
+                  {format(dateRange.to, "LLL dd, y")}
+                </>
+              ) : (
+                format(dateRange.from, "LLL dd, y")
+              )
+            ) : (
+              <span>All time</span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-auto p-0" align="start">
+          <Calendar
+            initialFocus
+            mode="range"
+            defaultMonth={dateRange?.from}
+            selected={dateRange}
+            onSelect={updateDateRange}
+            numberOfMonths={2}
+          />
+        </PopoverContent>
+      </Popover>
 
       {/* Developer Filter */}
       <Select
