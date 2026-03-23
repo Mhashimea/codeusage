@@ -118,7 +118,7 @@ export function ApiKeySection({ workspaceId, hasExistingKey = false }: ApiKeySec
             <p className="text-sm text-muted-foreground">Or configure existing CLI:</p>
             <div className="flex items-center gap-3">
               <div className="flex-1 rounded-lg bg-muted p-3 font-mono text-sm overflow-x-auto">
-                afterburn config set-key {apiKey}
+                afterburn config set-key <span className="text-muted-foreground">••••••••••••••••••••</span>
               </div>
               <Button
                 variant="outline"
