@@ -69,9 +69,11 @@ export function TaskFilters({ developers, projects, providers = [] }: TaskFilter
         value={currentDateRange || "all"}
         onValueChange={(value) => updateFilter("date", value ?? "all")}
       >
-        <SelectTrigger className="w-[150px]">
+        <SelectTrigger className="w-[160px]">
           <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
-          <SelectValue placeholder="All time" />
+          <SelectValue>
+            {DATE_RANGES.find((r) => r.value === (currentDateRange || "all"))?.label || "All time"}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           {DATE_RANGES.map((range) => (
@@ -88,7 +90,9 @@ export function TaskFilters({ developers, projects, providers = [] }: TaskFilter
         onValueChange={(value) => updateFilter("developer", value ?? "all")}
       >
         <SelectTrigger className="w-[160px]">
-          <SelectValue placeholder="All developers" />
+          <SelectValue>
+            {currentDeveloper || "All developers"}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All developers</SelectItem>
@@ -106,7 +110,9 @@ export function TaskFilters({ developers, projects, providers = [] }: TaskFilter
         onValueChange={(value) => updateFilter("project", value ?? "all")}
       >
         <SelectTrigger className="w-[160px]">
-          <SelectValue placeholder="All projects" />
+          <SelectValue>
+            {currentProject || "All projects"}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All projects</SelectItem>
@@ -125,7 +131,11 @@ export function TaskFilters({ developers, projects, providers = [] }: TaskFilter
           onValueChange={(value) => updateFilter("provider", value ?? "all")}
         >
           <SelectTrigger className="w-[160px]">
-            <SelectValue placeholder="All providers" />
+            <SelectValue>
+              {currentProvider
+                ? allProviders.find((p) => p.id === currentProvider)?.displayName || currentProvider
+                : "All providers"}
+            </SelectValue>
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All providers</SelectItem>
