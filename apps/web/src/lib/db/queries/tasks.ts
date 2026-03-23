@@ -131,6 +131,44 @@ export async function countTasks(workspaceId: string) {
 }
 
 /**
+ * Count tasks with filters
+ * CRITICAL: Always filter by workspace_id
+ */
+export async function countTasksFiltered(
+  workspaceId: string,
+  options: {
+    startDate?: Date;
+    endDate?: Date;
+    developer?: string;
+    project?: string;
+  } = {}
+) {
+  const { startDate, endDate, developer, project } = options;
+
+  const conditions = [eq(tasks.workspace_id, workspaceId)];
+
+  if (startDate) {
+    conditions.push(gte(tasks.created_at, startDate));
+  }
+  if (endDate) {
+    conditions.push(lte(tasks.created_at, endDate));
+  }
+  if (developer) {
+    conditions.push(eq(tasks.developer_alias, developer));
+  }
+  if (project) {
+    conditions.push(eq(tasks.project_slug, project));
+  }
+
+  const [result] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(tasks)
+    .where(and(...conditions));
+
+  return result.count;
+}
+
+/**
  * Get top projects by token volume
  * CRITICAL: Always filter by workspace_id
  */

@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { X, Calendar } from "lucide-react";
 import { getAllProviders } from "@afterburn/shared";
 
 interface TaskFiltersProps {
@@ -19,6 +19,16 @@ interface TaskFiltersProps {
   providers?: string[];
 }
 
+const DATE_RANGES = [
+  { value: "all", label: "All time" },
+  { value: "today", label: "Today" },
+  { value: "7d", label: "Last 7 days" },
+  { value: "30d", label: "Last 30 days" },
+  { value: "90d", label: "Last 90 days" },
+  { value: "this_month", label: "This month" },
+  { value: "last_month", label: "Last month" },
+];
+
 export function TaskFilters({ developers, projects, providers = [] }: TaskFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -26,6 +36,7 @@ export function TaskFilters({ developers, projects, providers = [] }: TaskFilter
   const currentDeveloper = searchParams.get("developer") || "";
   const currentProject = searchParams.get("project") || "";
   const currentProvider = searchParams.get("provider") || "";
+  const currentDateRange = searchParams.get("date") || "";
 
   // Get provider display names
   const allProviders = getAllProviders();
@@ -49,15 +60,34 @@ export function TaskFilters({ developers, projects, providers = [] }: TaskFilter
     router.push("/tasks");
   }, [router]);
 
-  const hasFilters = currentDeveloper || currentProject || currentProvider;
+  const hasFilters = currentDeveloper || currentProject || currentProvider || currentDateRange;
 
   return (
-    <div className="flex items-center gap-4">
+    <div className="flex flex-wrap items-center gap-3">
+      {/* Date Range Filter */}
+      <Select
+        value={currentDateRange || "all"}
+        onValueChange={(value) => updateFilter("date", value ?? "all")}
+      >
+        <SelectTrigger className="w-[150px]">
+          <Calendar className="mr-2 h-4 w-4 text-muted-foreground" />
+          <SelectValue placeholder="All time" />
+        </SelectTrigger>
+        <SelectContent>
+          {DATE_RANGES.map((range) => (
+            <SelectItem key={range.value} value={range.value}>
+              {range.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+
+      {/* Developer Filter */}
       <Select
         value={currentDeveloper || "all"}
         onValueChange={(value) => updateFilter("developer", value ?? "all")}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-[160px]">
           <SelectValue placeholder="All developers" />
         </SelectTrigger>
         <SelectContent>
@@ -70,11 +100,12 @@ export function TaskFilters({ developers, projects, providers = [] }: TaskFilter
         </SelectContent>
       </Select>
 
+      {/* Project Filter */}
       <Select
         value={currentProject || "all"}
         onValueChange={(value) => updateFilter("project", value ?? "all")}
       >
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger className="w-[160px]">
           <SelectValue placeholder="All projects" />
         </SelectTrigger>
         <SelectContent>
@@ -87,25 +118,28 @@ export function TaskFilters({ developers, projects, providers = [] }: TaskFilter
         </SelectContent>
       </Select>
 
-      <Select
-        value={currentProvider || "all"}
-        onValueChange={(value) => updateFilter("provider", value ?? "all")}
-      >
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="All providers" />
-        </SelectTrigger>
-        <SelectContent>
-          <SelectItem value="all">All providers</SelectItem>
-          {providers.map((providerId) => {
-            const providerInfo = allProviders.find((p) => p.id === providerId);
-            return (
-              <SelectItem key={providerId} value={providerId}>
-                {providerInfo?.displayName || providerId}
-              </SelectItem>
-            );
-          })}
-        </SelectContent>
-      </Select>
+      {/* Provider Filter - only show if there are multiple providers */}
+      {providers.length > 1 && (
+        <Select
+          value={currentProvider || "all"}
+          onValueChange={(value) => updateFilter("provider", value ?? "all")}
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="All providers" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All providers</SelectItem>
+            {providers.map((providerId) => {
+              const providerInfo = allProviders.find((p) => p.id === providerId);
+              return (
+                <SelectItem key={providerId} value={providerId}>
+                  {providerInfo?.displayName || providerId}
+                </SelectItem>
+              );
+            })}
+          </SelectContent>
+        </Select>
+      )}
 
       {hasFilters && (
         <Button
@@ -115,7 +149,7 @@ export function TaskFilters({ developers, projects, providers = [] }: TaskFilter
           className="text-muted-foreground"
         >
           <X className="mr-1 h-4 w-4" />
-          Clear filters
+          Clear
         </Button>
       )}
     </div>
