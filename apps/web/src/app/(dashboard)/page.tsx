@@ -84,8 +84,8 @@ async function OverviewContent({ searchParams }: PageProps) {
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Overview</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-2xl font-bold text-foreground">Overview</h1>
+          <p className="text-muted-foreground">
             {periodLabel} summary for your workspace
           </p>
         </div>
