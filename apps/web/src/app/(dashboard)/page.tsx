@@ -6,7 +6,7 @@ import { getTaskStats, getTasksByWorkspace, getTopProjects, getDailyActivity } f
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCost, formatTokens } from "@afterburn/shared";
-import { Coins, Zap, ListTodo, Users, Clock, FileCode, ArrowRight, TrendingUp, Database } from "lucide-react";
+import { Coins, Zap, ListTodo, Users, FileCode, ArrowRight, Database } from "lucide-react";
 import { TopProjects } from "@/components/dashboard/overview/TopProjects";
 import { Heatmap } from "@/components/shared/Heatmap";
 import { OverviewDatePicker } from "@/components/dashboard/overview/OverviewDatePicker";
@@ -16,6 +16,7 @@ interface PageProps {
   searchParams: Promise<{
     startDate?: string;
     endDate?: string;
+    activityYear?: string;
   }>;
 }
 
@@ -66,12 +67,13 @@ async function OverviewContent({ searchParams }: PageProps) {
   const workspaceId = session.user.workspaceId;
   const params = await searchParams;
   const { startDate, endDate, label: periodLabel } = parseDateRange(params.startDate, params.endDate);
+  const activityYear = params.activityYear ? parseInt(params.activityYear, 10) : new Date().getFullYear();
 
   const [stats, recentTasks, topProjects, dailyActivity] = await Promise.all([
     getTaskStats(workspaceId, { startDate, endDate }),
     getTasksByWorkspace(workspaceId, { limit: 5 }),
     getTopProjects(workspaceId, { startDate, endDate, limit: 5 }),
-    getDailyActivity(workspaceId, { weeks: 26 }),
+    getDailyActivity(workspaceId, { year: activityYear }),
   ]);
 
   const totalTokens = stats.total_input_tokens + stats.total_output_tokens;
@@ -196,14 +198,7 @@ async function OverviewContent({ searchParams }: PageProps) {
       </div>
 
       {/* Activity Heatmap */}
-      <Card>
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base font-medium">Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Heatmap data={dailyActivity} weeks={26} />
-        </CardContent>
-      </Card>
+      <Heatmap data={dailyActivity} year={activityYear} />
 
       {/* Two Column Layout: Projects + Recent Tasks */}
       <div className="grid gap-6 lg:grid-cols-2">

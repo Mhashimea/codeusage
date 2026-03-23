@@ -1,156 +1,157 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useCallback } from "react";
 
 interface HeatmapProps {
   data: Record<string, number>;
-  weeks?: number;
+  year: number;
 }
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function getIntensityClass(count: number, max: number): string {
-  if (count === 0) return "bg-muted";
+  if (count === 0) return "bg-muted/50";
   const ratio = count / max;
-  if (ratio < 0.25) return "bg-primary/25";
-  if (ratio < 0.5) return "bg-primary/50";
-  if (ratio < 0.75) return "bg-primary/75";
-  return "bg-primary";
+  if (ratio < 0.25) return "bg-emerald-500/30";
+  if (ratio < 0.5) return "bg-emerald-500/50";
+  if (ratio < 0.75) return "bg-emerald-500/75";
+  return "bg-emerald-500";
 }
 
-function getDayOfWeek(date: Date): number {
-  return date.getDay(); // 0 = Sunday, 6 = Saturday
+function getDaysInMonth(year: number, month: number): number {
+  return new Date(year, month + 1, 0).getDate();
 }
 
-export function Heatmap({ data, weeks = 26 }: HeatmapProps) {
+function getFirstDayOfMonth(year: number, month: number): number {
+  return new Date(year, month, 1).getDay();
+}
+
+export function Heatmap({ data, year }: HeatmapProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const currentYear = today.getFullYear();
 
   // Find max value for intensity calculation
   const maxCount = Math.max(...Object.values(data), 1);
 
-  // Generate all dates for the heatmap
-  const totalDays = weeks * 7;
-  const startDate = new Date(today);
-  startDate.setDate(startDate.getDate() - totalDays + 1);
+  // Calculate total tasks for the year
+  const totalTasks = Object.values(data).reduce((sum, count) => sum + count, 0);
+  const activeDays = Object.values(data).filter(count => count > 0).length;
 
-  // Adjust to start on Sunday
-  const startDayOfWeek = getDayOfWeek(startDate);
-  startDate.setDate(startDate.getDate() - startDayOfWeek);
-
-  // Build weeks array
-  const weeksArray: { date: Date; count: number }[][] = [];
-  let currentDate = new Date(startDate);
-
-  while (currentDate <= today) {
-    const week: { date: Date; count: number }[] = [];
-    for (let day = 0; day < 7; day++) {
-      const dateStr = currentDate.toISOString().split("T")[0];
-      week.push({
-        date: new Date(currentDate),
-        count: data[dateStr] || 0,
-      });
-      currentDate.setDate(currentDate.getDate() + 1);
-    }
-    weeksArray.push(week);
-  }
-
-  // Month labels
-  const months: { label: string; weekIndex: number }[] = [];
-  let lastMonth = -1;
-  weeksArray.forEach((week, weekIndex) => {
-    const firstDay = week[0];
-    const month = firstDay.date.getMonth();
-    if (month !== lastMonth) {
-      months.push({
-        label: firstDay.date.toLocaleDateString("en-US", { month: "short" }),
-        weekIndex,
-      });
-      lastMonth = month;
-    }
-  });
-
-  const dayLabels = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const changeYear = useCallback((newYear: number) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("activityYear", newYear.toString());
+    router.push(`/?${params.toString()}`);
+  }, [router, searchParams]);
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Activity</CardTitle>
+      <CardHeader className="flex flex-row items-center justify-between pb-4">
+        <div>
+          <CardTitle className="text-base font-medium">Activity</CardTitle>
+          <p className="text-sm text-muted-foreground mt-1">
+            {totalTasks.toLocaleString()} tasks across {activeDays} days
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => changeYear(year - 1)}
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <span className="text-sm font-medium w-12 text-center">{year}</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={() => changeYear(year + 1)}
+            disabled={year >= currentYear}
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="overflow-x-auto">
-          {/* Month labels */}
-          <div className="flex mb-1 ml-8">
-            {months.map((month, i) => (
-              <div
-                key={i}
-                className="text-xs text-muted-foreground"
-                style={{
-                  marginLeft: i === 0 ? `${month.weekIndex * 12}px` : undefined,
-                  width: i < months.length - 1
-                    ? `${(months[i + 1].weekIndex - month.weekIndex) * 12}px`
-                    : "auto",
-                }}
-              >
-                {month.label}
-              </div>
-            ))}
-          </div>
+          {/* Month grid */}
+          <div className="grid grid-cols-6 lg:grid-cols-12 gap-3">
+            {MONTHS.map((monthName, monthIndex) => {
+              const daysInMonth = getDaysInMonth(year, monthIndex);
+              const firstDay = getFirstDayOfMonth(year, monthIndex);
 
-          <div className="flex">
-            {/* Day labels */}
-            <div className="flex flex-col gap-0.5 mr-2">
-              {dayLabels.map((day, i) => (
-                <div
-                  key={day}
-                  className={cn(
-                    "h-[10px] text-[10px] text-muted-foreground leading-none",
-                    i % 2 === 1 ? "opacity-100" : "opacity-0"
-                  )}
-                >
-                  {day}
-                </div>
-              ))}
-            </div>
+              // Create array of days including empty slots for alignment
+              const days: (number | null)[] = [];
+              // Add empty slots for days before the 1st
+              for (let i = 0; i < firstDay; i++) {
+                days.push(null);
+              }
+              // Add actual days
+              for (let day = 1; day <= daysInMonth; day++) {
+                days.push(day);
+              }
 
-            {/* Heatmap grid */}
-            <div className="flex gap-0.5">
-              {weeksArray.map((week, weekIndex) => (
-                <div key={weekIndex} className="flex flex-col gap-0.5">
-                  {week.map((day, dayIndex) => {
-                    const isFuture = day.date > today;
-                    return (
-                      <div
-                        key={dayIndex}
-                        className={cn(
-                          "h-[10px] w-[10px] rounded-sm",
-                          isFuture
-                            ? "bg-transparent"
-                            : getIntensityClass(day.count, maxCount)
-                        )}
-                        title={
-                          isFuture
-                            ? ""
-                            : `${day.date.toLocaleDateString()}: ${day.count} tasks`
-                        }
-                      />
-                    );
-                  })}
+              return (
+                <div key={monthIndex} className="min-w-[100px]">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">{monthName}</p>
+                  <div className="grid grid-cols-7 gap-[2px]">
+                    {days.map((day, dayIndex) => {
+                      if (day === null) {
+                        return <div key={dayIndex} className="h-[12px] w-[12px]" />;
+                      }
+
+                      const dateStr = `${year}-${String(monthIndex + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                      const count = data[dateStr] || 0;
+                      const date = new Date(year, monthIndex, day);
+                      const isFuture = date > today;
+
+                      return (
+                        <div
+                          key={dayIndex}
+                          className={cn(
+                            "h-[12px] w-[12px] rounded-[2px] transition-colors",
+                            isFuture
+                              ? "bg-muted/20"
+                              : getIntensityClass(count, maxCount)
+                          )}
+                          title={
+                            isFuture
+                              ? ""
+                              : `${monthName} ${day}, ${year}: ${count} task${count !== 1 ? 's' : ''}`
+                          }
+                        />
+                      );
+                    })}
+                  </div>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
 
           {/* Legend */}
-          <div className="flex items-center justify-end gap-2 mt-4">
-            <span className="text-xs text-muted-foreground">Less</span>
-            <div className="flex gap-0.5">
-              <div className="h-[10px] w-[10px] rounded-sm bg-muted" />
-              <div className="h-[10px] w-[10px] rounded-sm bg-primary/25" />
-              <div className="h-[10px] w-[10px] rounded-sm bg-primary/50" />
-              <div className="h-[10px] w-[10px] rounded-sm bg-primary/75" />
-              <div className="h-[10px] w-[10px] rounded-sm bg-primary" />
+          <div className="flex items-center justify-between mt-6 pt-4 border-t border-border">
+            <div className="text-xs text-muted-foreground">
+              Showing activity for {year}
             </div>
-            <span className="text-xs text-muted-foreground">More</span>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Less</span>
+              <div className="flex gap-[2px]">
+                <div className="h-[12px] w-[12px] rounded-[2px] bg-muted/50" />
+                <div className="h-[12px] w-[12px] rounded-[2px] bg-emerald-500/30" />
+                <div className="h-[12px] w-[12px] rounded-[2px] bg-emerald-500/50" />
+                <div className="h-[12px] w-[12px] rounded-[2px] bg-emerald-500/75" />
+                <div className="h-[12px] w-[12px] rounded-[2px] bg-emerald-500" />
+              </div>
+              <span className="text-xs text-muted-foreground">More</span>
+            </div>
           </div>
         </div>
       </CardContent>

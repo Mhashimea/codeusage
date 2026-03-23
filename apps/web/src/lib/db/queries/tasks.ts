@@ -239,17 +239,17 @@ export async function getUniqueProjects(workspaceId: string) {
 }
 
 /**
- * Get daily activity for heatmap (last 26 weeks)
+ * Get daily activity for heatmap by year
  * CRITICAL: Always filter by workspace_id
  */
 export async function getDailyActivity(
   workspaceId: string,
-  options: { weeks?: number } = {}
+  options: { year?: number } = {}
 ) {
-  const { weeks = 26 } = options;
+  const { year = new Date().getFullYear() } = options;
 
-  const startDate = new Date();
-  startDate.setDate(startDate.getDate() - weeks * 7);
+  const startDate = new Date(year, 0, 1); // January 1st
+  const endDate = new Date(year, 11, 31, 23, 59, 59, 999); // December 31st
 
   const result = await db
     .select({
@@ -257,7 +257,11 @@ export async function getDailyActivity(
       task_count: sql<number>`count(*)::int`,
     })
     .from(tasks)
-    .where(and(eq(tasks.workspace_id, workspaceId), gte(tasks.created_at, startDate)))
+    .where(and(
+      eq(tasks.workspace_id, workspaceId),
+      gte(tasks.created_at, startDate),
+      lte(tasks.created_at, endDate)
+    ))
     .groupBy(sql`date(${tasks.created_at})`)
     .orderBy(sql`date(${tasks.created_at})`);
 
