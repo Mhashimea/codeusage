@@ -21,9 +21,18 @@ interface TasksPageProps {
   }>;
 }
 
-function parseDateRange(startDateStr?: string, endDateStr?: string): { startDate?: Date; endDate?: Date } {
+function parseDateRange(startDateStr?: string, endDateStr?: string): { startDate: Date; endDate: Date } {
+  // Default to last 5 days
+  const today = new Date();
+  const fiveDaysAgo = new Date(today);
+  fiveDaysAgo.setDate(today.getDate() - 5);
+  fiveDaysAgo.setHours(0, 0, 0, 0);
+
+  const defaultEnd = new Date(today);
+  defaultEnd.setHours(23, 59, 59, 999);
+
   if (!startDateStr) {
-    return {};
+    return { startDate: fiveDaysAgo, endDate: defaultEnd };
   }
 
   try {
@@ -31,7 +40,7 @@ function parseDateRange(startDateStr?: string, endDateStr?: string): { startDate
     // Set start of day
     startDate.setHours(0, 0, 0, 0);
 
-    let endDate: Date | undefined;
+    let endDate: Date;
     if (endDateStr) {
       endDate = parse(endDateStr, "yyyy-MM-dd", new Date());
       // Set end of day
@@ -44,7 +53,7 @@ function parseDateRange(startDateStr?: string, endDateStr?: string): { startDate
 
     return { startDate, endDate };
   } catch {
-    return {};
+    return { startDate: fiveDaysAgo, endDate: defaultEnd };
   }
 }
 

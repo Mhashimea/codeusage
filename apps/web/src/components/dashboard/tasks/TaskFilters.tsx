@@ -35,8 +35,16 @@ export function TaskFilters({ developers, projects, providers = [] }: TaskFilter
   const currentDeveloper = searchParams.get("developer") || "";
   const currentProject = searchParams.get("project") || "";
   const currentProvider = searchParams.get("provider") || "";
-  const startDateParam = searchParams.get("startDate") || "";
-  const endDateParam = searchParams.get("endDate") || "";
+  // Default to last 5 days if no date params
+  const today = new Date();
+  const fiveDaysAgo = new Date(today);
+  fiveDaysAgo.setDate(today.getDate() - 5);
+
+  const defaultStartDate = format(fiveDaysAgo, "yyyy-MM-dd");
+  const defaultEndDate = format(today, "yyyy-MM-dd");
+
+  const startDateParam = searchParams.get("startDate") || defaultStartDate;
+  const endDateParam = searchParams.get("endDate") || defaultEndDate;
 
   // Get provider display names
   const allProviders = getAllProviders();
