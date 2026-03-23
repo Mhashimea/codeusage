@@ -68,6 +68,47 @@ providerCommand
     console.log();
   });
 
+// Add an additional provider (keep existing hooks)
+providerCommand
+  .command("add <provider>")
+  .description("Add hooks for an additional provider (keeps existing)")
+  .action(async (newProviderId: string) => {
+    if (!isConfigured()) {
+      console.log(chalk.yellow("\nNot configured. Run: afterburn init\n"));
+      return;
+    }
+
+    const newProvider = getProviderById(newProviderId);
+    if (!newProvider) {
+      console.log(chalk.red(`\nUnknown provider: ${newProviderId}`));
+      console.log(chalk.dim("Run 'afterburn provider list' to see available providers.\n"));
+      return;
+    }
+
+    if (!isProviderActive(newProviderId)) {
+      console.log(
+        chalk.yellow(`\n${newProvider.displayName} is coming soon!`)
+      );
+      console.log(chalk.dim("This provider is not yet available.\n"));
+      return;
+    }
+
+    const config = getConfig();
+    const cwd = process.cwd();
+
+    console.log(chalk.bold(`\n🔥 Adding ${newProvider.displayName}\n`));
+
+    // Register hooks for the new provider
+    console.log(chalk.dim(`  Registering ${newProvider.displayName} hooks...`));
+    try {
+      await registerHooks(config.hook_scope, cwd, newProviderId as ProviderId);
+      console.log(chalk.green(`\n✓ ${newProvider.displayName} hooks registered!\n`));
+      console.log(chalk.dim(`Both providers are now active. Tasks from either tool will sync to Afterburn.\n`));
+    } catch (err) {
+      console.log(chalk.red(`\nFailed to register hooks: ${(err as Error).message}\n`));
+    }
+  });
+
 // Switch provider
 providerCommand
   .command("switch <provider>")

@@ -1,13 +1,13 @@
-import type { ModelPricing } from "./types.js";
+import type { ModelPricing, ToolSource } from "./types.js";
 
 /**
  * Last updated date for pricing information
- * Update this when Anthropic publishes pricing changes
+ * Update this when Anthropic or OpenAI publishes pricing changes
  */
-export const PRICING_LAST_UPDATED = "2026-03-01";
+export const PRICING_LAST_UPDATED = "2026-03-23";
 
 /**
- * Model pricing per 1,000,000 tokens (USD)
+ * Claude model pricing per 1,000,000 tokens (USD)
  * Source: Anthropic pricing page
  */
 export const MODEL_PRICING: Record<string, ModelPricing> = {
@@ -30,29 +30,66 @@ export const MODEL_PRICING: Record<string, ModelPricing> = {
 };
 
 /**
- * Default model to use for pricing if the model name is not found
+ * Codex model pricing per 1,000,000 tokens (USD)
+ * Source: OpenAI pricing page (2026)
  */
-const FALLBACK_MODEL = "claude-sonnet-4-5";
+export const CODEX_MODEL_PRICING: Record<string, ModelPricing> = {
+  "gpt-5.4": { input: 2.5, output: 15.0, cache: 1.25 },
+  "gpt-5.3-codex": { input: 1.75, output: 14.0, cache: 0.875 },
+  "gpt-5.3-codex-spark": { input: 1.0, output: 8.0, cache: 0.5 },
+  // Legacy models
+  "gpt-4o": { input: 2.5, output: 10.0, cache: 1.25 },
+  "gpt-4o-mini": { input: 0.15, output: 0.6, cache: 0.075 },
+};
+
+/**
+ * Default models to use for pricing if the model name is not found
+ */
+const CLAUDE_FALLBACK_MODEL = "claude-sonnet-4-5";
+const CODEX_FALLBACK_MODEL = "gpt-5.4";
+
+/**
+ * Get pricing for a model based on provider
+ */
+function getPricing(
+  provider: ToolSource,
+  model: string
+): ModelPricing {
+  if (provider === "codex") {
+    const codexPricing = CODEX_MODEL_PRICING[model] ?? CODEX_MODEL_PRICING[CODEX_FALLBACK_MODEL];
+    // Fallback model is always defined, so this is safe
+    return codexPricing as ModelPricing;
+  }
+  const claudePricing = MODEL_PRICING[model] ?? MODEL_PRICING[CLAUDE_FALLBACK_MODEL];
+  // Fallback model is always defined, so this is safe
+  return claudePricing as ModelPricing;
+}
 
 /**
  * Calculate the estimated cost for a task based on token usage
  *
- * @param model - The model name (e.g., "claude-sonnet-4-5")
+ * @param model - The model name (e.g., "claude-sonnet-4-5" or "gpt-5.4")
  * @param inputTokens - Number of input tokens
  * @param outputTokens - Number of output tokens
  * @param cacheTokens - Number of cache read tokens
+ * @param provider - Optional provider (defaults to claude_code, auto-detected from model name)
  * @returns Estimated cost in USD
  */
 export function estimateCost(
   model: string,
   inputTokens: number,
   outputTokens: number,
-  cacheTokens: number
+  cacheTokens: number,
+  provider?: ToolSource
 ): number {
-  const pricing = MODEL_PRICING[model] ?? MODEL_PRICING[FALLBACK_MODEL];
+  // Auto-detect provider from model name if not specified
+  const detectedProvider: ToolSource = provider ??
+    (model.startsWith("gpt-") ? "codex" : "claude_code");
+
+  const pricing = getPricing(detectedProvider, model);
 
   if (!pricing) {
-    // Should never happen since FALLBACK_MODEL is always defined
+    // Should never happen since fallback models are always defined
     return 0;
   }
 
@@ -97,15 +134,39 @@ export function formatTokens(tokens: number): string {
 }
 
 /**
- * Get all supported model names
+ * Get all supported model names for a provider
  */
-export function getSupportedModels(): string[] {
-  return Object.keys(MODEL_PRICING);
+export function getSupportedModels(provider?: ToolSource): string[] {
+  if (provider === "codex") {
+    return Object.keys(CODEX_MODEL_PRICING);
+  }
+  if (provider === "claude_code") {
+    return Object.keys(MODEL_PRICING);
+  }
+  // Return all models if no provider specified
+  return [...Object.keys(MODEL_PRICING), ...Object.keys(CODEX_MODEL_PRICING)];
 }
 
 /**
  * Check if a model name is supported
  */
-export function isModelSupported(model: string): boolean {
-  return model in MODEL_PRICING;
+export function isModelSupported(model: string, provider?: ToolSource): boolean {
+  if (provider === "codex") {
+    return model in CODEX_MODEL_PRICING;
+  }
+  if (provider === "claude_code") {
+    return model in MODEL_PRICING;
+  }
+  // Check both if no provider specified
+  return model in MODEL_PRICING || model in CODEX_MODEL_PRICING;
+}
+
+/**
+ * Get the provider for a model based on its name
+ */
+export function getProviderForModel(model: string): ToolSource {
+  if (model in CODEX_MODEL_PRICING || model.startsWith("gpt-")) {
+    return "codex";
+  }
+  return "claude_code";
 }

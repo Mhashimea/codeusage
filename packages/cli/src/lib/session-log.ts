@@ -37,6 +37,8 @@ export interface SessionData {
   duration_sec: number;
   start_time: number | null;
   end_time: number | null;
+  /** The actual working directory from the session (for Codex) */
+  session_cwd?: string;
 }
 
 /**
@@ -49,7 +51,7 @@ type SessionParser = (cwd: string) => Promise<SessionData | null>;
  */
 const SESSION_PARSERS: Record<ProviderId, SessionParser | null> = {
   claude_code: parseClaudeCodeSession,
-  codex: null, // Will be implemented when Codex support is added
+  codex: parseCodexSession,
 };
 
 /**
@@ -244,6 +246,331 @@ async function parseClaudeCodeSession(
   }
 }
 
+// === Codex Session Parser ===
+
+/**
+ * Find the most recent Codex session log file
+ * Codex stores logs in ~/.codex/sessions/YYYY/MM/DD/rollout-*.jsonl
+ */
+async function findLatestCodexSession(): Promise<string | null> {
+  const codexSessionsDir = path.join(os.homedir(), ".codex", "sessions");
+
+  try {
+    // Check if codex sessions directory exists
+    await fs.access(codexSessionsDir);
+  } catch {
+    return null;
+  }
+
+  try {
+    // Get all year directories
+    const years = await fs.readdir(codexSessionsDir);
+    const sortedYears = years
+      .filter((y) => /^\d{4}$/.test(y))
+      .sort()
+      .reverse();
+
+    for (const year of sortedYears) {
+      const yearPath = path.join(codexSessionsDir, year);
+      const months = await fs.readdir(yearPath);
+      const sortedMonths = months
+        .filter((m) => /^\d{2}$/.test(m))
+        .sort()
+        .reverse();
+
+      for (const month of sortedMonths) {
+        const monthPath = path.join(yearPath, month);
+        const days = await fs.readdir(monthPath);
+        const sortedDays = days
+          .filter((d) => /^\d{2}$/.test(d))
+          .sort()
+          .reverse();
+
+        for (const day of sortedDays) {
+          const dayPath = path.join(monthPath, day);
+          const files = await fs.readdir(dayPath);
+          const rolloutFiles = files.filter(
+            (f) => f.startsWith("rollout-") && f.endsWith(".jsonl")
+          );
+
+          if (rolloutFiles.length > 0) {
+            // Get most recent by mtime
+            let latestFile = rolloutFiles[0];
+            let latestMtime = 0;
+
+            for (const file of rolloutFiles) {
+              const stat = await fs.stat(path.join(dayPath, file));
+              if (stat.mtimeMs > latestMtime) {
+                latestMtime = stat.mtimeMs;
+                latestFile = file;
+              }
+            }
+
+            return path.join(dayPath, latestFile);
+          }
+        }
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+/**
+ * Extract session ID from Codex rollout filename
+ * Format: rollout-2026-03-11T00-04-17-019cdb11-1b11-7323-aaf3-edaac90171b5.jsonl
+ */
+function extractCodexSessionId(filename: string): string {
+  const basename = path.basename(filename, ".jsonl");
+  // Extract the UUID portion after the timestamp
+  const match = basename.match(
+    /rollout-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-(.+)/
+  );
+  return match ? match[1] : basename;
+}
+
+/**
+ * Parse Codex session log
+ *
+ * Codex log format uses entries with:
+ * - type: "session_meta" | "event_msg" | "turn_context" | "response_item"
+ * - payload: nested object containing the actual data
+ *
+ * Each user "task" is a turn, marked by:
+ * - task_started (with turn_id) - marks beginning of a turn
+ * - task_complete (with turn_id) - marks end of a turn
+ *
+ * We only track the LAST completed turn to get accurate per-task metrics.
+ * This avoids reporting cumulative session totals when hook fires.
+ *
+ * Token usage: We track tokens between the last task_started and task_complete.
+ */
+async function parseCodexSession(cwd: string): Promise<SessionData | null> {
+  // Codex doesn't use per-project session files, it's global
+  // We'll use the most recent session file
+  const sessionFile = await findLatestCodexSession();
+  if (!sessionFile) return null;
+
+  const sessionId = extractCodexSessionId(sessionFile);
+
+  try {
+    const content = await fs.readFile(sessionFile, "utf-8");
+    const lines = content.trim().split("\n").filter(Boolean);
+
+    // First pass: find all turns and their boundaries
+    interface TurnData {
+      turnId: string;
+      startIndex: number;
+      endIndex: number;
+      startTime: number;
+      endTime: number;
+    }
+    const turns: TurnData[] = [];
+    let currentTurn: Partial<TurnData> | null = null;
+
+    let model = "gpt-5.4"; // Default Codex model
+    let sessionCwd: string | undefined;
+
+    for (let i = 0; i < lines.length; i++) {
+      try {
+        const entry = JSON.parse(lines[i]);
+        const payload = entry.payload;
+        if (!payload) continue;
+
+        // Extract cwd from session_meta entry (happens once per session)
+        if (entry.type === "session_meta" && payload.cwd) {
+          sessionCwd = payload.cwd;
+        }
+
+        // Extract model from turn_context entries
+        if (entry.type === "turn_context" && payload.model) {
+          model = payload.model;
+        }
+
+        // Track turn boundaries
+        if (entry.type === "event_msg") {
+          if (payload.type === "task_started" && payload.turn_id) {
+            // Start a new turn
+            currentTurn = {
+              turnId: payload.turn_id,
+              startIndex: i,
+              startTime: new Date(entry.timestamp).getTime(),
+            };
+          } else if (payload.type === "task_complete" && payload.turn_id && currentTurn) {
+            // End current turn
+            if (currentTurn.turnId === payload.turn_id) {
+              turns.push({
+                turnId: currentTurn.turnId,
+                startIndex: currentTurn.startIndex!,
+                endIndex: i,
+                startTime: currentTurn.startTime!,
+                endTime: new Date(entry.timestamp).getTime(),
+              });
+              currentTurn = null;
+            }
+          }
+        }
+      } catch {
+        // Skip malformed lines
+      }
+    }
+
+    // If no completed turns, return null (no task to report)
+    if (turns.length === 0) {
+      return null;
+    }
+
+    // Get the last completed turn
+    const lastTurn = turns[turns.length - 1];
+
+    // For accurate per-turn token tracking, we need to:
+    // 1. Find the total_token_usage BEFORE the turn started (from previous token_count event)
+    // 2. Find the total_token_usage at the END of the turn
+    // 3. Calculate the difference
+
+    // First, find the token counts just before this turn started
+    let prevInputTokens = 0;
+    let prevOutputTokens = 0;
+    let prevCacheTokens = 0;
+
+    // Look for the last token_count before this turn started
+    for (let i = lastTurn.startIndex - 1; i >= 0; i--) {
+      try {
+        const entry = JSON.parse(lines[i]);
+        const payload = entry.payload;
+        if (entry.type === "event_msg" && payload?.type === "token_count" && payload.info?.total_token_usage) {
+          const total = payload.info.total_token_usage;
+          prevInputTokens = total.input_tokens || 0;
+          prevOutputTokens = total.output_tokens || 0;
+          prevCacheTokens = total.cached_input_tokens || 0;
+          break;
+        }
+      } catch {
+        // Skip malformed lines
+      }
+    }
+
+    // Second pass: find the final token counts for this turn and extract other metrics
+    let endInputTokens = 0;
+    let endOutputTokens = 0;
+    let endCacheTokens = 0;
+    const toolCounts: Record<string, number> = {};
+    const fileChanges: Map<string, { additions: number; deletions: number }> = new Map();
+
+    for (let i = lastTurn.startIndex; i <= lastTurn.endIndex; i++) {
+      try {
+        const entry = JSON.parse(lines[i]);
+        const payload = entry.payload;
+        if (!payload) continue;
+
+        // Get the latest total_token_usage within this turn
+        if (entry.type === "event_msg" && payload.type === "token_count" && payload.info?.total_token_usage) {
+          const total = payload.info.total_token_usage;
+          endInputTokens = total.input_tokens || 0;
+          endOutputTokens = total.output_tokens || 0;
+          endCacheTokens = total.cached_input_tokens || 0;
+        }
+
+        // Track tool usage from response_item entries with function calls
+        if (entry.type === "response_item" && payload.type === "function_call") {
+          const toolName = payload.name;
+          if (toolName) {
+            toolCounts[toolName] = (toolCounts[toolName] || 0) + 1;
+          }
+        }
+
+        // Track tool usage from custom_tool_call (apply_patch, etc.)
+        if (entry.type === "response_item" && payload.type === "custom_tool_call") {
+          const toolName = payload.name;
+          if (toolName) {
+            toolCounts[toolName] = (toolCounts[toolName] || 0) + 1;
+          }
+
+          // Extract file changes from apply_patch
+          if (toolName === "apply_patch" && payload.input) {
+            const patchContent = payload.input as string;
+            // Parse "*** Update File: /path/to/file" lines
+            const updateMatches = patchContent.matchAll(/\*\*\* Update File: ([^\n]+)/g);
+            for (const match of updateMatches) {
+              const filePath = match[1].trim();
+              const existing = fileChanges.get(filePath) || { additions: 0, deletions: 0 };
+              // Count lines starting with + and - in the patch
+              const additions = (patchContent.match(/^\+[^+]/gm) || []).length;
+              const deletions = (patchContent.match(/^-[^-]/gm) || []).length;
+              fileChanges.set(filePath, {
+                additions: existing.additions + additions,
+                deletions: existing.deletions + deletions,
+              });
+            }
+            // Parse "*** Add File: /path/to/file" lines
+            const addMatches = patchContent.matchAll(/\*\*\* Add File: ([^\n]+)/g);
+            for (const match of addMatches) {
+              const filePath = match[1].trim();
+              const additions = (patchContent.split("\n").length || 1);
+              fileChanges.set(filePath, { additions, deletions: 0 });
+            }
+          }
+        }
+
+        // Also track tools from response_item with content array containing tool_use
+        if (entry.type === "response_item" && payload.role === "assistant" && Array.isArray(payload.content)) {
+          for (const block of payload.content) {
+            if (block.type === "tool_use" && block.name) {
+              toolCounts[block.name] = (toolCounts[block.name] || 0) + 1;
+            }
+          }
+        }
+      } catch {
+        // Skip malformed lines
+      }
+    }
+
+    const tools_used = Object.entries(toolCounts).map(([name, count]) => ({
+      name,
+      count,
+    }));
+
+    // Calculate token deltas for this turn only (end - start)
+    const inputTokens = Math.max(0, endInputTokens - prevInputTokens);
+    const outputTokens = Math.max(0, endOutputTokens - prevOutputTokens);
+    const cacheTokens = Math.max(0, endCacheTokens - prevCacheTokens);
+
+    // Calculate duration from the last turn's start/end times
+    const duration_sec = Math.round((lastTurn.endTime - lastTurn.startTime) / 1000);
+
+    // Convert file changes map to array
+    const files_changed_details: FileChangeDetail[] = Array.from(fileChanges.entries()).map(
+      ([filePath, stats]) => ({
+        path: filePath,
+        additions: stats.additions,
+        deletions: stats.deletions,
+      })
+    );
+
+    // Use turn_id as session_id for Codex to enable per-turn tracking
+    // This allows delta tracking to work correctly across multiple hook calls
+    return {
+      session_id: lastTurn.turnId,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      cache_tokens: cacheTokens,
+      model,
+      tools_used,
+      tool_counts: toolCounts,
+      files_changed: fileChanges.size,
+      files_changed_details,
+      duration_sec,
+      start_time: lastTurn.startTime,
+      end_time: lastTurn.endTime,
+      session_cwd: sessionCwd,
+    };
+  } catch {
+    return null;
+  }
+}
+
 // === Main API ===
 
 /**
@@ -278,9 +605,10 @@ export async function getSessionsDirectory(
       // Session files are directly in the project folder
       return path.join(os.homedir(), ".claude", "projects", projectHash);
     }
-    case "codex":
-      // Will be implemented when Codex support is added
-      return null;
+    case "codex": {
+      // Codex uses a global sessions directory organized by date
+      return path.join(os.homedir(), ".codex", "sessions");
+    }
     default:
       return null;
   }

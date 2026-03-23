@@ -6,11 +6,10 @@ import {
   getMonthlyCostTrend,
   getCostByProject,
   getCostByDeveloper,
+  getCostByProvider,
+  getDistinctProviders,
 } from "@/lib/db/queries/cost";
-import { CostMetrics } from "@/components/dashboard/cost/CostMetrics";
-import { MonthlyTrend } from "@/components/dashboard/cost/MonthlyTrend";
-import { CostByProject } from "@/components/dashboard/cost/CostByProject";
-import { CostByDeveloper } from "@/components/dashboard/cost/CostByDeveloper";
+import { CostPageContent } from "@/components/dashboard/cost/CostPageContent";
 
 async function CostContent() {
   const session = await auth();
@@ -25,41 +24,27 @@ async function CostContent() {
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-  const [monthStats, monthlyTrend, costByProject, costByDeveloper] =
+  const [monthStats, monthlyTrend, costByProject, costByDeveloper, costByProvider, distinctProviders] =
     await Promise.all([
       getThisMonthStats(workspaceId),
       getMonthlyCostTrend(workspaceId, { months: 6 }),
       getCostByProject(workspaceId, { startDate: startOfMonth }),
       getCostByDeveloper(workspaceId, { startDate: startOfMonth }),
+      getCostByProvider(workspaceId, { startDate: startOfMonth }),
+      getDistinctProviders(workspaceId),
     ]);
 
   return (
-    <div className="space-y-6">
-      {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Cost & Usage</h1>
-        <p className="text-muted-foreground">
-          Track AI tool spending across your workspace
-        </p>
-      </div>
-
-      {/* This Month Metrics */}
-      <CostMetrics
-        totalCost={monthStats.total_cost}
-        totalTokens={monthStats.total_tokens}
-        taskCount={monthStats.task_count}
-        avgCostPerTask={monthStats.avg_cost_per_task}
-      />
-
-      {/* Monthly Trend Chart */}
-      <MonthlyTrend data={monthlyTrend} />
-
-      {/* Cost Breakdowns */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <CostByProject data={costByProject} />
-        <CostByDeveloper data={costByDeveloper} />
-      </div>
-    </div>
+    <CostPageContent
+      initialData={{
+        monthStats,
+        monthlyTrend,
+        costByProject,
+        costByDeveloper,
+        costByProvider,
+      }}
+      distinctProviders={distinctProviders}
+    />
   );
 }
 

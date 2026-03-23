@@ -3,7 +3,9 @@ import chalk from "chalk";
 import {
   estimateCost,
   type TelemetryPayload,
+  type ProviderId,
   getProviderById,
+  isValidProviderId,
 } from "@afterburn/shared";
 import { getConfig, isConfigured, getProvider } from "../lib/config.js";
 import { parseSessionLog } from "../lib/session-log.js";
@@ -22,11 +24,12 @@ import {
   type SessionState,
 } from "../lib/session-state.js";
 
-const CLI_VERSION = "0.1.4";
+const CLI_VERSION = "0.1.9";
 
 export const hookStopCommand = new Command("stop")
   .description("Handle AI coding tool stop hook (internal)")
   .option("--dry-run", "Parse session but don't send to API")
+  .option("--provider <provider>", "Provider ID (claude_code or codex)")
   .action(async (options) => {
     // Silent exit if not configured
     if (!isConfigured()) {
@@ -36,26 +39,14 @@ export const hookStopCommand = new Command("stop")
     const config = getConfig();
     const cwd = process.cwd();
 
-    // Get provider from config (with migration fallback)
-    const providerId = getProvider();
+    // Get provider from option or fall back to config
+    let providerId: ProviderId;
+    if (options.provider && isValidProviderId(options.provider)) {
+      providerId = options.provider;
+    } else {
+      providerId = getProvider();
+    }
     const providerInfo = getProviderById(providerId);
-
-    // Check for ignored directory
-    if (config.project_overrides[cwd] === "__ignored__") {
-      return; // Silently skip
-    }
-
-    // Resolve project slug
-    let projectSlug = config.project_overrides[cwd];
-    if (!projectSlug) {
-      projectSlug = await detectProjectSlug(cwd);
-      if (projectSlug === cwd.split("/").pop()) {
-        // Just directory name, no git remote
-        console.log(
-          chalk.dim("Tip: Set a project name: afterburn project set <name>")
-        );
-      }
-    }
 
     // Parse session log for the configured provider
     const session = await parseSessionLog(cwd, providerId);
@@ -64,6 +55,26 @@ export const hookStopCommand = new Command("stop")
         console.log(chalk.yellow("Could not parse session log"));
       }
       return;
+    }
+
+    // Use session's cwd if available (for Codex), otherwise use process.cwd()
+    const effectiveCwd = session.session_cwd || cwd;
+
+    // Check for ignored directory
+    if (config.project_overrides[effectiveCwd] === "__ignored__") {
+      return; // Silently skip
+    }
+
+    // Resolve project slug using the effective cwd
+    let projectSlug = config.project_overrides[effectiveCwd];
+    if (!projectSlug) {
+      projectSlug = await detectProjectSlug(effectiveCwd);
+      if (projectSlug === effectiveCwd.split("/").pop()) {
+        // Just directory name, no git remote
+        console.log(
+          chalk.dim("Tip: Set a project name: afterburn project set <name>")
+        );
+      }
     }
 
     // Load previous session state to calculate deltas

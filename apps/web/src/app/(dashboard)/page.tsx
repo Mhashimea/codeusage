@@ -3,6 +3,8 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { parse, format, subDays } from "date-fns";
 import { getTaskStats, getTasksByWorkspace, getTopProjects, getDailyActivity } from "@/lib/db/queries/tasks";
+import { getCostByProvider } from "@/lib/db/queries/cost";
+import { ProviderIndicator } from "@/components/shared/ProviderBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCost, formatTokens } from "@afterburn/shared";
@@ -68,11 +70,12 @@ async function OverviewContent({ searchParams }: PageProps) {
   const { startDate, endDate, label: periodLabel } = parseDateRange(params.startDate, params.endDate);
   const currentYear = new Date().getFullYear();
 
-  const [stats, recentTasks, topProjects, dailyActivity] = await Promise.all([
+  const [stats, recentTasks, topProjects, dailyActivity, costByProvider] = await Promise.all([
     getTaskStats(workspaceId, { startDate, endDate }),
     getTasksByWorkspace(workspaceId, { limit: 5 }),
     getTopProjects(workspaceId, { startDate, endDate, limit: 5 }),
     getDailyActivity(workspaceId, { year: currentYear }),
+    getCostByProvider(workspaceId, { startDate, endDate }),
   ]);
 
   const totalTokens = stats.total_input_tokens + stats.total_output_tokens;
@@ -136,6 +139,35 @@ async function OverviewContent({ searchParams }: PageProps) {
           </CardContent>
         </Card>
       </div>
+
+      {/* Provider Breakdown - Only show if multiple providers */}
+      {costByProvider.length > 1 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium">Cost by Provider</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-4">
+              {costByProvider.map((provider) => (
+                <div
+                  key={provider.tool_source}
+                  className="flex items-center gap-3 rounded-lg border border-border p-3 min-w-[180px]"
+                >
+                  <ProviderIndicator providerId={provider.tool_source} />
+                  <div>
+                    <p className="font-semibold text-emerald-500">
+                      {formatCost(provider.total_cost)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {provider.task_count} tasks · {provider.share_percentage.toFixed(0)}%
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Secondary Stats Row */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">

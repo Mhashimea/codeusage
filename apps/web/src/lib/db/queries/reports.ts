@@ -8,8 +8,9 @@ import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
  */
 export async function getWeeklySummary(
   workspaceId: string,
-  options: { weekStart?: Date } = {}
+  options: { weekStart?: Date; provider?: string } = {}
 ) {
+  const { provider } = options;
   const now = new Date();
 
   // Default to current week (Monday start)
@@ -25,6 +26,13 @@ export async function getWeeklySummary(
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 7);
 
+  const baseConditions = [
+    eq(tasks.workspace_id, workspaceId),
+    gte(tasks.created_at, weekStart),
+    lte(tasks.created_at, weekEnd),
+  ];
+  if (provider) baseConditions.push(eq(tasks.tool_source, provider));
+
   const [summary] = await db
     .select({
       total_tasks: sql<number>`count(*)::int`,
@@ -35,13 +43,7 @@ export async function getWeeklySummary(
       unique_projects: sql<number>`count(distinct ${tasks.project_slug})::int`,
     })
     .from(tasks)
-    .where(
-      and(
-        eq(tasks.workspace_id, workspaceId),
-        gte(tasks.created_at, weekStart),
-        lte(tasks.created_at, weekEnd)
-      )
-    );
+    .where(and(...baseConditions));
 
   // Get daily breakdown
   const dailyBreakdown = await db
@@ -51,13 +53,7 @@ export async function getWeeklySummary(
       cost: sql<string>`coalesce(sum(${tasks.cost_usd}), 0)::numeric(10,6)`,
     })
     .from(tasks)
-    .where(
-      and(
-        eq(tasks.workspace_id, workspaceId),
-        gte(tasks.created_at, weekStart),
-        lte(tasks.created_at, weekEnd)
-      )
-    )
+    .where(and(...baseConditions))
     .groupBy(sql`date(${tasks.created_at})`)
     .orderBy(sql`date(${tasks.created_at})`);
 
@@ -69,13 +65,7 @@ export async function getWeeklySummary(
       cost: sql<string>`coalesce(sum(${tasks.cost_usd}), 0)::numeric(10,6)`,
     })
     .from(tasks)
-    .where(
-      and(
-        eq(tasks.workspace_id, workspaceId),
-        gte(tasks.created_at, weekStart),
-        lte(tasks.created_at, weekEnd)
-      )
-    )
+    .where(and(...baseConditions))
     .groupBy(tasks.developer_alias)
     .orderBy(desc(sql`count(*)`))
     .limit(5);
@@ -108,12 +98,20 @@ export async function getWeeklySummary(
  */
 export async function getMonthlyCostReport(
   workspaceId: string,
-  options: { month?: Date } = {}
+  options: { month?: Date; provider?: string } = {}
 ) {
+  const { provider } = options;
   const now = new Date();
   const month = options.month || new Date(now.getFullYear(), now.getMonth(), 1);
   const monthStart = new Date(month.getFullYear(), month.getMonth(), 1);
   const monthEnd = new Date(month.getFullYear(), month.getMonth() + 1, 0, 23, 59, 59);
+
+  const baseConditions = [
+    eq(tasks.workspace_id, workspaceId),
+    gte(tasks.created_at, monthStart),
+    lte(tasks.created_at, monthEnd),
+  ];
+  if (provider) baseConditions.push(eq(tasks.tool_source, provider));
 
   const [summary] = await db
     .select({
@@ -128,13 +126,7 @@ export async function getMonthlyCostReport(
       avg_cost_per_task: sql<string>`coalesce(avg(${tasks.cost_usd}), 0)::numeric(10,6)`,
     })
     .from(tasks)
-    .where(
-      and(
-        eq(tasks.workspace_id, workspaceId),
-        gte(tasks.created_at, monthStart),
-        lte(tasks.created_at, monthEnd)
-      )
-    );
+    .where(and(...baseConditions));
 
   // Cost by project
   const costByProject = await db
@@ -144,13 +136,7 @@ export async function getMonthlyCostReport(
       task_count: sql<number>`count(*)::int`,
     })
     .from(tasks)
-    .where(
-      and(
-        eq(tasks.workspace_id, workspaceId),
-        gte(tasks.created_at, monthStart),
-        lte(tasks.created_at, monthEnd)
-      )
-    )
+    .where(and(...baseConditions))
     .groupBy(tasks.project_slug)
     .orderBy(desc(sql`sum(${tasks.cost_usd})`));
 
@@ -162,13 +148,7 @@ export async function getMonthlyCostReport(
       task_count: sql<number>`count(*)::int`,
     })
     .from(tasks)
-    .where(
-      and(
-        eq(tasks.workspace_id, workspaceId),
-        gte(tasks.created_at, monthStart),
-        lte(tasks.created_at, monthEnd)
-      )
-    )
+    .where(and(...baseConditions))
     .groupBy(tasks.developer_alias)
     .orderBy(desc(sql`sum(${tasks.cost_usd})`));
 

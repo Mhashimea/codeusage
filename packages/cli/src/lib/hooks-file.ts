@@ -9,65 +9,227 @@ import {
 } from "@afterburn/shared";
 
 /**
- * Individual hook command definition
+ * Claude Code hook command definition
  */
-interface HookCommand {
+interface ClaudeHookCommand {
   type: "command";
   command: string;
 }
 
 /**
- * Hook entry with matcher and nested hooks array
- * This is the Claude Code settings.json structure
+ * Claude Code hook entry with matcher
  */
-interface HookEntry {
+interface ClaudeHookEntry {
   matcher: string;
-  hooks: HookCommand[];
+  hooks: ClaudeHookCommand[];
 }
 
-interface ProviderSettings {
+/**
+ * Claude Code settings.json structure
+ */
+interface ClaudeSettings {
   hooks?: {
-    Stop?: HookEntry[];
-    PostToolUse?: HookEntry[];
-    Notification?: HookEntry[];
+    Stop?: ClaudeHookEntry[];
+    PostToolUse?: ClaudeHookEntry[];
+    Notification?: ClaudeHookEntry[];
   };
   [key: string]: unknown;
 }
 
 /**
- * Provider-specific hook configurations
+ * Codex hook command definition
  */
-interface ProviderHookConfig {
-  settingsPath: (scope: "global" | "project", cwd: string) => string;
-  hooks: Record<string, HookEntry[]>;
+interface CodexHookCommand {
+  type: "command";
+  command: string;
+  statusMessage?: string;
+  timeout?: number;
 }
 
 /**
- * Helper to create a hook entry with the correct structure
+ * Codex hooks.json structure
  */
-function createHookEntry(command: string): HookEntry {
+interface CodexSettings {
+  hooks?: {
+    Stop?: CodexHookCommand[];
+    SessionStart?: CodexHookCommand[];
+    AfterAgent?: CodexHookCommand[];
+    AfterToolUse?: CodexHookCommand[];
+  };
+  [key: string]: unknown;
+}
+
+/**
+ * Provider-specific hook configuration
+ */
+interface ProviderHookConfig {
+  settingsPath: (scope: "global" | "project", cwd: string) => string;
+  registerHooks: (settings: unknown) => unknown;
+  unregisterHooks: (settings: unknown) => unknown;
+  hasAfterburn: (settings: unknown) => boolean;
+}
+
+/**
+ * Create Claude Code hook entry
+ */
+function createClaudeHookEntry(command: string): ClaudeHookEntry {
   return {
     matcher: "",
     hooks: [{ type: "command", command }],
   };
 }
 
-const PROVIDER_HOOK_CONFIGS: Record<ProviderId, ProviderHookConfig | null> = {
-  claude_code: {
-    settingsPath: (scope, cwd) => {
-      if (scope === "global") {
-        return path.join(os.homedir(), ".claude", "settings.json");
-      }
-      return path.join(cwd, ".claude", "settings.json");
-    },
-    hooks: {
-      Stop: [createHookEntry("afterburn hook stop")],
-      PostToolUse: [createHookEntry("afterburn hook post-tool-use")],
-      Notification: [createHookEntry("afterburn hook notification")],
-    },
+/**
+ * Create Codex hook command
+ */
+function createCodexHookCommand(
+  command: string,
+  statusMessage: string
+): CodexHookCommand {
+  return {
+    type: "command",
+    command,
+    statusMessage,
+    timeout: 10,
+  };
+}
+
+/**
+ * Claude Code hook configuration
+ */
+const claudeCodeConfig: ProviderHookConfig = {
+  settingsPath: (scope, cwd) => {
+    if (scope === "global") {
+      return path.join(os.homedir(), ".claude", "settings.json");
+    }
+    return path.join(cwd, ".claude", "settings.json");
   },
-  // Codex will be added when implemented
-  codex: null,
+  registerHooks: (settings: unknown) => {
+    const s = (settings || {}) as ClaudeSettings;
+    s.hooks = s.hooks || {};
+
+    // Stop hook - include --provider flag so hook knows source
+    const stopHooks = s.hooks.Stop || [];
+    const hasStopAfterburn = stopHooks.some((entry) =>
+      entry.hooks?.some((h) => h.command.startsWith("afterburn"))
+    );
+    if (!hasStopAfterburn) {
+      s.hooks.Stop = [...stopHooks, createClaudeHookEntry("afterburn hook stop --provider claude_code")];
+    }
+
+    // PostToolUse hook
+    const postToolHooks = s.hooks.PostToolUse || [];
+    const hasPostToolAfterburn = postToolHooks.some((entry) =>
+      entry.hooks?.some((h) => h.command.startsWith("afterburn"))
+    );
+    if (!hasPostToolAfterburn) {
+      s.hooks.PostToolUse = [
+        ...postToolHooks,
+        createClaudeHookEntry("afterburn hook post-tool-use --provider claude_code"),
+      ];
+    }
+
+    // Notification hook
+    const notifHooks = s.hooks.Notification || [];
+    const hasNotifAfterburn = notifHooks.some((entry) =>
+      entry.hooks?.some((h) => h.command.startsWith("afterburn"))
+    );
+    if (!hasNotifAfterburn) {
+      s.hooks.Notification = [
+        ...notifHooks,
+        createClaudeHookEntry("afterburn hook notification --provider claude_code"),
+      ];
+    }
+
+    return s;
+  },
+  unregisterHooks: (settings: unknown) => {
+    const s = (settings || {}) as ClaudeSettings;
+    if (!s.hooks) return s;
+
+    if (s.hooks.Stop) {
+      s.hooks.Stop = s.hooks.Stop.filter(
+        (entry) => !entry.hooks?.some((h) => h.command.startsWith("afterburn"))
+      );
+    }
+    if (s.hooks.PostToolUse) {
+      s.hooks.PostToolUse = s.hooks.PostToolUse.filter(
+        (entry) => !entry.hooks?.some((h) => h.command.startsWith("afterburn"))
+      );
+    }
+    if (s.hooks.Notification) {
+      s.hooks.Notification = s.hooks.Notification.filter(
+        (entry) => !entry.hooks?.some((h) => h.command.startsWith("afterburn"))
+      );
+    }
+
+    return s;
+  },
+  hasAfterburn: (settings: unknown) => {
+    const s = settings as ClaudeSettings;
+    if (!s?.hooks?.Stop) return false;
+    return s.hooks.Stop.some((entry) =>
+      entry.hooks?.some((h) => h.command.startsWith("afterburn"))
+    );
+  },
+};
+
+/**
+ * Codex hook configuration
+ */
+const codexConfig: ProviderHookConfig = {
+  settingsPath: (scope, _cwd) => {
+    // Codex only supports global hooks config
+    // Project-scoped hooks are not supported by Codex
+    if (scope === "project") {
+      // Fall back to global for Codex
+      return path.join(os.homedir(), ".codex", "hooks.json");
+    }
+    return path.join(os.homedir(), ".codex", "hooks.json");
+  },
+  registerHooks: (settings: unknown) => {
+    const s = (settings || {}) as CodexSettings;
+    s.hooks = s.hooks || {};
+
+    // Stop hook - include --provider flag so hook knows source
+    const stopHooks = s.hooks.Stop || [];
+    const hasStopAfterburn = stopHooks.some((h) =>
+      h.command.startsWith("afterburn")
+    );
+    if (!hasStopAfterburn) {
+      s.hooks.Stop = [
+        ...stopHooks,
+        createCodexHookCommand("afterburn hook stop --provider codex", "Syncing to Afterburn..."),
+      ];
+    }
+
+    return s;
+  },
+  unregisterHooks: (settings: unknown) => {
+    const s = (settings || {}) as CodexSettings;
+    if (!s.hooks) return s;
+
+    if (s.hooks.Stop) {
+      s.hooks.Stop = s.hooks.Stop.filter(
+        (h) => !h.command.startsWith("afterburn")
+      );
+    }
+
+    return s;
+  },
+  hasAfterburn: (settings: unknown) => {
+    const s = settings as CodexSettings;
+    if (!s?.hooks?.Stop) return false;
+    return s.hooks.Stop.some((h) => h.command.startsWith("afterburn"));
+  },
+};
+
+/**
+ * Provider hook configurations registry
+ */
+const PROVIDER_HOOK_CONFIGS: Record<ProviderId, ProviderHookConfig | null> = {
+  claude_code: claudeCodeConfig,
+  codex: codexConfig,
 };
 
 /**
@@ -110,7 +272,7 @@ export async function registerHooks(
   const filePath = config.settingsPath(scope, cwd);
 
   // Read existing file or start with empty object
-  let settings: ProviderSettings = {};
+  let settings: unknown = {};
   try {
     const content = await fs.readFile(filePath, "utf-8");
     settings = JSON.parse(content);
@@ -118,25 +280,8 @@ export async function registerHooks(
     // File doesn't exist, start fresh
   }
 
-  // Merge hooks (don't overwrite existing hooks from other tools)
-  settings.hooks = settings.hooks || {};
-
-  for (const [hookType, hookDef] of Object.entries(config.hooks)) {
-    const existingHooks =
-      settings.hooks[hookType as keyof typeof settings.hooks] || [];
-
-    // Check if any existing hook entry contains an afterburn command
-    const hasAfterburn = existingHooks.some((entry) =>
-      entry.hooks?.some((h) => h.command.startsWith("afterburn"))
-    );
-
-    if (!hasAfterburn) {
-      settings.hooks[hookType as keyof typeof settings.hooks] = [
-        ...existingHooks,
-        ...hookDef,
-      ];
-    }
-  }
+  // Register hooks
+  settings = config.registerHooks(settings);
 
   // Ensure directory exists
   await fs.mkdir(path.dirname(filePath), { recursive: true });
@@ -159,21 +304,9 @@ export async function unregisterHooks(
 
   try {
     const content = await fs.readFile(filePath, "utf-8");
-    const settings: ProviderSettings = JSON.parse(content);
+    let settings: unknown = JSON.parse(content);
 
-    if (settings.hooks) {
-      for (const hookType of Object.keys(config.hooks) as Array<
-        keyof typeof settings.hooks
-      >) {
-        if (settings.hooks[hookType]) {
-          // Filter out hook entries that contain afterburn commands
-          settings.hooks[hookType] = settings.hooks[hookType]!.filter(
-            (entry) =>
-              !entry.hooks?.some((h) => h.command.startsWith("afterburn"))
-          );
-        }
-      }
-    }
+    settings = config.unregisterHooks(settings);
 
     await fs.writeFile(filePath, JSON.stringify(settings, null, 2));
   } catch {
@@ -195,14 +328,8 @@ export async function areHooksRegistered(
 
   try {
     const content = await fs.readFile(filePath, "utf-8");
-    const settings: ProviderSettings = JSON.parse(content);
-
-    if (settings.hooks?.Stop) {
-      // Check if any hook entry contains an afterburn command
-      return settings.hooks.Stop.some((entry) =>
-        entry.hooks?.some((h) => h.command.startsWith("afterburn"))
-      );
-    }
+    const settings: unknown = JSON.parse(content);
+    return config.hasAfterburn(settings);
   } catch {
     // File doesn't exist
   }

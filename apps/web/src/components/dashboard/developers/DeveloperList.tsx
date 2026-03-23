@@ -2,6 +2,7 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { ProviderIndicator } from "@/components/shared/ProviderBadge";
 import { formatCost, formatTokens } from "@afterburn/shared";
 
 interface Developer {
@@ -10,6 +11,7 @@ interface Developer {
   lastActive: string;
   totalTokens: number;
   totalCost: number;
+  providers: string[];
 }
 
 interface DeveloperListProps {
@@ -117,7 +119,12 @@ export function DeveloperList({ developers, activity }: DeveloperListProps) {
                       {dev.alias.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-medium">{dev.alias}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">{dev.alias}</p>
+                        {dev.providers.map((p) => (
+                          <ProviderIndicator key={p} providerId={p} />
+                        ))}
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {formatLastActive(dev.lastActive)}
                       </p>

@@ -3,6 +3,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ProviderIndicator } from "@/components/shared/ProviderBadge";
 import { AlertTriangle, FolderGit2, Users, FileCode, Zap } from "lucide-react";
 import { formatCost, formatTokens } from "@afterburn/shared";
 
@@ -14,6 +15,7 @@ interface Project {
   total_files_changed: number;
   contributor_count: number;
   contributors: string[];
+  providers: string[];
   last_activity: string;
   share_percentage: number;
 }
@@ -130,9 +132,14 @@ export function ProjectList({ projects, hasUntagged }: ProjectListProps) {
                     <FolderGit2 className="h-5 w-5 text-primary" />
                   </div>
                   <div className="min-w-0">
-                    <CardTitle className="text-base truncate">
-                      {project.project_slug}
-                    </CardTitle>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-base truncate">
+                        {project.project_slug}
+                      </CardTitle>
+                      {project.providers.map((p) => (
+                        <ProviderIndicator key={p} providerId={p} />
+                      ))}
+                    </div>
                     {project.project_slug === "untagged" && (
                       <Badge variant="outline" className="mt-1 text-amber-500 border-amber-500/50">
                         Untagged

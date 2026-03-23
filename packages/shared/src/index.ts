@@ -11,6 +11,11 @@ export type {
   TaskCreateResponse,
   ApiErrorResponse,
   ModelPricing,
+  CodexEventType,
+  CodexTokenUsage,
+  CodexTurnContext,
+  CodexSessionEvent,
+  ParsedSessionData,
 } from "./types.js";
 
 // Provider registry
@@ -38,6 +43,11 @@ export {
   apiKeySchema,
   taskCreateResponseSchema,
   apiErrorResponseSchema,
+  codexEventTypeSchema,
+  codexTokenUsageSchema,
+  codexTurnContextSchema,
+  codexSessionEventSchema,
+  parsedSessionDataSchema,
 } from "./schemas.js";
 
 // Schema input types
@@ -47,15 +57,19 @@ export type {
   TaskRecordInput,
   AfterBurnConfigInput,
   WorkspaceInfoInput,
+  CodexSessionEventInput,
+  ParsedSessionDataInput,
 } from "./schemas.js";
 
 // Cost utilities
 export {
   PRICING_LAST_UPDATED,
   MODEL_PRICING,
+  CODEX_MODEL_PRICING,
   estimateCost,
   formatCost,
   formatTokens,
   getSupportedModels,
   isModelSupported,
+  getProviderForModel,
 } from "./cost.js";

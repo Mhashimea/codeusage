@@ -14,6 +14,7 @@ export async function getDevelopersByWorkspace(workspaceId: string) {
       lastActive: sql<string>`max(${tasks.created_at})::text`,
       totalTokens: sql<number>`sum(${tasks.input_tokens} + ${tasks.output_tokens})::int`,
       totalCost: sql<string>`sum(${tasks.cost_usd})::numeric(10,6)`,
+      providers: sql<string>`array_agg(distinct ${tasks.tool_source})::text`,
     })
     .from(tasks)
     .where(eq(tasks.workspace_id, workspaceId))
@@ -26,6 +27,10 @@ export async function getDevelopersByWorkspace(workspaceId: string) {
     lastActive: row.lastActive,
     totalTokens: row.totalTokens,
     totalCost: parseFloat(row.totalCost || "0"),
+    // Parse the array string format {claude_code,codex} to array
+    providers: row.providers
+      ? row.providers.replace(/[{}]/g, "").split(",").filter(Boolean)
+      : [],
   }));
 }
 

@@ -7,6 +7,7 @@ import {
   countTasksFiltered,
   getUniqueDevelopers,
   getUniqueProjects,
+  getUniqueProviders,
 } from "@/lib/db/queries/tasks";
 import { TaskList } from "@/components/dashboard/tasks/TaskList";
 import { TaskFilters } from "@/components/dashboard/tasks/TaskFilters";
@@ -16,6 +17,7 @@ interface TasksPageProps {
     page?: string;
     developer?: string;
     project?: string;
+    provider?: string;
     startDate?: string;
     endDate?: string;
   }>;
@@ -71,23 +73,26 @@ async function TasksContent({ searchParams }: TasksPageProps) {
 
   const { startDate, endDate } = parseDateRange(params.startDate, params.endDate);
 
-  const [tasks, total, developers, projects] = await Promise.all([
+  const [tasks, total, developers, projects, providers] = await Promise.all([
     getTasksByWorkspace(workspaceId, {
       limit: pageSize,
       offset: (page - 1) * pageSize,
       developer: params.developer,
       project: params.project,
+      provider: params.provider,
       startDate,
       endDate,
     }),
     countTasksFiltered(workspaceId, {
       developer: params.developer,
       project: params.project,
+      provider: params.provider,
       startDate,
       endDate,
     }),
     getUniqueDevelopers(workspaceId),
     getUniqueProjects(workspaceId),
+    getUniqueProviders(workspaceId),
   ]);
 
   return (
@@ -100,7 +105,7 @@ async function TasksContent({ searchParams }: TasksPageProps) {
             {total.toLocaleString()} task{total !== 1 ? 's' : ''} tracked
           </p>
         </div>
-        <TaskFilters developers={developers} projects={projects} />
+        <TaskFilters developers={developers} projects={projects} providers={providers} />
       </div>
 
       {/* Task List */}

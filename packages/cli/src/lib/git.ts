@@ -1,9 +1,11 @@
 import { execa } from "execa";
 import path from "path";
 
-export async function getGitRemoteUrl(): Promise<string | null> {
+export async function getGitRemoteUrl(cwd?: string): Promise<string | null> {
   try {
-    const { stdout } = await execa("git", ["remote", "get-url", "origin"]);
+    const { stdout } = await execa("git", ["remote", "get-url", "origin"], {
+      cwd: cwd || process.cwd(),
+    });
     return stdout.trim();
   } catch {
     return null;
@@ -21,7 +23,7 @@ export function parseRepoName(url: string): string {
 }
 
 export async function detectProjectSlug(cwd: string): Promise<string> {
-  const url = await getGitRemoteUrl();
+  const url = await getGitRemoteUrl(cwd);
   if (url) {
     const repoName = parseRepoName(url);
     if (repoName) {

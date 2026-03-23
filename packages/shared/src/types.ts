@@ -77,8 +77,10 @@ export interface TelemetryPayload {
 export interface AfterBurnConfig {
   workspace_key: string;
   developer_alias: string;
-  /** Selected AI coding tool provider */
+  /** Primary AI coding tool provider (for backwards compatibility) */
   provider: ToolSource;
+  /** List of all enabled providers */
+  providers?: ToolSource[];
   hook_scope: HookScope;
   default_project: string;
   /** Maps directory path to project slug, or "__ignored__" to skip */
@@ -117,4 +119,56 @@ export interface ModelPricing {
   input: number; // per 1M tokens
   output: number; // per 1M tokens
   cache: number; // per 1M tokens
+}
+
+/**
+ * Codex session log event types
+ */
+export type CodexEventType =
+  | "session.start"
+  | "turn.started"
+  | "turn.completed"
+  | "tool.use"
+  | "session.stop";
+
+/**
+ * Codex token usage from turn.completed events
+ */
+export interface CodexTokenUsage {
+  input_tokens: number;
+  cached_input_tokens: number;
+  output_tokens: number;
+}
+
+/**
+ * Codex turn context metadata
+ */
+export interface CodexTurnContext {
+  model?: string;
+  turn_id?: string;
+}
+
+/**
+ * Codex session log event structure
+ */
+export interface CodexSessionEvent {
+  type: CodexEventType;
+  timestamp?: string;
+  usage?: CodexTokenUsage;
+  turn_context?: CodexTurnContext;
+  tool_name?: string;
+  tool_id?: string;
+}
+
+/**
+ * Parsed session data (unified format for both providers)
+ */
+export interface ParsedSessionData {
+  provider: ToolSource;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  cacheTokens: number;
+  sessionId?: string;
+  toolsUsed: ToolUsage[];
 }

@@ -70,3 +70,51 @@ export function getProvider(): ToolSource {
 export function setProvider(provider: ToolSource): void {
   config.set("provider", provider);
 }
+
+/**
+ * Get all enabled providers
+ * Returns array of providers, migrating legacy single-provider configs
+ */
+export function getProviders(): ToolSource[] {
+  const providers = config.get("providers");
+  if (providers && providers.length > 0) {
+    return providers;
+  }
+  // Migrate from legacy single provider config
+  const singleProvider = getProvider();
+  return [singleProvider];
+}
+
+/**
+ * Add a provider to the enabled list
+ */
+export function addProvider(provider: ToolSource): void {
+  const current = getProviders();
+  if (!current.includes(provider)) {
+    const updated = [...current, provider];
+    config.set("providers", updated);
+  }
+}
+
+/**
+ * Remove a provider from the enabled list
+ */
+export function removeProvider(provider: ToolSource): void {
+  const current = getProviders();
+  const updated = current.filter((p) => p !== provider);
+  if (updated.length === 0) {
+    throw new Error("Cannot remove the last provider. At least one provider must be enabled.");
+  }
+  config.set("providers", updated);
+  // If we removed the primary provider, set a new one
+  if (config.get("provider") === provider) {
+    config.set("provider", updated[0]);
+  }
+}
+
+/**
+ * Check if a provider is enabled
+ */
+export function hasProvider(provider: ToolSource): boolean {
+  return getProviders().includes(provider);
+}

@@ -1,14 +1,14 @@
 {
   "name": "@hashim_ea/afterburn",
-  "version": "0.1.4",
+  "version": "0.1.9",
   "description": "CLI for Afterburn - AI coding tool intelligence platform",
   "author": "Hashim",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "afterburn": "./dist/index.js"
+    "afterburn": "./dist/index.cjs"
   },
-  "main": "./dist/index.js",
+  "main": "./dist/index.cjs",
   "files": [
     "dist"
   ],

@@ -15,7 +15,7 @@ const program = new Command();
 program
   .name("afterburn")
   .description("CLI for Afterburn - AI coding tool intelligence platform")
-  .version("0.1.4");
+  .version("0.1.8");
 
 // Main commands
 program.addCommand(initCommand);

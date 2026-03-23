@@ -26,6 +26,7 @@ export async function getProjectsByWorkspace(
       total_files_changed: sql<number>`coalesce(sum(${tasks.files_changed}), 0)::int`,
       contributor_count: sql<number>`count(distinct ${tasks.developer_alias})::int`,
       contributors: sql<string>`string_agg(distinct ${tasks.developer_alias}, ',')`,
+      providers: sql<string>`array_agg(distinct ${tasks.tool_source})::text`,
       last_activity: sql<string>`max(${tasks.created_at})::text`,
     })
     .from(tasks)
@@ -44,6 +45,10 @@ export async function getProjectsByWorkspace(
     total_files_changed: row.total_files_changed,
     contributor_count: row.contributor_count,
     contributors: row.contributors ? row.contributors.split(",") : [],
+    // Parse the array string format {claude_code,codex} to array
+    providers: row.providers
+      ? row.providers.replace(/[{}]/g, "").split(",").filter(Boolean)
+      : [],
     last_activity: row.last_activity,
     share_percentage: totalTokens > 0 ? (row.total_tokens / totalTokens) * 100 : 0,
   }));

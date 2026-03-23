@@ -100,9 +100,64 @@ export const apiErrorResponseSchema = z.object({
   error: z.string(),
 });
 
+/**
+ * Codex event type enum
+ */
+export const codexEventTypeSchema = z.enum([
+  "session.start",
+  "turn.started",
+  "turn.completed",
+  "tool.use",
+  "session.stop",
+]);
+
+/**
+ * Codex token usage schema
+ */
+export const codexTokenUsageSchema = z.object({
+  input_tokens: z.number().int().min(0),
+  cached_input_tokens: z.number().int().min(0),
+  output_tokens: z.number().int().min(0),
+});
+
+/**
+ * Codex turn context schema
+ */
+export const codexTurnContextSchema = z.object({
+  model: z.string().optional(),
+  turn_id: z.string().optional(),
+});
+
+/**
+ * Codex session event schema
+ */
+export const codexSessionEventSchema = z.object({
+  type: codexEventTypeSchema,
+  timestamp: z.string().optional(),
+  usage: codexTokenUsageSchema.optional(),
+  turn_context: codexTurnContextSchema.optional(),
+  tool_name: z.string().optional(),
+  tool_id: z.string().optional(),
+});
+
+/**
+ * Parsed session data schema (unified format)
+ */
+export const parsedSessionDataSchema = z.object({
+  provider: toolSourceSchema,
+  model: z.string(),
+  inputTokens: z.number().int().min(0),
+  outputTokens: z.number().int().min(0),
+  cacheTokens: z.number().int().min(0),
+  sessionId: z.string().optional(),
+  toolsUsed: z.array(toolUsageSchema),
+});
+
 // Type exports inferred from schemas
 export type ToolUsageInput = z.infer<typeof toolUsageSchema>;
 export type TelemetryPayloadInput = z.infer<typeof telemetryPayloadSchema>;
 export type TaskRecordInput = z.infer<typeof taskRecordSchema>;
 export type AfterBurnConfigInput = z.infer<typeof afterBurnConfigSchema>;
 export type WorkspaceInfoInput = z.infer<typeof workspaceInfoSchema>;
+export type CodexSessionEventInput = z.infer<typeof codexSessionEventSchema>;
+export type ParsedSessionDataInput = z.infer<typeof parsedSessionDataSchema>;

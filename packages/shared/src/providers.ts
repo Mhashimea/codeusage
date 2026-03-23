@@ -45,9 +45,10 @@ export const PROVIDERS: Record<ProviderId, ProviderInfo> = {
     id: "codex",
     name: "Codex",
     displayName: "OpenAI Codex",
-    status: "coming_soon",
-    description: "OpenAI's code generation model",
-    hooksSupported: false,
+    status: "active",
+    description: "OpenAI's AI coding CLI",
+    sessionLogPath: "~/.codex/sessions/{YYYY}/{MM}/{DD}/rollout-*.jsonl",
+    hooksSupported: true,
   },
 };
 

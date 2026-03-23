@@ -38,9 +38,10 @@ export async function getTasksByWorkspace(
     endDate?: Date;
     developer?: string;
     project?: string;
+    provider?: string;
   } = {}
 ) {
-  const { limit = 50, offset = 0, startDate, endDate, developer, project } = options;
+  const { limit = 50, offset = 0, startDate, endDate, developer, project, provider } = options;
 
   const conditions = [eq(tasks.workspace_id, workspaceId)];
 
@@ -55,6 +56,9 @@ export async function getTasksByWorkspace(
   }
   if (project) {
     conditions.push(eq(tasks.project_slug, project));
+  }
+  if (provider) {
+    conditions.push(eq(tasks.tool_source, provider));
   }
 
   const result = await db
@@ -141,9 +145,10 @@ export async function countTasksFiltered(
     endDate?: Date;
     developer?: string;
     project?: string;
+    provider?: string;
   } = {}
 ) {
-  const { startDate, endDate, developer, project } = options;
+  const { startDate, endDate, developer, project, provider } = options;
 
   const conditions = [eq(tasks.workspace_id, workspaceId)];
 
@@ -158,6 +163,9 @@ export async function countTasksFiltered(
   }
   if (project) {
     conditions.push(eq(tasks.project_slug, project));
+  }
+  if (provider) {
+    conditions.push(eq(tasks.tool_source, provider));
   }
 
   const [result] = await db
@@ -236,6 +244,19 @@ export async function getUniqueProjects(workspaceId: string) {
     .orderBy(tasks.project_slug);
 
   return result.map((r) => r.project_slug);
+}
+
+/**
+ * Get unique providers (tool_source) for a workspace (for filters)
+ */
+export async function getUniqueProviders(workspaceId: string) {
+  const result = await db
+    .selectDistinct({ tool_source: tasks.tool_source })
+    .from(tasks)
+    .where(eq(tasks.workspace_id, workspaceId))
+    .orderBy(tasks.tool_source);
+
+  return result.map((r) => r.tool_source);
 }
 
 /**
