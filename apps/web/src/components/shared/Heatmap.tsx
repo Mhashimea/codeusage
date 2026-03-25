@@ -135,7 +135,7 @@ export function Heatmap({ initialData, initialYear }: HeatmapProps) {
   };
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader className="flex flex-row items-center justify-between pb-4">
         <div>
           <CardTitle className="text-base font-medium">Activity</CardTitle>
@@ -173,9 +173,9 @@ export function Heatmap({ initialData, initialYear }: HeatmapProps) {
       </CardHeader>
       <CardContent>
         <TooltipProvider delay={0}>
-          <div className={cn("overflow-x-auto transition-opacity", loading && "opacity-50")}>
+          <div className={cn("w-full overflow-x-auto transition-opacity", loading && "opacity-50")}>
             {/* Month labels */}
-            <div className="flex ml-8 mb-1">
+            <div className="flex ml-10 mb-1">
               {monthLabels.map(({ month, weekIndex }, idx) => {
                 const nextWeekIndex = monthLabels[idx + 1]?.weekIndex ?? weeks.length;
                 const width = (nextWeekIndex - weekIndex) * 13; // 11px cell + 2px gap
@@ -193,19 +193,19 @@ export function Heatmap({ initialData, initialYear }: HeatmapProps) {
 
             {/* Grid with day labels */}
             <div className="flex">
-              {/* Day labels */}
-              <div className="flex flex-col gap-[2px] mr-2 text-xs text-muted-foreground">
-                {DAYS.map((day, idx) => (
-                  <div key={day} className="h-[11px] leading-[11px]">
-                    {idx % 2 === 1 ? day.slice(0, 3) : ""}
+              {/* Day labels - show all days */}
+              <div className="flex flex-col gap-0.5 mr-2 text-xs text-muted-foreground shrink-0">
+                {DAYS.map((day) => (
+                  <div key={day} className="h-[11px] leading-[11px] w-8">
+                    {day}
                   </div>
                 ))}
               </div>
 
               {/* Weeks grid */}
-              <div className="flex gap-[2px]">
+              <div className="flex gap-0.5">
                 {weeks.map((week, weekIndex) => (
-                  <div key={weekIndex} className="flex flex-col gap-[2px]">
+                  <div key={weekIndex} className="flex flex-col gap-0.5">
                     {week.map((date, dayIndex) => {
                       const dateStr = formatDate(date);
                       const count = data[dateStr] || 0;
@@ -245,7 +245,7 @@ export function Heatmap({ initialData, initialYear }: HeatmapProps) {
             <div className="flex items-center justify-end mt-4 pt-4 border-t border-border">
               <div className="flex items-center gap-2">
                 <span className="text-xs text-muted-foreground">Less</span>
-                <div className="flex gap-[2px]">
+                <div className="flex gap-0.5">
                   <div className="h-[11px] w-[11px] rounded-sm bg-muted/50 dark:bg-muted/30" />
                   <div className="h-[11px] w-[11px] rounded-sm bg-emerald-500/30" />
                   <div className="h-[11px] w-[11px] rounded-sm bg-emerald-500/50" />
