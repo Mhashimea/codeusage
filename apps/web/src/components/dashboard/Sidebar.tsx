@@ -11,7 +11,6 @@ import {
   Users,
   FolderKanban,
   DollarSign,
-  FileText,
   Settings,
   BarChart2,
   LogOut,
@@ -42,7 +41,6 @@ const navigation = [
   { name: "Developers", href: "/developers", icon: Users },
   { name: "Projects", href: "/projects", icon: FolderKanban },
   { name: "Cost & Usage", href: "/cost", icon: DollarSign },
-  { name: "Reports", href: "/reports", icon: FileText },
 ];
 
 export function Sidebar() {

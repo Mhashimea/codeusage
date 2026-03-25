@@ -1,14 +1,24 @@
 import bcrypt from "bcryptjs";
-import { randomBytes } from "crypto";
 
 const PREFIX = "cu-ws-";
+
+/**
+ * Generate random bytes using Web Crypto API (Edge Runtime compatible)
+ */
+function getRandomHex(byteLength: number): string {
+  const bytes = new Uint8Array(byteLength);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
 
 /**
  * Generate a new workspace API key
  * Format: cu-ws-{36 hex chars}
  */
 export function generateApiKey(): string {
-  return PREFIX + randomBytes(18).toString("hex");
+  return PREFIX + getRandomHex(18);
 }
 
 /**

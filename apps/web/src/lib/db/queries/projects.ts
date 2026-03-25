@@ -8,13 +8,16 @@ import { eq, desc, sql, and, gte } from "drizzle-orm";
  */
 export async function getProjectsByWorkspace(
   workspaceId: string,
-  options: { startDate?: Date } = {}
+  options: { startDate?: Date; provider?: string } = {}
 ) {
-  const { startDate } = options;
+  const { startDate, provider } = options;
 
   const conditions = [eq(tasks.workspace_id, workspaceId)];
   if (startDate) {
     conditions.push(gte(tasks.created_at, startDate));
+  }
+  if (provider) {
+    conditions.push(eq(tasks.tool_source, provider));
   }
 
   const result = await db

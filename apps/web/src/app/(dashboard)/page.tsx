@@ -2,9 +2,10 @@ import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { parse, format, subDays } from "date-fns";
-import { getTaskStats, getTasksByWorkspace, getTopProjects, getDailyActivity } from "@/lib/db/queries/tasks";
+import { getTaskStats, getTasksByWorkspace, getTopProjects, getDailyActivity, getUniqueProviders } from "@/lib/db/queries/tasks";
 import { getCostByProvider } from "@/lib/db/queries/cost";
 import { ProviderIndicator } from "@/components/shared/ProviderBadge";
+import { ProviderFilter } from "@/components/shared/ProviderFilter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCost, formatTokens } from "@codeusage/shared";
@@ -18,6 +19,7 @@ interface PageProps {
   searchParams: Promise<{
     startDate?: string;
     endDate?: string;
+    provider?: string;
   }>;
 }
 
@@ -68,14 +70,16 @@ async function OverviewContent({ searchParams }: PageProps) {
   const workspaceId = session.user.workspaceId;
   const params = await searchParams;
   const { startDate, endDate, label: periodLabel } = parseDateRange(params.startDate, params.endDate);
+  const provider = params.provider;
   const currentYear = new Date().getFullYear();
 
-  const [stats, recentTasks, topProjects, dailyActivity, costByProvider] = await Promise.all([
-    getTaskStats(workspaceId, { startDate, endDate }),
-    getTasksByWorkspace(workspaceId, { limit: 5 }),
-    getTopProjects(workspaceId, { startDate, endDate, limit: 5 }),
+  const [stats, recentTasks, topProjects, dailyActivity, costByProvider, providers] = await Promise.all([
+    getTaskStats(workspaceId, { startDate, endDate, provider }),
+    getTasksByWorkspace(workspaceId, { limit: 5, provider }),
+    getTopProjects(workspaceId, { startDate, endDate, limit: 5, provider }),
     getDailyActivity(workspaceId, { year: currentYear }),
     getCostByProvider(workspaceId, { startDate, endDate }),
+    getUniqueProviders(workspaceId),
   ]);
 
   const totalTokens = stats.total_input_tokens + stats.total_output_tokens;
@@ -92,7 +96,10 @@ async function OverviewContent({ searchParams }: PageProps) {
             {periodLabel} summary for your workspace
           </p>
         </div>
-        <OverviewDatePicker />
+        <div className="flex items-center gap-3">
+          <ProviderFilter providers={providers} />
+          <OverviewDatePicker />
+        </div>
       </div>
 
       {/* Hero Stats - Cost & Tokens */}

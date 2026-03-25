@@ -81,9 +81,10 @@ export async function getTaskStats(
   options: {
     startDate?: Date;
     endDate?: Date;
+    provider?: string;
   } = {}
 ) {
-  const { startDate, endDate } = options;
+  const { startDate, endDate, provider } = options;
 
   const conditions = [eq(tasks.workspace_id, workspaceId)];
 
@@ -92,6 +93,9 @@ export async function getTaskStats(
   }
   if (endDate) {
     conditions.push(lte(tasks.created_at, endDate));
+  }
+  if (provider) {
+    conditions.push(eq(tasks.tool_source, provider));
   }
 
   const [stats] = await db
@@ -186,9 +190,10 @@ export async function getTopProjects(
     limit?: number;
     startDate?: Date;
     endDate?: Date;
+    provider?: string;
   } = {}
 ) {
-  const { limit = 5, startDate, endDate } = options;
+  const { limit = 5, startDate, endDate, provider } = options;
 
   const conditions = [eq(tasks.workspace_id, workspaceId)];
 
@@ -197,6 +202,9 @@ export async function getTopProjects(
   }
   if (endDate) {
     conditions.push(lte(tasks.created_at, endDate));
+  }
+  if (provider) {
+    conditions.push(eq(tasks.tool_source, provider));
   }
 
   const result = await db
@@ -257,6 +265,109 @@ export async function getUniqueProviders(workspaceId: string) {
     .orderBy(tasks.tool_source);
 
   return result.map((r) => r.tool_source);
+}
+
+/**
+ * Session group with aggregated stats and tasks
+ */
+export interface SessionGroup {
+  session_id: string;
+  tasks: Awaited<ReturnType<typeof getTasksByWorkspace>>;
+  totalCost: number;
+  totalTokens: number;
+  totalDuration: number;
+  firstTask: Date;
+  lastTask: Date;
+  developer: string;
+  project: string;
+}
+
+/**
+ * Get tasks grouped by session_id with aggregated stats
+ * CRITICAL: Always filter by workspace_id
+ */
+export async function getTasksGroupedBySession(
+  workspaceId: string,
+  options: {
+    limit?: number;
+    offset?: number;
+    startDate?: Date;
+    endDate?: Date;
+    developer?: string;
+    project?: string;
+    provider?: string;
+  } = {}
+): Promise<{ groups: SessionGroup[]; totalTasks: number; totalSessions: number }> {
+  const { limit = 50, offset = 0, startDate, endDate, developer, project, provider } = options;
+
+  const conditions = [eq(tasks.workspace_id, workspaceId)];
+
+  if (startDate) {
+    conditions.push(gte(tasks.created_at, startDate));
+  }
+  if (endDate) {
+    conditions.push(lte(tasks.created_at, endDate));
+  }
+  if (developer) {
+    conditions.push(eq(tasks.developer_alias, developer));
+  }
+  if (project) {
+    conditions.push(eq(tasks.project_slug, project));
+  }
+  if (provider) {
+    conditions.push(eq(tasks.tool_source, provider));
+  }
+
+  // Fetch all matching tasks ordered by session and time
+  const allTasks = await db
+    .select()
+    .from(tasks)
+    .where(and(...conditions))
+    .orderBy(desc(tasks.created_at));
+
+  // Group tasks by session_id
+  const groupsMap = new Map<string, SessionGroup>();
+
+  for (const task of allTasks) {
+    const sessionId = task.session_id || "no-session";
+
+    if (!groupsMap.has(sessionId)) {
+      groupsMap.set(sessionId, {
+        session_id: sessionId,
+        tasks: [],
+        totalCost: 0,
+        totalTokens: 0,
+        totalDuration: 0,
+        firstTask: new Date(task.created_at),
+        lastTask: new Date(task.created_at),
+        developer: task.developer_alias,
+        project: task.project_slug,
+      });
+    }
+
+    const group = groupsMap.get(sessionId)!;
+    group.tasks.push(task);
+    group.totalCost += parseFloat(task.cost_usd);
+    group.totalTokens += task.input_tokens + task.output_tokens;
+    group.totalDuration += task.task_duration_sec;
+
+    const taskDate = new Date(task.created_at);
+    if (taskDate < group.firstTask) group.firstTask = taskDate;
+    if (taskDate > group.lastTask) group.lastTask = taskDate;
+  }
+
+  // Sort groups by most recent first and apply pagination
+  const sortedGroups = Array.from(groupsMap.values()).sort(
+    (a, b) => b.lastTask.getTime() - a.lastTask.getTime()
+  );
+
+  const paginatedGroups = sortedGroups.slice(offset, offset + limit);
+
+  return {
+    groups: paginatedGroups,
+    totalTasks: allTasks.length,
+    totalSessions: sortedGroups.length,
+  };
 }
 
 /**

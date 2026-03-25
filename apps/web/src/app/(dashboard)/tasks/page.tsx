@@ -3,8 +3,7 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { parse } from "date-fns";
 import {
-  getTasksByWorkspace,
-  countTasksFiltered,
+  getTasksGroupedBySession,
   getUniqueDevelopers,
   getUniqueProjects,
   getUniqueProviders,
@@ -73,17 +72,10 @@ async function TasksContent({ searchParams }: TasksPageProps) {
 
   const { startDate, endDate } = parseDateRange(params.startDate, params.endDate);
 
-  const [tasks, total, developers, projects, providers] = await Promise.all([
-    getTasksByWorkspace(workspaceId, {
+  const [groupedData, developers, projects, providers] = await Promise.all([
+    getTasksGroupedBySession(workspaceId, {
       limit: pageSize,
       offset: (page - 1) * pageSize,
-      developer: params.developer,
-      project: params.project,
-      provider: params.provider,
-      startDate,
-      endDate,
-    }),
-    countTasksFiltered(workspaceId, {
       developer: params.developer,
       project: params.project,
       provider: params.provider,
@@ -95,6 +87,8 @@ async function TasksContent({ searchParams }: TasksPageProps) {
     getUniqueProviders(workspaceId),
   ]);
 
+  const { groups: sessionGroups, totalTasks, totalSessions } = groupedData;
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -102,7 +96,7 @@ async function TasksContent({ searchParams }: TasksPageProps) {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Tasks</h1>
           <p className="text-muted-foreground">
-            {total.toLocaleString()} task{total !== 1 ? 's' : ''} tracked
+            {totalTasks.toLocaleString()} task{totalTasks !== 1 ? 's' : ''} in {totalSessions.toLocaleString()} session{totalSessions !== 1 ? 's' : ''}
           </p>
         </div>
         <TaskFilters developers={developers} projects={projects} providers={providers} />
@@ -110,11 +104,12 @@ async function TasksContent({ searchParams }: TasksPageProps) {
 
       {/* Task List */}
       <TaskList
-        tasks={tasks}
+        sessionGroups={sessionGroups}
         pagination={{
           page,
           pageSize,
-          total,
+          totalSessions,
+          totalTasks,
         }}
       />
     </div>

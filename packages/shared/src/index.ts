@@ -69,6 +69,7 @@ export {
   estimateCost,
   formatCost,
   formatTokens,
+  formatModelName,
   getSupportedModels,
   isModelSupported,
   getProviderForModel,

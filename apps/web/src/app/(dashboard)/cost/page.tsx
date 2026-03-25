@@ -11,7 +11,13 @@ import {
 } from "@/lib/db/queries/cost";
 import { CostPageContent } from "@/components/dashboard/cost/CostPageContent";
 
-async function CostContent() {
+interface CostPageProps {
+  searchParams: Promise<{
+    provider?: string;
+  }>;
+}
+
+async function CostContent({ searchParams }: CostPageProps) {
   const session = await auth();
 
   if (!session?.user?.workspaceId) {
@@ -19,6 +25,8 @@ async function CostContent() {
   }
 
   const workspaceId = session.user.workspaceId;
+  const params = await searchParams;
+  const provider = params.provider;
 
   // Get this month's date range for breakdowns
   const now = new Date();
@@ -26,24 +34,25 @@ async function CostContent() {
 
   const [monthStats, monthlyTrend, costByProject, costByDeveloper, costByProvider, distinctProviders] =
     await Promise.all([
-      getThisMonthStats(workspaceId),
-      getMonthlyCostTrend(workspaceId, { months: 6 }),
-      getCostByProject(workspaceId, { startDate: startOfMonth }),
-      getCostByDeveloper(workspaceId, { startDate: startOfMonth }),
+      getThisMonthStats(workspaceId, { provider }),
+      getMonthlyCostTrend(workspaceId, { months: 6, provider }),
+      getCostByProject(workspaceId, { startDate: startOfMonth, provider }),
+      getCostByDeveloper(workspaceId, { startDate: startOfMonth, provider }),
       getCostByProvider(workspaceId, { startDate: startOfMonth }),
       getDistinctProviders(workspaceId),
     ]);
 
   return (
     <CostPageContent
-      initialData={{
+      data={{
         monthStats,
         monthlyTrend,
         costByProject,
         costByDeveloper,
         costByProvider,
       }}
-      distinctProviders={distinctProviders}
+      providers={distinctProviders}
+      currentProvider={provider}
     />
   );
 }
@@ -69,10 +78,10 @@ function CostSkeleton() {
   );
 }
 
-export default function CostPage() {
+export default function CostPage(props: CostPageProps) {
   return (
     <Suspense fallback={<CostSkeleton />}>
-      <CostContent />
+      <CostContent {...props} />
     </Suspense>
   );
 }

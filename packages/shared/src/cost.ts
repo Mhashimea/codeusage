@@ -170,3 +170,57 @@ export function getProviderForModel(model: string): ToolSource {
   }
   return "claude_code";
 }
+
+/**
+ * Model display name mappings
+ * Maps model IDs (with or without date suffix) to user-friendly names
+ */
+const MODEL_DISPLAY_NAMES: Record<string, string> = {
+  // Claude 4 family
+  "claude-opus-4": "Claude Opus 4",
+  "claude-opus-4-5": "Claude Opus 4",
+  "claude-sonnet-4": "Claude Sonnet 4",
+  "claude-sonnet-4-5": "Claude Sonnet 4",
+  "claude-haiku-4": "Claude Haiku 4",
+  "claude-haiku-4-5": "Claude Haiku 4",
+
+  // Claude 3.5 family
+  "claude-3-5-sonnet": "Claude 3.5 Sonnet",
+  "claude-3-5-haiku": "Claude 3.5 Haiku",
+
+  // Claude 3 family
+  "claude-3-opus": "Claude 3 Opus",
+  "claude-3-sonnet": "Claude 3 Sonnet",
+  "claude-3-haiku": "Claude 3 Haiku",
+
+  // GPT models
+  "gpt-5.4": "GPT-5.4",
+  "gpt-5.3-codex": "GPT-5.3 Codex",
+  "gpt-5.3-codex-spark": "GPT-5.3 Codex Spark",
+  "gpt-4o": "GPT-4o",
+  "gpt-4o-mini": "GPT-4o Mini",
+};
+
+/**
+ * Format a model ID to a user-friendly display name
+ *
+ * @param modelId - The full model ID (e.g., "claude-opus-4-5-20251101")
+ * @returns User-friendly name (e.g., "Claude Opus 4")
+ */
+export function formatModelName(modelId: string): string {
+  // Direct match first
+  if (MODEL_DISPLAY_NAMES[modelId]) {
+    return MODEL_DISPLAY_NAMES[modelId];
+  }
+
+  // Try removing date suffix (e.g., "-20251101" or "-20241022")
+  const withoutDate = modelId.replace(/-\d{8}$/, "");
+  if (MODEL_DISPLAY_NAMES[withoutDate]) {
+    return MODEL_DISPLAY_NAMES[withoutDate];
+  }
+
+  // Fallback: capitalize and clean up the model name
+  return modelId
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}

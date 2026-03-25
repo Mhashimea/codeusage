@@ -2,9 +2,17 @@ import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getDevelopersByWorkspace, getDeveloperActivity } from "@/lib/db/queries/developers";
+import { getUniqueProviders } from "@/lib/db/queries/tasks";
 import { DeveloperList } from "@/components/dashboard/developers/DeveloperList";
+import { ProviderFilter } from "@/components/shared/ProviderFilter";
 
-async function DevelopersContent() {
+interface DevelopersPageProps {
+  searchParams: Promise<{
+    provider?: string;
+  }>;
+}
+
+async function DevelopersContent({ searchParams }: DevelopersPageProps) {
   const session = await auth();
 
   if (!session?.user?.workspaceId) {
@@ -12,20 +20,26 @@ async function DevelopersContent() {
   }
 
   const workspaceId = session.user.workspaceId;
+  const params = await searchParams;
+  const provider = params.provider;
 
-  const [developers, activity] = await Promise.all([
-    getDevelopersByWorkspace(workspaceId),
+  const [developers, activity, providers] = await Promise.all([
+    getDevelopersByWorkspace(workspaceId, { provider }),
     getDeveloperActivity(workspaceId, { days: 14 }),
+    getUniqueProviders(workspaceId),
   ]);
 
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Developers</h1>
-        <p className="text-muted-foreground">
-          Team members using AI coding tools
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Developers</h1>
+          <p className="text-muted-foreground">
+            Team members using AI coding tools
+          </p>
+        </div>
+        <ProviderFilter providers={providers} />
       </div>
 
       {/* Developer List */}
@@ -46,10 +60,10 @@ function DevelopersSkeleton() {
   );
 }
 
-export default function DevelopersPage() {
+export default function DevelopersPage(props: DevelopersPageProps) {
   return (
     <Suspense fallback={<DevelopersSkeleton />}>
-      <DevelopersContent />
+      <DevelopersContent {...props} />
     </Suspense>
   );
 }

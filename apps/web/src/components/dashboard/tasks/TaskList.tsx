@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { DataTable } from "@/components/shared/DataTable";
 import { TaskDetailPanel } from "@/components/shared/TaskDetailPanel";
 import { ProviderBadge } from "@/components/shared/ProviderBadge";
 import { Badge } from "@/components/ui/badge";
@@ -13,29 +12,36 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible";
 import { formatCost, formatTokens } from "@codeusage/shared";
-import { Download, RefreshCw } from "lucide-react";
+import { Download, RefreshCw, ChevronRight, Clock, Coins, Hash } from "lucide-react";
 import type { Task } from "@/lib/db/schema";
+import type { SessionGroup } from "@/lib/db/queries/tasks";
 
 interface TaskListProps {
-  tasks: Task[];
+  sessionGroups: SessionGroup[];
   pagination: {
     page: number;
     pageSize: number;
-    total: number;
+    totalSessions: number;
+    totalTasks: number;
   };
 }
 
-export function TaskList({ tasks, pagination }: TaskListProps) {
+export function TaskList({ sessionGroups, pagination }: TaskListProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [selectedTask, setSelectedTask] = useState<Task | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [expandedSessions, setExpandedSessions] = useState<Set<string>>(new Set());
 
   const handleRefresh = () => {
     setIsRefreshing(true);
     router.refresh();
-    // Reset after a short delay since router.refresh() doesn't return a promise
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
@@ -45,9 +51,21 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
     router.push(`/tasks?${params.toString()}`);
   };
 
+  const toggleSession = (sessionId: string) => {
+    setExpandedSessions((prev) => {
+      const next = new Set(prev);
+      if (next.has(sessionId)) {
+        next.delete(sessionId);
+      } else {
+        next.add(sessionId);
+      }
+      return next;
+    });
+  };
+
   const handleExportCSV = () => {
-    // Build CSV content
     const headers = [
+      "Session ID",
       "Developer",
       "Project",
       "Provider",
@@ -61,7 +79,10 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
       "Created At",
     ];
 
-    const rows = tasks.map((task) => [
+    // Flatten all tasks from all session groups
+    const allTasks = sessionGroups.flatMap((group) => group.tasks);
+    const rows = allTasks.map((task) => [
+      task.session_id || "",
       task.developer_alias,
       task.project_slug,
       task.tool_source,
@@ -77,7 +98,6 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
 
     const csv = [headers, ...rows].map((row) => row.join(",")).join("\n");
 
-    // Download
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -87,80 +107,24 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
     URL.revokeObjectURL(url);
   };
 
-  const columns = [
-    {
-      key: "developer_alias",
-      header: "Developer",
-      render: (task: Task) => (
-        <span className="font-medium">{task.developer_alias}</span>
-      ),
-    },
-    {
-      key: "project_slug",
-      header: "Project",
-      render: (task: Task) => (
-        <Badge variant="secondary">{task.project_slug}</Badge>
-      ),
-    },
-    {
-      key: "tool_source",
-      header: "Provider",
-      render: (task: Task) => (
-        <ProviderBadge providerId={task.tool_source} showLabel={false} />
-      ),
-    },
-    {
-      key: "tokens",
-      header: "Tokens",
-      render: (task: Task) => (
-        <span className="text-sm">
-          {formatTokens(task.input_tokens + task.output_tokens)}
-        </span>
-      ),
-    },
-    {
-      key: "cost_usd",
-      header: "Cost",
-      render: (task: Task) => (
-        <span className="font-medium text-green-500">
-          {formatCost(parseFloat(task.cost_usd))}
-        </span>
-      ),
-    },
-    {
-      key: "files_changed",
-      header: "Files",
-      render: (task: Task) => task.files_changed,
-    },
-    {
-      key: "task_duration_sec",
-      header: "Duration",
-      render: (task: Task) => {
-        const secs = task.task_duration_sec;
-        if (secs < 60) return `${secs}s`;
-        return `${Math.floor(secs / 60)}m`;
-      },
-    },
-    {
-      key: "created_at",
-      header: "Time",
-      render: (task: Task) => (
-        <span className="text-sm text-muted-foreground">
-          {new Date(task.created_at).toLocaleString()}
-        </span>
-      ),
-    },
-  ];
+  const formatDuration = (seconds: number) => {
+    if (seconds < 60) return `${seconds}s`;
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+  };
 
-  // Calculate summary stats
-  const totalCost = tasks.reduce(
-    (sum, task) => sum + parseFloat(task.cost_usd),
+  // Calculate summary stats from session groups
+  const totalCost = sessionGroups.reduce(
+    (sum, group) => sum + group.totalCost,
     0
   );
-  const totalTokens = tasks.reduce(
-    (sum, task) => sum + task.input_tokens + task.output_tokens,
+  const totalTokens = sessionGroups.reduce(
+    (sum, group) => sum + group.totalTokens,
     0
   );
+
+  const totalPages = Math.ceil(pagination.totalSessions / pagination.pageSize);
 
   return (
     <div className="space-y-4">
@@ -168,8 +132,12 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
       <div className="flex items-center justify-between rounded-lg border border-border bg-card p-4">
         <div className="flex items-center gap-6 text-sm">
           <div>
-            <span className="text-muted-foreground">Total: </span>
-            <span className="font-medium">{pagination.total} tasks</span>
+            <span className="text-muted-foreground">Sessions: </span>
+            <span className="font-medium">{sessionGroups.length}</span>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Tasks: </span>
+            <span className="font-medium">{pagination.totalTasks}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Cost: </span>
@@ -183,8 +151,15 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={isRefreshing}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+          >
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`}
+            />
             Refresh
           </Button>
           <Button variant="outline" size="sm" onClick={handleExportCSV}>
@@ -194,29 +169,153 @@ export function TaskList({ tasks, pagination }: TaskListProps) {
         </div>
       </div>
 
-      {/* Data Table */}
-      <DataTable
-        columns={columns}
-        data={tasks}
-        keyField="id"
-        emptyMessage="No tasks found. Connect the CLI to start tracking."
-        pagination={{
-          page: pagination.page,
-          pageSize: pagination.pageSize,
-          total: pagination.total,
-          onPageChange: handlePageChange,
-        }}
-        onRowClick={setSelectedTask}
-      />
+      {/* Session Groups */}
+      <div className="space-y-2">
+        {sessionGroups.length === 0 ? (
+          <div className="rounded-lg border border-border bg-card p-8 text-center text-muted-foreground">
+            No tasks found. Connect the CLI to start tracking.
+          </div>
+        ) : (
+          sessionGroups.map((group) => (
+            <Collapsible
+              key={group.session_id}
+              open={expandedSessions.has(group.session_id)}
+              onOpenChange={() => toggleSession(group.session_id)}
+            >
+              <div className="rounded-lg border border-border bg-card overflow-hidden">
+                <CollapsibleTrigger className="w-full">
+                  <div className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-4">
+                      <ChevronRight
+                        className={`h-4 w-4 text-muted-foreground transition-transform ${
+                          expandedSessions.has(group.session_id) ? "rotate-90" : ""
+                        }`}
+                      />
+                      <div className="text-left">
+                        <div className="flex items-center gap-2">
+                          <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="font-mono text-sm truncate max-w-[200px]" title={group.session_id}>
+                            {group.session_id === "no-session"
+                              ? "No Session"
+                              : group.session_id.slice(0, 8) + "..."}
+                          </span>
+                          <Badge variant="secondary" className="text-xs">
+                            {group.tasks.length} task{group.tasks.length !== 1 ? "s" : ""}
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-3 mt-1 text-xs text-muted-foreground">
+                          <span>{group.developer}</span>
+                          <span>•</span>
+                          <span>{group.project}</span>
+                          <span>•</span>
+                          <span>{new Date(group.lastTask).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-6 text-sm">
+                      <div className="flex items-center gap-1.5 text-muted-foreground">
+                        <Clock className="h-3.5 w-3.5" />
+                        <span>{formatDuration(group.totalDuration)}</span>
+                      </div>
+                      <div className="text-muted-foreground">
+                        {formatTokens(group.totalTokens)}
+                      </div>
+                      <div className="flex items-center gap-1.5 text-green-500 font-medium">
+                        <Coins className="h-3.5 w-3.5" />
+                        <span>{formatCost(group.totalCost)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent>
+                  <div className="border-t border-border">
+                    {group.tasks
+                      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+                      .map((task) => (
+                        <div
+                          key={task.id}
+                          onClick={() => setSelectedTask(task)}
+                          className="flex items-center justify-between px-4 py-3 hover:bg-muted/30 cursor-pointer border-b border-border last:border-b-0 transition-colors"
+                        >
+                          <div className="flex items-center gap-4">
+                            <div className="w-4" /> {/* Spacer for alignment */}
+                            <ProviderBadge providerId={task.tool_source} showLabel={false} />
+                            <div>
+                              <div className="text-sm font-medium">
+                                {task.model_name}
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {new Date(task.created_at).toLocaleTimeString()}
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-6 text-sm">
+                            <span className="text-muted-foreground">
+                              {formatTokens(task.input_tokens + task.output_tokens)}
+                            </span>
+                            <span className="text-muted-foreground">
+                              {task.files_changed} files
+                            </span>
+                            <span className="text-green-500 font-medium">
+                              {formatCost(parseFloat(task.cost_usd))}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                </CollapsibleContent>
+              </div>
+            </Collapsible>
+          ))
+        )}
+      </div>
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between border-t border-border pt-4">
+          <p className="text-sm text-muted-foreground">
+            Page {pagination.page} of {totalPages}
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page <= 1}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page >= totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Task Detail Sheet */}
       <Sheet open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
-        <SheetContent className="w-[520px] sm:max-w-[520px] p-6 flex flex-col">
-          <SheetHeader className="pb-4 shrink-0">
-            <SheetTitle>Task Details</SheetTitle>
-          </SheetHeader>
-          <div className="flex-1 overflow-y-auto">
-            {selectedTask && <TaskDetailPanel task={selectedTask} />}
+        <SheetContent className="w-[520px] sm:max-w-[520px] overflow-hidden">
+          <div className="flex flex-col h-full">
+            <SheetHeader className="shrink-0">
+              <SheetTitle>Task Details</SheetTitle>
+              {selectedTask?.session_id && (
+                <p
+                  className="text-xs text-muted-foreground font-mono truncate"
+                  title={selectedTask.session_id}
+                >
+                  Session: {selectedTask.session_id}
+                </p>
+              )}
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto px-4 pb-4">
+              {selectedTask && <TaskDetailPanel task={selectedTask} />}
+            </div>
           </div>
         </SheetContent>
       </Sheet>

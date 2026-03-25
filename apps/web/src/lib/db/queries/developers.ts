@@ -6,7 +6,17 @@ import { eq, desc, sql, and, gte } from "drizzle-orm";
  * Get all developers for a workspace with their stats
  * CRITICAL: Always filter by workspace_id
  */
-export async function getDevelopersByWorkspace(workspaceId: string) {
+export async function getDevelopersByWorkspace(
+  workspaceId: string,
+  options: { provider?: string } = {}
+) {
+  const { provider } = options;
+
+  const conditions = [eq(tasks.workspace_id, workspaceId)];
+  if (provider) {
+    conditions.push(eq(tasks.tool_source, provider));
+  }
+
   const result = await db
     .select({
       alias: tasks.developer_alias,
@@ -17,7 +27,7 @@ export async function getDevelopersByWorkspace(workspaceId: string) {
       providers: sql<string>`array_agg(distinct ${tasks.tool_source})::text`,
     })
     .from(tasks)
-    .where(eq(tasks.workspace_id, workspaceId))
+    .where(and(...conditions))
     .groupBy(tasks.developer_alias)
     .orderBy(desc(sql`max(${tasks.created_at})`));
 

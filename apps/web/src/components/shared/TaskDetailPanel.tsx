@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCost, formatTokens, PROVIDERS, type ProviderId, type FileChangeDetail } from "@codeusage/shared";
+import { formatCost, formatTokens, formatModelName, PROVIDERS, type ProviderId, type FileChangeDetail } from "@codeusage/shared";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -12,7 +12,14 @@ import {
   FolderKanban,
   Calendar,
   Cpu,
+  Info,
 } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ToolUsage {
   name: string;
@@ -58,17 +65,15 @@ export function TaskDetailPanel({ task }: TaskDetailPanelProps) {
     <div className="space-y-5">
       {/* Basic Info Grid */}
       <div className="space-y-2 text-sm">
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex items-center gap-2">
-            <User className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-muted-foreground">Developer:</span>
-            <span className="font-medium">{task.developer_alias}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <FolderKanban className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="text-muted-foreground">Project:</span>
-            <span className="font-medium">{task.project_slug}</span>
-          </div>
+        <div className="flex items-center gap-2">
+          <User className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-muted-foreground shrink-0">Developer:</span>
+          <span className="font-medium truncate">{task.developer_alias}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <FolderKanban className="h-4 w-4 text-muted-foreground shrink-0" />
+          <span className="text-muted-foreground shrink-0">Project:</span>
+          <span className="font-medium truncate">{task.project_slug}</span>
         </div>
         <div className="flex items-center gap-2">
           <Cpu className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -80,7 +85,7 @@ export function TaskDetailPanel({ task }: TaskDetailPanelProps) {
         <div className="flex items-center gap-2">
           <Cpu className="h-4 w-4 text-muted-foreground shrink-0" />
           <span className="text-muted-foreground">Model:</span>
-          <span className="font-medium">{task.model_name}</span>
+          <span className="font-medium">{formatModelName(task.model_name)}</span>
         </div>
         <div className="flex items-center gap-2">
           <Calendar className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -146,33 +151,55 @@ export function TaskDetailPanel({ task }: TaskDetailPanelProps) {
               <FileCode className="h-4 w-4 text-muted-foreground" />
               <h4 className="text-sm font-medium text-muted-foreground">Files Changed</h4>
             </div>
-            <div className="space-y-1.5">
-              {task.files_changed_details.map((file) => {
-                // Get just the filename from the path
-                const filename = file.path.split('/').pop() || file.path;
-                // Get the directory path
-                const dirPath = file.path.includes('/')
-                  ? file.path.substring(0, file.path.lastIndexOf('/'))
-                  : '';
+            <TooltipProvider delay={0}>
+              <div className="space-y-2">
+                {task.files_changed_details.map((file) => {
+                  // Get just the filename from the path
+                  const filename = file.path.split('/').pop() || file.path;
+                  // Get shortened directory path (last 2-3 segments)
+                  const pathParts = file.path.split('/');
+                  pathParts.pop(); // Remove filename
+                  const dirPath = pathParts.length > 3
+                    ? '.../' + pathParts.slice(-2).join('/')
+                    : pathParts.join('/');
+                  const totalChanges = file.additions + file.deletions;
 
-                return (
-                  <div key={file.path} className="flex items-center justify-between text-sm font-mono">
-                    <div className="flex-1 min-w-0 mr-3">
-                      <span className="text-foreground">{filename}</span>
-                      {dirPath && (
-                        <span className="text-muted-foreground text-xs ml-1 truncate">
-                          {dirPath}
-                        </span>
-                      )}
+                  return (
+                    <div key={file.path} className="rounded-md border border-border p-2.5">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0 flex-1 flex items-start gap-2">
+                          <Tooltip>
+                            <TooltipTrigger className="shrink-0 mt-0.5 text-muted-foreground hover:text-foreground transition-colors">
+                              <Info className="h-3.5 w-3.5" />
+                            </TooltipTrigger>
+                            <TooltipContent side="top" className="max-w-md">
+                              <p className="font-mono text-xs break-all">{file.path}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-mono text-sm font-medium truncate">
+                              {filename}
+                            </p>
+                            {dirPath && (
+                              <p className="font-mono text-xs text-muted-foreground truncate">
+                                {dirPath}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                        <div className="shrink-0 text-right">
+                          <p className="text-xs text-muted-foreground">{totalChanges} changes</p>
+                          <div className="flex items-center gap-1.5 text-xs font-mono">
+                            <span className="text-green-500">+{file.additions}</span>
+                            <span className="text-red-500">-{file.deletions}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0 text-xs">
-                      <span className="text-green-500">+{file.additions}</span>
-                      <span className="text-red-500">-{file.deletions}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            </TooltipProvider>
           </div>
         </>
       )}
