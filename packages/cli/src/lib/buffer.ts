@@ -2,9 +2,9 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 import { randomUUID } from "crypto";
-import type { TelemetryPayload } from "@afterburn/shared";
+import type { TelemetryPayload } from "@codeusage/shared";
 
-const BUFFER_DIR = path.join(os.homedir(), ".afterburn", "buffer");
+const BUFFER_DIR = path.join(os.homedir(), ".codeusage", "buffer");
 const MAX_BUFFER = 50;
 const WARN_THRESHOLD = 40;
 

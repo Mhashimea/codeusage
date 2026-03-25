@@ -13,7 +13,7 @@ import {
   DollarSign,
   FileText,
   Settings,
-  Flame,
+  BarChart2,
   LogOut,
   ChevronsUpDown,
 } from "lucide-react";
@@ -62,11 +62,11 @@ export function Sidebar() {
       <aside className="flex h-screen w-60 flex-col bg-background border-r border-border">
         {/* Logo */}
         <div className="flex h-14 items-center gap-3 px-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-orange-500">
-            <Flame className="h-5 w-5 text-white" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-500">
+            <BarChart2 className="h-5 w-5 text-white" />
           </div>
           <span className="text-base font-semibold text-foreground">
-            Afterburn
+            CodeUsage
           </span>
         </div>
 

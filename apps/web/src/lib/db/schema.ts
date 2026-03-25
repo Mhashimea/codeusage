@@ -8,11 +8,11 @@ import {
   jsonb,
   index,
 } from "drizzle-orm/pg-core";
-import type { ToolUsage, FileChangeDetail } from "@afterburn/shared";
+import type { ToolUsage, FileChangeDetail } from "@codeusage/shared";
 
 /**
  * Workspaces table
- * Each workspace represents a team/organization using Afterburn
+ * Each workspace represents a team/organization using CodeUsage
  */
 export const workspaces = pgTable("workspaces", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -1,11 +1,11 @@
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 
-const PREFIX = "ab-ws-";
+const PREFIX = "cu-ws-";
 
 /**
  * Generate a new workspace API key
- * Format: ab-ws-{36 hex chars}
+ * Format: cu-ws-{36 hex chars}
  */
 export function generateApiKey(): string {
   return PREFIX + randomBytes(18).toString("hex");
@@ -44,5 +44,5 @@ export function maskApiKey(key: string): string {
  * Validate API key format
  */
 export function isValidApiKeyFormat(key: string): boolean {
-  return /^ab-ws-[a-f0-9]{36}$/.test(key);
+  return /^cu-ws-[a-f0-9]{36}$/.test(key);
 }

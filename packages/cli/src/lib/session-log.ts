@@ -8,7 +8,7 @@ import {
   getProviderById,
   isProviderActive,
   DEFAULT_PROVIDER,
-} from "@afterburn/shared";
+} from "@codeusage/shared";
 
 /**
  * Get git root directory for the current working directory

@@ -1,6 +1,6 @@
 "use client";
 
-import { PROVIDERS, type ProviderId } from "@afterburn/shared";
+import { PROVIDERS, type ProviderId } from "@codeusage/shared";
 import { cn } from "@/lib/utils";
 
 interface ProviderBadgeProps {

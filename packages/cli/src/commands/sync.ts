@@ -13,7 +13,7 @@ export const syncCommand = new Command("sync")
   .description("Manually flush buffered tasks to the server")
   .action(async () => {
     if (!isConfigured()) {
-      console.log(chalk.yellow("\nNot configured. Run: afterburn init\n"));
+      console.log(chalk.yellow("\nNot configured. Run: codeusage init\n"));
       return;
     }
 

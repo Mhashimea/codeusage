@@ -76,7 +76,7 @@ export function DeveloperRoster({ workspaceId }: DeveloperRosterProps) {
             No developers have synced tasks yet.
             <br />
             <span className="text-sm">
-              Have your team run <code className="rounded bg-muted px-1">afterburn init</code>
+              Have your team run <code className="rounded bg-muted px-1">codeusage init</code>
             </span>
           </p>
         ) : (

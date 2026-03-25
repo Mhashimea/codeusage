@@ -25,7 +25,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
 # Build shared package first
-RUN bun run --filter @afterburn/shared build
+RUN bun run --filter @codeusage/shared build
 
 # Build Next.js app
 ENV NEXT_TELEMETRY_DISABLED=1

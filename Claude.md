@@ -1,4 +1,4 @@
-# Afterburn — CLAUDE.md
+# CodeUsage — CLAUDE.md
 
 > This file is read by Claude Code at the start of every session.
 > Keep it accurate. Update it when architecture decisions change.
@@ -7,12 +7,12 @@
 
 ## What this project is
 
-Afterburn is a cloud-based AI coding tool intelligence platform. It gives engineering teams and project managers visibility into how AI coding tools (Claude Code, Codex, and future agents) are used across their organisation — who is using them, on which projects, how much it costs, and what changed in each task.
+CodeUsage is a cloud-based AI coding tool intelligence platform. It gives engineering teams and project managers visibility into how AI coding tools (Claude Code, Codex, and future agents) are used across their organisation — who is using them, on which projects, how much it costs, and what changed in each task.
 
 Two deliverables:
 
 1. **`apps/web`** — Next.js application serving both the dashboard (frontend) and the API (backend via Route Handlers).
-2. **`packages/cli`** — npm package (`afterburn`) that developers install on their machines. Hooks into Claude Code's native event system and sends task-level telemetry to the API.
+2. **`packages/cli`** — npm package (`codeusage`) that developers install on their machines. Hooks into Claude Code's native event system and sends task-level telemetry to the API.
 
 ---
 
@@ -43,21 +43,21 @@ Two deliverables:
 | Build             | tsup (single CJS bundle, zero runtime external deps)                     |
 | Terminal colours  | chalk                                                                    |
 | Spinners          | ora                                                                      |
-| Config management | conf (handles `~/.afterburn/config.json`, cross-platform, atomic writes) |
+| Config management | conf (handles `~/.codeusage/config.json`, cross-platform, atomic writes) |
 | Shell commands    | execa (git remote detection, etc.)                                       |
 | HTTP client       | native `fetch` (Node 18+) — no axios                                     |
 | Validation        | zod (shared with web via `packages/shared`)                              |
 
 ### Shared (`packages/shared`)
 
-TypeScript types, Zod schemas, and `estimateCost()` utility. Used by both the CLI and the web app. Import as `@afterburn/shared`.
+TypeScript types, Zod schemas, and `estimateCost()` utility. Used by both the CLI and the web app. Import as `@codeusage/shared`.
 
 ---
 
 ## Monorepo structure
 
 ```
-afterburn/
+codeusage/
 ├── apps/
 │   └── web/                          # Next.js app (dashboard + API)
 │       ├── app/
@@ -103,7 +103,7 @@ afterburn/
 │       │   │       └── developers.ts
 │       │   ├── auth.ts               # NextAuth config
 │       │   ├── api-key.ts            # key generation + bcrypt hashing
-│       │   └── cost.ts               # re-exports from @afterburn/shared
+│       │   └── cost.ts               # re-exports from @codeusage/shared
 │       └── hooks/                    # client-side React hooks
 │           ├── use-tasks.ts
 │           ├── use-developers.ts
@@ -211,7 +211,7 @@ export const tasks = pgTable(
 2. Hash the key with bcrypt and look up `workspaces` by `api_key_hash`
 3. Return `401` if not found — never reveal which workspace a key belongs to in the error
 
-**Validation:** parse body with the shared Zod schema from `@afterburn/shared`. Return `400` with Zod's error message on failure.
+**Validation:** parse body with the shared Zod schema from `@codeusage/shared`. Return `400` with Zod's error message on failure.
 
 **Sanity check:** reject if `cost_usd > 50` — return `400`, log the anomaly. No single task costs this much; it means a calculation error.
 
@@ -228,10 +228,10 @@ export const tasks = pgTable(
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 
-const PREFIX = "ab-ws-";
+const PREFIX = "cu-ws-";
 
 export function generateApiKey(): string {
-  // "ab-ws-" + 36 hex chars = recognisable, hard to guess
+  // "cu-ws-" + 36 hex chars = recognisable, hard to guess
   return PREFIX + randomBytes(18).toString("hex");
 }
 
@@ -247,13 +247,13 @@ export async function verifyApiKey(
 }
 ```
 
-The plaintext key is shown to the PM exactly once — on creation and after rotation. Never stored. The Settings page shows `ab-ws-••••••••••••••••••••••••` with a Copy button that is only functional immediately after generation/rotation. After that the button is disabled.
+The plaintext key is shown to the PM exactly once — on creation and after rotation. Never stored. The Settings page shows `cu-ws-••••••••••••••••••••••••` with a Copy button that is only functional immediately after generation/rotation. After that the button is disabled.
 
 ---
 
 ## Cost estimation
 
-Defined in `packages/shared/src/cost.ts`. Import from `@afterburn/shared` everywhere. Never redefine inline.
+Defined in `packages/shared/src/cost.ts`. Import from `@codeusage/shared` everywhere. Never redefine inline.
 
 ```typescript
 export const PRICING_LAST_UPDATED = "2026-03-01";
@@ -298,7 +298,7 @@ Update `MODEL_PRICING` and `PRICING_LAST_UPDATED` when Anthropic publishes prici
 
 ### Hook registration
 
-During `afterburn init`, the CLI writes to one of two files:
+During `codeusage init`, the CLI writes to one of two files:
 
 - **Global scope:** `~/.claude/settings.json`
 - **Project scope:** `.claude/settings.json` (current working directory)
@@ -309,19 +309,19 @@ During `afterburn init`, the CLI writes to one of two files:
     "Stop": [
       {
         "matcher": "",
-        "hooks": [{ "type": "command", "command": "afterburn hook stop" }]
+        "hooks": [{ "type": "command", "command": "codeusage hook stop" }]
       }
     ],
     "PostToolUse": [
       {
         "matcher": "",
-        "hooks": [{ "type": "command", "command": "afterburn hook post-tool-use" }]
+        "hooks": [{ "type": "command", "command": "codeusage hook post-tool-use" }]
       }
     ],
     "Notification": [
       {
         "matcher": "",
-        "hooks": [{ "type": "command", "command": "afterburn hook notification" }]
+        "hooks": [{ "type": "command", "command": "codeusage hook notification" }]
       }
     ]
   }
@@ -340,19 +340,19 @@ Read only the most recent `.jsonl` file for the current working directory. Extra
 
 ### Project detection — priority order
 
-1. `project_overrides[cwd]` in `~/.afterburn/config.json`
+1. `project_overrides[cwd]` in `~/.codeusage/config.json`
 2. `git remote get-url origin` → parse repo name from URL (via execa)
 3. `default_project` field in config (optional fallback set during init)
 4. `path.basename(process.cwd())`
 
 If the resolved value is `"__ignored__"`, skip the task silently — do not sync, do not warn.
 
-If the result is a bare directory name with no git remote, print a dim hint: `To set a project name: afterburn project set <name>` — then sync with the directory name anyway.
+If the result is a bare directory name with no git remote, print a dim hint: `To set a project name: codeusage project set <name>` — then sync with the directory name anyway.
 
 ### Config shape
 
 ```typescript
-interface AfterBurnConfig {
+interface CodeUsageConfig {
   workspace_key: string;
   developer_alias: string;
   hook_scope: "global" | "project";
@@ -366,7 +366,7 @@ Managed by the `conf` package. Atomic writes. XDG-compliant paths on Linux.
 
 ### Offline buffer
 
-Path: `~/.afterburn/buffer/{task_id}.json`
+Path: `~/.codeusage/buffer/{task_id}.json`
 
 On every sync:
 
@@ -421,7 +421,7 @@ bun db:studio       # open Drizzle Studio (local browser)
 
 - `"strict": true` in all `tsconfig.json` files
 - No `any` — use `unknown` and narrow, or use the shared Zod schemas
-- All shared types and schemas come from `@afterburn/shared`
+- All shared types and schemas come from `@codeusage/shared`
 - `async/await` everywhere — no `.then()` chains
 - Error handling: never swallow silently. API routes return `{ error: string }` JSON. CLI prints a chalk warning.
 - File naming: `kebab-case.ts` for all files, `PascalCase` for React components
@@ -480,17 +480,17 @@ node packages/cli/dist/index.js hook stop --dry-run
 
 ```bash
 # apps/web/.env.local
-DATABASE_URL="postgresql://postgres:password@localhost:5432/afterburn"
+DATABASE_URL="postgresql://postgres:password@localhost:5432/codeusage"
 NEXTAUTH_SECRET="dev-secret-change-in-prod"
 NEXTAUTH_URL="http://localhost:3003"
 
 # apps/web (Vercel — production)
 DATABASE_URL="postgresql://..."   # Neon or Supabase
 NEXTAUTH_SECRET="..."
-NEXTAUTH_URL="https://app.afterburn.dev"
+NEXTAUTH_URL="https://codeusage.dev"
 
 # packages/cli — no env vars
-# All config lives in ~/.afterburn/config.json via conf
+# All config lives in ~/.codeusage/config.json via conf
 ```
 
 ---
@@ -499,4 +499,4 @@ NEXTAUTH_URL="https://app.afterburn.dev"
 
 **Phase 1 — MVP (Beta).** Claude Code integration only. No Codex, no AI summaries, no interactive file review, no SSO, no RBAC.
 
-Build only what is described in this file. If a feature is not mentioned here, check the PRD (`Afterburn_PRD_v2.0.docx`) before building it. When in doubt, ask.
+Build only what is described in this file. If a feature is not mentioned here, check the PRD (`CodeUsage_PRD_v2.0.docx`) before building it. When in doubt, ask.

@@ -6,7 +6,7 @@ import {
   getProviderById,
   isProviderActive,
   DEFAULT_PROVIDER,
-} from "@afterburn/shared";
+} from "@codeusage/shared";
 
 /**
  * Claude Code hook command definition
@@ -66,7 +66,7 @@ interface ProviderHookConfig {
   settingsPath: (scope: "global" | "project", cwd: string) => string;
   registerHooks: (settings: unknown) => unknown;
   unregisterHooks: (settings: unknown) => unknown;
-  hasAfterburn: (settings: unknown) => boolean;
+  hasCodeUsage: (settings: unknown) => boolean;
 }
 
 /**
@@ -110,34 +110,34 @@ const claudeCodeConfig: ProviderHookConfig = {
 
     // Stop hook - include --provider flag so hook knows source
     const stopHooks = s.hooks.Stop || [];
-    const hasStopAfterburn = stopHooks.some((entry) =>
-      entry.hooks?.some((h) => h.command.startsWith("afterburn"))
+    const hasStopCodeUsage = stopHooks.some((entry) =>
+      entry.hooks?.some((h) => h.command.startsWith("codeusage"))
     );
-    if (!hasStopAfterburn) {
-      s.hooks.Stop = [...stopHooks, createClaudeHookEntry("afterburn hook stop --provider claude_code")];
+    if (!hasStopCodeUsage) {
+      s.hooks.Stop = [...stopHooks, createClaudeHookEntry("codeusage hook stop --provider claude_code")];
     }
 
     // PostToolUse hook
     const postToolHooks = s.hooks.PostToolUse || [];
-    const hasPostToolAfterburn = postToolHooks.some((entry) =>
-      entry.hooks?.some((h) => h.command.startsWith("afterburn"))
+    const hasPostToolCodeUsage = postToolHooks.some((entry) =>
+      entry.hooks?.some((h) => h.command.startsWith("codeusage"))
     );
-    if (!hasPostToolAfterburn) {
+    if (!hasPostToolCodeUsage) {
       s.hooks.PostToolUse = [
         ...postToolHooks,
-        createClaudeHookEntry("afterburn hook post-tool-use --provider claude_code"),
+        createClaudeHookEntry("codeusage hook post-tool-use --provider claude_code"),
       ];
     }
 
     // Notification hook
     const notifHooks = s.hooks.Notification || [];
-    const hasNotifAfterburn = notifHooks.some((entry) =>
-      entry.hooks?.some((h) => h.command.startsWith("afterburn"))
+    const hasNotifCodeUsage = notifHooks.some((entry) =>
+      entry.hooks?.some((h) => h.command.startsWith("codeusage"))
     );
-    if (!hasNotifAfterburn) {
+    if (!hasNotifCodeUsage) {
       s.hooks.Notification = [
         ...notifHooks,
-        createClaudeHookEntry("afterburn hook notification --provider claude_code"),
+        createClaudeHookEntry("codeusage hook notification --provider claude_code"),
       ];
     }
 
@@ -149,27 +149,27 @@ const claudeCodeConfig: ProviderHookConfig = {
 
     if (s.hooks.Stop) {
       s.hooks.Stop = s.hooks.Stop.filter(
-        (entry) => !entry.hooks?.some((h) => h.command.startsWith("afterburn"))
+        (entry) => !entry.hooks?.some((h) => h.command.startsWith("codeusage"))
       );
     }
     if (s.hooks.PostToolUse) {
       s.hooks.PostToolUse = s.hooks.PostToolUse.filter(
-        (entry) => !entry.hooks?.some((h) => h.command.startsWith("afterburn"))
+        (entry) => !entry.hooks?.some((h) => h.command.startsWith("codeusage"))
       );
     }
     if (s.hooks.Notification) {
       s.hooks.Notification = s.hooks.Notification.filter(
-        (entry) => !entry.hooks?.some((h) => h.command.startsWith("afterburn"))
+        (entry) => !entry.hooks?.some((h) => h.command.startsWith("codeusage"))
       );
     }
 
     return s;
   },
-  hasAfterburn: (settings: unknown) => {
+  hasCodeUsage: (settings: unknown) => {
     const s = settings as ClaudeSettings;
     if (!s?.hooks?.Stop) return false;
     return s.hooks.Stop.some((entry) =>
-      entry.hooks?.some((h) => h.command.startsWith("afterburn"))
+      entry.hooks?.some((h) => h.command.startsWith("codeusage"))
     );
   },
 };
@@ -193,13 +193,13 @@ const codexConfig: ProviderHookConfig = {
 
     // Stop hook - include --provider flag so hook knows source
     const stopHooks = s.hooks.Stop || [];
-    const hasStopAfterburn = stopHooks.some((h) =>
-      h.command.startsWith("afterburn")
+    const hasStopCodeUsage = stopHooks.some((h) =>
+      h.command.startsWith("codeusage")
     );
-    if (!hasStopAfterburn) {
+    if (!hasStopCodeUsage) {
       s.hooks.Stop = [
         ...stopHooks,
-        createCodexHookCommand("afterburn hook stop --provider codex", "Syncing to Afterburn..."),
+        createCodexHookCommand("codeusage hook stop --provider codex", "Syncing to CodeUsage..."),
       ];
     }
 
@@ -211,16 +211,16 @@ const codexConfig: ProviderHookConfig = {
 
     if (s.hooks.Stop) {
       s.hooks.Stop = s.hooks.Stop.filter(
-        (h) => !h.command.startsWith("afterburn")
+        (h) => !h.command.startsWith("codeusage")
       );
     }
 
     return s;
   },
-  hasAfterburn: (settings: unknown) => {
+  hasCodeUsage: (settings: unknown) => {
     const s = settings as CodexSettings;
     if (!s?.hooks?.Stop) return false;
-    return s.hooks.Stop.some((h) => h.command.startsWith("afterburn"));
+    return s.hooks.Stop.some((h) => h.command.startsWith("codeusage"));
   },
 };
 
@@ -329,7 +329,7 @@ export async function areHooksRegistered(
   try {
     const content = await fs.readFile(filePath, "utf-8");
     const settings: unknown = JSON.parse(content);
-    return config.hasAfterburn(settings);
+    return config.hasCodeUsage(settings);
   } catch {
     // File doesn't exist
   }

@@ -1,12 +1,12 @@
 {
-  "name": "@hashim_ea/afterburn",
+  "name": "@hashim_ea/codeusage",
   "version": "0.1.9",
-  "description": "CLI for Afterburn - AI coding tool intelligence platform",
+  "description": "CLI for CodeUsage - AI coding tool intelligence platform",
   "author": "Hashim",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "afterburn": "./dist/index.cjs"
+    "codeusage": "./dist/index.cjs"
   },
   "main": "./dist/index.cjs",
   "files": [
@@ -20,6 +20,7 @@
     "pack:tarball": "bun run build && npm pack"
   },
   "dependencies": {
+    "@codeusage/shared": "workspace:*",
     "@inquirer/input": "^5.0.10",
     "@inquirer/select": "^5.1.2",
     "chalk": "^5.4.1",

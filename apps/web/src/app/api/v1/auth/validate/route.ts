@@ -4,7 +4,7 @@ import { getWorkspaceByApiKey } from "@/lib/db/queries/workspaces";
 /**
  * GET /api/v1/auth/validate
  * Validates an API key and returns workspace info
- * Used by CLI during `afterburn init`
+ * Used by CLI during `codeusage init`
  */
 export async function GET(request: NextRequest) {
   try {

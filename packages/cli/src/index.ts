@@ -13,8 +13,8 @@ import { hookNotificationCommand } from "./hooks/notification.js";
 const program = new Command();
 
 program
-  .name("afterburn")
-  .description("CLI for Afterburn - AI coding tool intelligence platform")
+  .name("codeusage")
+  .description("CLI for CodeUsage - AI coding tool intelligence platform")
   .version("0.1.8");
 
 // Main commands

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { telemetryPayloadSchema } from "@afterburn/shared";
+import { telemetryPayloadSchema } from "@codeusage/shared";
 import { getWorkspaceByApiKey } from "@/lib/db/queries/workspaces";
 import { insertTask } from "@/lib/db/queries/tasks";
 import { broadcastToWorkspace } from "@/app/api/v1/stream/route";

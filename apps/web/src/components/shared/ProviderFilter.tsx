@@ -7,7 +7,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { PROVIDERS, type ProviderId } from "@afterburn/shared";
+import { PROVIDERS, type ProviderId } from "@codeusage/shared";
 
 export type ProviderFilterValue = ProviderId | "all";
 

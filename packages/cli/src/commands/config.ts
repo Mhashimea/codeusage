@@ -16,24 +16,24 @@ import {
   isProviderActive,
   getAllProviders,
   type ProviderId,
-} from "@afterburn/shared";
+} from "@codeusage/shared";
 
 export const configCommand = new Command("config")
-  .description("View or modify Afterburn configuration");
+  .description("View or modify CodeUsage configuration");
 
 configCommand
   .command("show")
   .description("Show current configuration")
   .action(async () => {
     if (!isConfigured()) {
-      console.log(chalk.yellow("\nNot configured. Run: afterburn init\n"));
+      console.log(chalk.yellow("\nNot configured. Run: codeusage init\n"));
       return;
     }
 
     const config = getConfig();
     const enabledProviders = getProviders();
 
-    console.log(chalk.bold("\nAfterburn Configuration:\n"));
+    console.log(chalk.bold("\nCodeUsage Configuration:\n"));
 
     const maskedKey = config.workspace_key.slice(0, 10) + "••••••••••••";
     console.log(`  Workspace Key: ${chalk.dim(maskedKey)}`);
@@ -57,7 +57,7 @@ configCommand
   .description("Change hook scope (global or project)")
   .action(async (type: string) => {
     if (!isConfigured()) {
-      console.log(chalk.yellow("\nNot configured. Run: afterburn init\n"));
+      console.log(chalk.yellow("\nNot configured. Run: codeusage init\n"));
       return;
     }
 
@@ -93,7 +93,7 @@ configCommand
   .description("Change developer alias")
   .action(async (name: string) => {
     if (!isConfigured()) {
-      console.log(chalk.yellow("\nNot configured. Run: afterburn init\n"));
+      console.log(chalk.yellow("\nNot configured. Run: codeusage init\n"));
       return;
     }
 
@@ -108,8 +108,8 @@ configCommand
   .command("set-key <api-key>")
   .description("Update the workspace API key")
   .action(async (apiKey: string) => {
-    if (!apiKey.startsWith("ab-ws-")) {
-      console.log(chalk.red("\nInvalid API key format. Key should start with 'ab-ws-'\n"));
+    if (!apiKey.startsWith("cu-ws-")) {
+      console.log(chalk.red("\nInvalid API key format. Key should start with 'cu-ws-'\n"));
       return;
     }
 
@@ -126,7 +126,7 @@ const providerSubCommand = configCommand
   .description("Manage providers: add, remove, or list")
   .action(async (action: string, name?: string) => {
     if (!isConfigured()) {
-      console.log(chalk.yellow("\nNot configured. Run: afterburn init\n"));
+      console.log(chalk.yellow("\nNot configured. Run: codeusage init\n"));
       return;
     }
 
@@ -152,14 +152,14 @@ const providerSubCommand = configCommand
             console.log(chalk.dim(`    ${provider.displayName} ${statusBadge}`));
           }
         }
-        console.log(chalk.dim(`\nUse 'afterburn config provider add <name>' to enable a provider.\n`));
+        console.log(chalk.dim(`\nUse 'codeusage config provider add <name>' to enable a provider.\n`));
         break;
       }
 
       case "add": {
         if (!name) {
           console.log(chalk.red("\nPlease specify a provider name."));
-          console.log(chalk.dim("Example: afterburn config provider add codex\n"));
+          console.log(chalk.dim("Example: codeusage config provider add codex\n"));
           return;
         }
 
@@ -180,7 +180,7 @@ const providerSubCommand = configCommand
           return;
         }
 
-        console.log(chalk.bold(`\n🔥 Adding ${provider.displayName}\n`));
+        console.log(chalk.bold(`\n📊 Adding ${provider.displayName}\n`));
 
         // Register hooks for the new provider
         console.log(chalk.dim(`  Registering ${provider.displayName} hooks...`));
@@ -200,7 +200,7 @@ const providerSubCommand = configCommand
       case "remove": {
         if (!name) {
           console.log(chalk.red("\nPlease specify a provider name."));
-          console.log(chalk.dim("Example: afterburn config provider remove codex\n"));
+          console.log(chalk.dim("Example: codeusage config provider remove codex\n"));
           return;
         }
 
@@ -221,7 +221,7 @@ const providerSubCommand = configCommand
           return;
         }
 
-        console.log(chalk.bold(`\n🔥 Removing ${provider.displayName}\n`));
+        console.log(chalk.bold(`\n📊 Removing ${provider.displayName}\n`));
 
         // Unregister hooks
         console.log(chalk.dim(`  Unregistering ${provider.displayName} hooks...`));

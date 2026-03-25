@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCost, formatTokens, PROVIDERS, type ProviderId, type FileChangeDetail } from "@afterburn/shared";
+import { formatCost, formatTokens, PROVIDERS, type ProviderId, type FileChangeDetail } from "@codeusage/shared";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import {

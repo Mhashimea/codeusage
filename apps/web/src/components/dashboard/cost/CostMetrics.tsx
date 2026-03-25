@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { formatCost, formatTokens } from "@afterburn/shared";
+import { formatCost, formatTokens } from "@codeusage/shared";
 import { Coins, Zap, ListTodo, Calculator } from "lucide-react";
 
 interface CostMetricsProps {

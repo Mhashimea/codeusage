@@ -19,8 +19,8 @@
     "noUncheckedIndexedAccess": true,
     "exactOptionalPropertyTypes": true,
     "paths": {
-      "@afterburn/shared": ["./packages/shared/src"],
-      "@afterburn/shared/*": ["./packages/shared/src/*"]
+      "@codeusage/shared": ["./packages/shared/src"],
+      "@codeusage/shared/*": ["./packages/shared/src/*"]
     }
   },
   "exclude": ["node_modules", "**/dist", "**/.next"]

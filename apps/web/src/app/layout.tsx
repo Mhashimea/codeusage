@@ -16,7 +16,7 @@ const firaMono = Fira_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Afterburn - AI Coding Intelligence",
+  title: "CodeUsage - AI Coding Intelligence",
   description: "Track and analyze AI coding tool usage across your team",
 };
 

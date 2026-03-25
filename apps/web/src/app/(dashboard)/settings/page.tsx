@@ -44,15 +44,15 @@ async function SettingsContent() {
         <CardHeader>
           <CardTitle>CLI Installation</CardTitle>
           <CardDescription>
-            Install the Afterburn CLI to start tracking Claude Code usage
+            Install the CodeUsage CLI to start tracking Claude Code usage
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg bg-muted p-4 font-mono text-sm">
-            npm install -g @hashim_ea/afterburn
+            npm install -g @hashim_ea/codeusage
           </div>
           <div className="text-sm text-muted-foreground">
-            After installation, run <code className="rounded bg-muted px-1">afterburn init</code> and
+            After installation, run <code className="rounded bg-muted px-1">codeusage init</code> and
             enter your API key when prompted.
           </div>
         </CardContent>

@@ -60,7 +60,7 @@ export const taskRecordSchema = telemetryPayloadSchema.extend({
 /**
  * CLI configuration schema
  */
-export const afterBurnConfigSchema = z.object({
+export const codeUsageConfigSchema = z.object({
   workspace_key: z.string(),
   developer_alias: z.string(),
   provider: toolSourceSchema.default("claude_code"),
@@ -80,11 +80,11 @@ export const workspaceInfoSchema = z.object({
 
 /**
  * API key format validation
- * Format: ab-ws-{36 hex chars}
+ * Format: cu-ws-{36 hex chars}
  */
 export const apiKeySchema = z
   .string()
-  .regex(/^ab-ws-[a-f0-9]{36}$/, "Invalid API key format");
+  .regex(/^cu-ws-[a-f0-9]{36}$/, "Invalid API key format");
 
 /**
  * Task create response schema
@@ -157,7 +157,7 @@ export const parsedSessionDataSchema = z.object({
 export type ToolUsageInput = z.infer<typeof toolUsageSchema>;
 export type TelemetryPayloadInput = z.infer<typeof telemetryPayloadSchema>;
 export type TaskRecordInput = z.infer<typeof taskRecordSchema>;
-export type AfterBurnConfigInput = z.infer<typeof afterBurnConfigSchema>;
+export type CodeUsageConfigInput = z.infer<typeof codeUsageConfigSchema>;
 export type WorkspaceInfoInput = z.infer<typeof workspaceInfoSchema>;
 export type CodexSessionEventInput = z.infer<typeof codexSessionEventSchema>;
 export type ParsedSessionDataInput = z.infer<typeof parsedSessionDataSchema>;

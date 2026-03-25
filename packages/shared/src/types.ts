@@ -21,7 +21,7 @@ export interface FileChangeDetail {
 export type ToolSource = "claude_code" | "codex";
 
 /**
- * Hook scope - where the Afterburn hook is registered
+ * Hook scope - where the CodeUsage hook is registered
  */
 export type HookScope = "global" | "project";
 
@@ -72,9 +72,9 @@ export interface TelemetryPayload {
 }
 
 /**
- * CLI configuration stored in ~/.afterburn/config.json
+ * CLI configuration stored in ~/.codeusage/config.json
  */
-export interface AfterBurnConfig {
+export interface CodeUsageConfig {
   workspace_key: string;
   developer_alias: string;
   /** Primary AI coding tool provider (for backwards compatibility) */

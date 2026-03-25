@@ -1,9 +1,9 @@
 import Conf from "conf";
-import type { AfterBurnConfig, ToolSource } from "@afterburn/shared";
-import { DEFAULT_PROVIDER } from "@afterburn/shared";
+import type { CodeUsageConfig, ToolSource } from "@codeusage/shared";
+import { DEFAULT_PROVIDER } from "@codeusage/shared";
 
-const config = new Conf<AfterBurnConfig>({
-  projectName: "afterburn",
+const config = new Conf<CodeUsageConfig>({
+  projectName: "codeusage",
   defaults: {
     workspace_key: "",
     developer_alias: "",
@@ -14,26 +14,26 @@ const config = new Conf<AfterBurnConfig>({
   },
 });
 
-export function getConfig(): AfterBurnConfig {
+export function getConfig(): CodeUsageConfig {
   return config.store;
 }
 
-export function getConfigValue<K extends keyof AfterBurnConfig>(
+export function getConfigValue<K extends keyof CodeUsageConfig>(
   key: K
-): AfterBurnConfig[K] {
+): CodeUsageConfig[K] {
   return config.get(key);
 }
 
-export function setConfig<K extends keyof AfterBurnConfig>(
+export function setConfig<K extends keyof CodeUsageConfig>(
   key: K,
-  value: AfterBurnConfig[K]
+  value: CodeUsageConfig[K]
 ): void {
   config.set(key, value);
 }
 
-export function setFullConfig(newConfig: Partial<AfterBurnConfig>): void {
+export function setFullConfig(newConfig: Partial<CodeUsageConfig>): void {
   for (const [key, value] of Object.entries(newConfig)) {
-    config.set(key as keyof AfterBurnConfig, value);
+    config.set(key as keyof CodeUsageConfig, value);
   }
 }
 

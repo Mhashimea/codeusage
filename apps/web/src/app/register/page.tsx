@@ -13,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Flame, Loader2 } from "lucide-react";
+import { BarChart2, Loader2 } from "lucide-react";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -56,10 +56,10 @@ export default function RegisterPage() {
       <Card className="w-full max-w-sm px-2">
         <CardHeader className="text-center space-y-4 pb-2">
           <div className="flex items-center justify-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500">
-              <Flame className="h-5 w-5 text-white" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500">
+              <BarChart2 className="h-5 w-5 text-white" />
             </div>
-            <span className="text-xl font-semibold">Afterburn</span>
+            <span className="text-xl font-semibold">CodeUsage</span>
           </div>
           <div>
             <CardTitle className="text-2xl">Create workspace</CardTitle>

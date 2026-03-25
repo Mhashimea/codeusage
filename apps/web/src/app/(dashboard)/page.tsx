@@ -7,7 +7,7 @@ import { getCostByProvider } from "@/lib/db/queries/cost";
 import { ProviderIndicator } from "@/components/shared/ProviderBadge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatCost, formatTokens } from "@afterburn/shared";
+import { formatCost, formatTokens } from "@codeusage/shared";
 import { Coins, Zap, ListTodo, Users, FileCode, ArrowRight, Database } from "lucide-react";
 import { TopProjects } from "@/components/dashboard/overview/TopProjects";
 import { Heatmap } from "@/components/shared/Heatmap";

@@ -4,7 +4,7 @@ import * as readline from "readline";
 import { clearConfig, getConfig, isConfigured, getProvider } from "../lib/config.js";
 import { unregisterHooks } from "../lib/hooks-file.js";
 import { clearBuffer } from "../lib/buffer.js";
-import { getProviderById } from "@afterburn/shared";
+import { getProviderById } from "@codeusage/shared";
 
 function confirm(question: string): Promise<boolean> {
   const rl = readline.createInterface({
@@ -21,7 +21,7 @@ function confirm(question: string): Promise<boolean> {
 }
 
 export const logoutCommand = new Command("logout")
-  .description("Disconnect from Afterburn and remove local configuration")
+  .description("Disconnect from CodeUsage and remove local configuration")
   .option("-f, --force", "Skip confirmation prompt")
   .action(async (options) => {
     if (!isConfigured()) {
@@ -62,5 +62,5 @@ export const logoutCommand = new Command("logout")
     console.log(chalk.dim("  ✓ Configuration cleared"));
 
     console.log(chalk.green("\n✓ Logged out successfully\n"));
-    console.log(chalk.dim("Run 'afterburn init' to reconnect.\n"));
+    console.log(chalk.dim("Run 'codeusage init' to reconnect.\n"));
   });

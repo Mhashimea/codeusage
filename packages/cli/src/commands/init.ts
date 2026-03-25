@@ -12,13 +12,13 @@ import {
   getProviderById,
   isProviderActive,
   type ProviderId,
-} from "@afterburn/shared";
+} from "@codeusage/shared";
 
 export const initCommand = new Command("init")
-  .description("Initialize Afterburn CLI and connect to your workspace")
+  .description("Initialize CodeUsage CLI and connect to your workspace")
   .option("--force", "Reinitialize even if already configured")
   .action(async (options) => {
-    console.log(chalk.bold("\n🔥 Afterburn CLI Setup\n"));
+    console.log(chalk.bold("\n📊 CodeUsage CLI Setup\n"));
 
     // Check if already configured
     if (isConfigured() && !options.force) {
@@ -29,7 +29,7 @@ export const initCommand = new Command("init")
       console.log(chalk.dim(`Developer: ${config.developer_alias}`));
       console.log(chalk.dim(`Scope: ${config.hook_scope}`));
       console.log(
-        chalk.dim("\nRun with --force to reconfigure, or use 'afterburn config'\n")
+        chalk.dim("\nRun with --force to reconfigure, or use 'codeusage config'\n")
       );
       return;
     }
@@ -59,7 +59,7 @@ export const initCommand = new Command("init")
 
     // Step 2: Get workspace key (renumbered after provider selection)
     console.log(
-      chalk.dim("\nGet your workspace key from the Afterburn dashboard Settings page.\n")
+      chalk.dim("\nGet your workspace key from the CodeUsage dashboard Settings page.\n")
     );
 
     const workspaceKey = await input({
@@ -68,8 +68,8 @@ export const initCommand = new Command("init")
         if (!value.trim()) {
           return "Workspace key is required";
         }
-        if (!value.startsWith("ab-ws-")) {
-          return "Invalid key format. Keys start with 'ab-ws-'";
+        if (!value.startsWith("cu-ws-")) {
+          return "Invalid key format. Keys start with 'cu-ws-'";
         }
         return true;
       },
@@ -144,13 +144,13 @@ export const initCommand = new Command("init")
     });
 
     // Success!
-    console.log(chalk.green("\n✅ Afterburn is ready!\n"));
+    console.log(chalk.green("\n✅ CodeUsage is ready!\n"));
     console.log(chalk.dim(`Your ${providerInfo.displayName} sessions will now be tracked.`));
-    console.log(chalk.dim("View your dashboard at: https://app.afterburn.dev\n"));
+    console.log(chalk.dim("View your dashboard at: https://codeusage.dev\n"));
 
     console.log(chalk.bold("Quick commands:"));
-    console.log(chalk.dim("  afterburn status     Check connection status"));
-    console.log(chalk.dim("  afterburn project    Manage project mappings"));
-    console.log(chalk.dim("  afterburn sync       Flush buffered tasks"));
-    console.log(chalk.dim("  afterburn logout     Disconnect and cleanup\n"));
+    console.log(chalk.dim("  codeusage status     Check connection status"));
+    console.log(chalk.dim("  codeusage project    Manage project mappings"));
+    console.log(chalk.dim("  codeusage sync       Flush buffered tasks"));
+    console.log(chalk.dim("  codeusage logout     Disconnect and cleanup\n"));
   });

@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ProviderIndicator } from "@/components/shared/ProviderBadge";
 import { AlertTriangle, FolderGit2, Users, FileCode, Zap } from "lucide-react";
-import { formatCost, formatTokens } from "@afterburn/shared";
+import { formatCost, formatTokens } from "@codeusage/shared";
 
 interface Project {
   project_slug: string;
@@ -37,7 +37,7 @@ export function ProjectList({ projects, hasUntagged }: ProjectListProps) {
             <h3 className="font-semibold text-lg mb-2">No projects yet</h3>
             <p className="text-muted-foreground text-sm max-w-sm">
               Connect the CLI to start tracking your projects. Run{" "}
-              <code className="bg-muted px-1.5 py-0.5 rounded text-xs">npx afterburn init</code>{" "}
+              <code className="bg-muted px-1.5 py-0.5 rounded text-xs">npx codeusage init</code>{" "}
               to get started.
             </p>
           </div>
@@ -59,7 +59,7 @@ export function ProjectList({ projects, hasUntagged }: ProjectListProps) {
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           <AlertDescription className="text-amber-200">
             Some tasks are not tagged to a project. Run{" "}
-            <code className="bg-muted px-1.5 py-0.5 rounded text-xs">afterburn project set &lt;name&gt;</code>{" "}
+            <code className="bg-muted px-1.5 py-0.5 rounded text-xs">codeusage project set &lt;name&gt;</code>{" "}
             in those directories.
           </AlertDescription>
         </Alert>

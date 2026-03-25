@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCost, formatTokens, PROVIDERS, type ProviderId } from "@afterburn/shared";
+import { formatCost, formatTokens, PROVIDERS, type ProviderId } from "@codeusage/shared";
 import { Cpu } from "lucide-react";
 
 interface ProviderCost {

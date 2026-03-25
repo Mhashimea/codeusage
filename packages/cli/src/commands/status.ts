@@ -4,15 +4,15 @@ import { getConfig, isConfigured, getConfigPath, getProvider } from "../lib/conf
 import { areHooksRegistered, getSettingsPath } from "../lib/hooks-file.js";
 import { getBufferCount } from "../lib/buffer.js";
 import { detectProjectSlug } from "../lib/git.js";
-import { getProviderById } from "@afterburn/shared";
+import { getProviderById } from "@codeusage/shared";
 
 export const statusCommand = new Command("status")
-  .description("Show current Afterburn configuration and connection status")
+  .description("Show current CodeUsage configuration and connection status")
   .action(async () => {
-    console.log(chalk.bold("\n🔥 Afterburn Status\n"));
+    console.log(chalk.bold("\n📊 CodeUsage Status\n"));
 
     if (!isConfigured()) {
-      console.log(chalk.yellow("Not configured. Run: afterburn init\n"));
+      console.log(chalk.yellow("Not configured. Run: codeusage init\n"));
       return;
     }
 
@@ -71,7 +71,7 @@ export const statusCommand = new Command("status")
       console.log(
         chalk.yellow(`  ${bufferCount} task(s) pending sync`)
       );
-      console.log(chalk.dim(`  Run 'afterburn sync' to flush`));
+      console.log(chalk.dim(`  Run 'codeusage sync' to flush`));
     }
 
     // Config path

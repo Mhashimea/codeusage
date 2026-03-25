@@ -6,7 +6,7 @@ import {
   type ProviderId,
   getProviderById,
   isValidProviderId,
-} from "@afterburn/shared";
+} from "@codeusage/shared";
 import { getConfig, isConfigured, getProvider } from "../lib/config.js";
 import { parseSessionLog } from "../lib/session-log.js";
 import { detectProjectSlug } from "../lib/git.js";
@@ -72,7 +72,7 @@ export const hookStopCommand = new Command("stop")
       if (projectSlug === effectiveCwd.split("/").pop()) {
         // Just directory name, no git remote
         console.log(
-          chalk.dim("Tip: Set a project name: afterburn project set <name>")
+          chalk.dim("Tip: Set a project name: codeusage project set <name>")
         );
       }
     }

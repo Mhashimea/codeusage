@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCost, formatTokens } from "@afterburn/shared";
+import { formatCost } from "@codeusage/shared";
 import { FolderGit2 } from "lucide-react";
 
 interface ProjectCost {

@@ -19,7 +19,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { X, Calendar as CalendarIcon } from "lucide-react";
-import { getAllProviders } from "@afterburn/shared";
+import { getAllProviders } from "@codeusage/shared";
 import { cn } from "@/lib/utils";
 
 interface TaskFiltersProps {

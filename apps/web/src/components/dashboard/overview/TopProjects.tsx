@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatTokens, formatCost } from "@afterburn/shared";
+import { formatTokens, formatCost } from "@codeusage/shared";
 
 interface ProjectData {
   project_slug: string;

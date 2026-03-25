@@ -1,12 +1,12 @@
-import type { TelemetryPayload } from "@afterburn/shared";
+import type { TelemetryPayload } from "@codeusage/shared";
 import { getConfig } from "./config.js";
 
-const DEFAULT_API_URL = "https://afterburn.text2charts.com";
+const DEFAULT_API_URL = "https://codeusage.dev";
 
 function getApiBase(): string {
   // Priority: env var > config > default
-  if (process.env.AFTERBURN_API_URL) {
-    return process.env.AFTERBURN_API_URL;
+  if (process.env.CODEUSAGE_API_URL) {
+    return process.env.CODEUSAGE_API_URL;
   }
   const config = getConfig();
   return config.api_url || DEFAULT_API_URL;
@@ -30,7 +30,7 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
   if (!config.workspace_key) {
     return {
       success: false,
-      error: "No workspace key configured. Run: afterburn init",
+      error: "No workspace key configured. Run: codeusage init",
     };
   }
 
@@ -60,7 +60,7 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
     if (response.status === 401) {
       return {
         success: false,
-        error: "Invalid workspace key. Run: afterburn init",
+        error: "Invalid workspace key. Run: codeusage init",
       };
     }
 

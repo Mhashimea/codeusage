@@ -21,7 +21,7 @@ interface ApiKeySectionProps {
   hasExistingKey?: boolean; // Whether an API key already exists in DB
 }
 
-const STORAGE_KEY = "afterburn_api_key";
+const STORAGE_KEY = "codeusage_api_key";
 
 export function ApiKeySection({ workspaceId, hasExistingKey = false }: ApiKeySectionProps) {
   const [apiKey, setApiKey] = useState<string | null>(null);
@@ -70,7 +70,7 @@ export function ApiKeySection({ workspaceId, hasExistingKey = false }: ApiKeySec
 
   const handleCopyCommand = async () => {
     if (apiKey) {
-      await navigator.clipboard.writeText(`afterburn config set-key ${apiKey}`);
+      await navigator.clipboard.writeText(`codeusage config set-key ${apiKey}`);
       setCopiedCommand(true);
       setTimeout(() => setCopiedCommand(false), 2000);
     }
@@ -89,7 +89,7 @@ export function ApiKeySection({ workspaceId, hasExistingKey = false }: ApiKeySec
           <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-4 py-2.5 flex-1">
             <Key className="h-4 w-4 text-muted-foreground" />
             <span className="font-mono text-sm text-muted-foreground">
-              {apiKey ? "ab-ws-••••••••••••" : (keyExistsInDb ? "ab-ws-•••••••••••• (rotate to reveal)" : "No key generated")}
+              {apiKey ? "cu-ws-••••••••••••" : (keyExistsInDb ? "cu-ws-•••••••••••• (rotate to reveal)" : "No key generated")}
             </span>
           </div>
           <Button
@@ -118,7 +118,7 @@ export function ApiKeySection({ workspaceId, hasExistingKey = false }: ApiKeySec
             <p className="text-sm text-muted-foreground">Or configure existing CLI:</p>
             <div className="flex items-center gap-3">
               <div className="flex-1 rounded-lg bg-muted p-3 font-mono text-sm overflow-x-auto">
-                afterburn config set-key <span className="text-muted-foreground">••••••••••••••••••••</span>
+                codeusage config set-key <span className="text-muted-foreground">••••••••••••••••••••</span>
               </div>
               <Button
                 variant="outline"
@@ -156,7 +156,7 @@ export function ApiKeySection({ workspaceId, hasExistingKey = false }: ApiKeySec
                 <AlertDialogTitle>Rotate API Key?</AlertDialogTitle>
                 <AlertDialogDescription>
                   This will invalidate the current API key. All developers will need to
-                  re-run <code className="rounded bg-muted px-1">afterburn init</code> with
+                  re-run <code className="rounded bg-muted px-1">codeusage init</code> with
                   the new key.
                 </AlertDialogDescription>
               </AlertDialogHeader>

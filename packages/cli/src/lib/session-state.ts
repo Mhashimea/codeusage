@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
-import type { FileChangeDetail } from "@afterburn/shared";
+import type { FileChangeDetail } from "@codeusage/shared";
 
 /**
  * Stores cumulative session values to calculate deltas between tasks
@@ -19,7 +19,7 @@ export interface SessionState {
   updated_at: string;
 }
 
-const STATE_DIR = path.join(os.homedir(), ".afterburn", "session-state");
+const STATE_DIR = path.join(os.homedir(), ".codeusage", "session-state");
 
 /**
  * Get the state file path for a session

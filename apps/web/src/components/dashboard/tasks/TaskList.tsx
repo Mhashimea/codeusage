@@ -13,7 +13,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { formatCost, formatTokens } from "@afterburn/shared";
+import { formatCost, formatTokens } from "@codeusage/shared";
 import { Download, RefreshCw } from "lucide-react";
 import type { Task } from "@/lib/db/schema";
 

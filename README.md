@@ -1,10 +1,10 @@
-# Afterburn
+# CodeUsage
 
 AI coding tool intelligence platform for engineering teams. Get visibility into how AI coding assistants are used across your organization—who's using them, on which projects, and what it costs.
 
 ## Overview
 
-Afterburn provides:
+CodeUsage provides:
 
 - **Usage tracking** — Automatic capture of token usage, costs, and task metadata
 - **Team dashboard** — Real-time visibility into AI tool usage across developers and projects
@@ -15,7 +15,7 @@ Afterburn provides:
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   AI Coding     │     │   Afterburn     │     │    Dashboard    │
+│   AI Coding     │     │   CodeUsage     │     │    Dashboard    │
 │     Tool        │────▶│      CLI        │────▶│    (Next.js)    │
 │ (Claude Code)   │     │                 │     │                 │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
@@ -41,10 +41,10 @@ Afterburn provides:
 
 ```bash
 # Install the CLI
-npm install -g afterburn
+npm install -g codeusage
 
 # Initialize (one-time setup)
-afterburn init
+codeusage init
 ```
 
 You'll be prompted for:
@@ -52,12 +52,12 @@ You'll be prompted for:
 - Your name (for the dashboard)
 - Hook scope (global or project-only)
 
-That's it. Afterburn now tracks your AI coding tool usage automatically.
+That's it. CodeUsage now tracks your AI coding tool usage automatically.
 
 ## Project Structure
 
 ```
-afterburn/
+codeusage/
 ├── apps/
 │   └── web/                 # Next.js dashboard + API
 │       ├── app/
@@ -67,7 +67,7 @@ afterburn/
 │       └── lib/
 │           └── db/          # Drizzle ORM schema & queries
 ├── packages/
-│   ├── cli/                 # Developer CLI (npm: afterburn)
+│   ├── cli/                 # Developer CLI (npm: codeusage)
 │   └── shared/              # Shared types, schemas, utilities
 └── docs/
 ```
@@ -84,8 +84,8 @@ afterburn/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourorg/afterburn.git
-cd afterburn
+git clone https://github.com/yourorg/codeusage.git
+cd codeusage
 
 # Install dependencies
 bun install
@@ -176,7 +176,7 @@ node packages/cli/dist/index.js hook stop --dry-run
 ### Web App (`apps/web/.env.local`)
 
 ```bash
-DATABASE_URL="postgresql://postgres:password@localhost:5432/afterburn"
+DATABASE_URL="postgresql://postgres:password@localhost:5432/codeusage"
 NEXTAUTH_SECRET="your-secret-here"
 NEXTAUTH_URL="http://localhost:3003"
 ```
@@ -185,7 +185,7 @@ NEXTAUTH_URL="http://localhost:3003"
 
 ```bash
 # Optional: override API URL for local development
-AFTERBURN_API_URL="http://localhost:3003"
+CODEUSAGE_API_URL="http://localhost:3003"
 ```
 
 ## API Reference
@@ -194,7 +194,7 @@ AFTERBURN_API_URL="http://localhost:3003"
 
 ```
 POST /api/v1/tasks
-Authorization: Bearer ab-ws-{key}
+Authorization: Bearer cu-ws-{key}
 Content-Type: application/json
 
 {
@@ -224,7 +224,7 @@ Content-Type: application/json
 
 ```
 GET /api/v1/auth/validate
-Authorization: Bearer ab-ws-{key}
+Authorization: Bearer cu-ws-{key}
 ```
 
 Returns workspace info if key is valid.
@@ -243,7 +243,7 @@ Returns workspace info if key is valid.
 
 ## Data Privacy
 
-Afterburn captures **metadata only**:
+CodeUsage captures **metadata only**:
 
 - Token counts and costs
 - Model names
