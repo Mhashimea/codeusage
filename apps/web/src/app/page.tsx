@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,11 +11,19 @@ import {
   Shield,
   ArrowRight,
   Zap,
-  RefreshCw,
+  Clock,
+  Coins,
+  FileCode,
+  User,
+  Cpu,
+  Calendar,
+  Wrench,
+  X,
   Activity,
+  RefreshCw,
 } from "lucide-react";
 import { CodeUsageLogoBrand } from "@/components/shared/CodeUsageLogo";
-import { ClaudeIcon, CodexIcon } from "@/components/shared/ProviderBadge";
+import { ClaudeIcon } from "@/components/shared/ProviderBadge";
 
 const features = [
   {
@@ -47,7 +54,7 @@ const features = [
     icon: Terminal,
     title: "CLI Integration",
     description:
-      "Simple CLI hooks into Claude Code and Codex. One command to start tracking.",
+      "Simple CLI hooks into Claude Code. One command to start tracking.",
   },
   {
     icon: Shield,
@@ -91,46 +98,12 @@ const commands = [
     description: "Show project for current directory",
   },
   {
-    command: "codeusage provider list",
-    description: "List available AI coding tool providers",
-  },
-  {
-    command: "codeusage provider add <id>",
-    description: "Add hooks for an additional provider",
-  },
-  {
-    command: "codeusage provider switch <id>",
-    description: "Switch to a different provider",
-  },
-  {
     command: "codeusage logout",
     description: "Disconnect and remove configuration",
   },
 ];
 
-// Animated task simulation - showing both Claude Code and Codex
-const mockTasks = [
-  { provider: "claude", model: "claude-sonnet-4", tokens: "12.4k", cost: "$0.042", time: "2m 15s" },
-  { provider: "codex", model: "codex-1", tokens: "8.2k", cost: "$0.034", time: "45s" },
-  { provider: "claude", model: "claude-opus-4", tokens: "24.1k", cost: "$0.156", time: "4m 32s" },
-  { provider: "codex", model: "codex-1", tokens: "5.8k", cost: "$0.024", time: "1m 28s" },
-];
-
 export default function LandingPage() {
-  const [activeTaskIndex, setActiveTaskIndex] = useState(0);
-  const [isAnimating, setIsAnimating] = useState(false);
-
-  // Simulate task tracking animation
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setIsAnimating(true);
-      setTimeout(() => {
-        setActiveTaskIndex((prev) => (prev + 1) % mockTasks.length);
-        setIsAnimating(false);
-      }, 500);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -143,6 +116,12 @@ export default function LandingPage() {
               <span className="text-lg font-semibold">CodeUsage</span>
             </div>
             <div className="flex items-center gap-4">
+              <Link
+                href="/docs"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Docs
+              </Link>
               <Link href="/login">
                 <Button className="bg-[#D97757] hover:bg-[#c5684a] text-white">
                   Get Started
@@ -162,12 +141,9 @@ export default function LandingPage() {
             <div className="text-center lg:text-left">
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#D97757]/10 border border-[#D97757]/20 mb-8 animate-fade-in">
-                <div className="flex items-center gap-1">
-                  <ClaudeIcon className="h-4 w-4" />
-                  <CodexIcon className="h-4 w-4" />
-                </div>
+                <ClaudeIcon className="h-4 w-4" />
                 <span className="text-sm text-[#D97757]">
-                  Works with Claude Code & Codex
+                  Works with Claude Code
                 </span>
               </div>
 
@@ -198,11 +174,11 @@ export default function LandingPage() {
               </div>
             </div>
 
-            {/* Right - Animated Demo */}
+            {/* Right - Dashboard Screenshot Mock */}
             <div className="relative animate-fade-in animation-delay-300">
-              <div className="relative bg-card border border-border rounded-xl p-6 shadow-2xl">
-                {/* Terminal Header */}
-                <div className="flex items-center gap-2 mb-4 pb-4 border-b border-border">
+              <div className="relative bg-card border border-border rounded-xl shadow-2xl overflow-hidden">
+                {/* Window Header */}
+                <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 border-b border-border">
                   <div className="flex gap-1.5">
                     <div className="w-3 h-3 rounded-full bg-red-500" />
                     <div className="w-3 h-3 rounded-full bg-yellow-500" />
@@ -213,67 +189,119 @@ export default function LandingPage() {
                   </span>
                 </div>
 
-                {/* Live Task Feed */}
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Live Task Feed</span>
-                    <span className="flex items-center gap-1.5 text-emerald-500">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-                      </span>
-                      Auto-tracking
-                    </span>
+                {/* Dashboard Content with Drawer */}
+                <div className="flex">
+                  {/* Left - Task List (dimmed/background) */}
+                  <div className="w-[45%] p-3 opacity-60">
+                    <div className="text-xs text-muted-foreground mb-2">Tasks</div>
+                    <div className="space-y-2">
+                      {[1, 2, 3].map((i) => (
+                        <div
+                          key={i}
+                          className={`p-2 rounded-md border text-xs ${
+                            i === 1
+                              ? "bg-[#D97757]/10 border-[#D97757]/30"
+                              : "bg-muted/30 border-border"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <ClaudeIcon className="h-3 w-3" />
+                            <span className="truncate">Sonnet 4</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
-                  {/* Animated Task Cards */}
-                  {mockTasks.map((task, index) => (
-                    <div
-                      key={index}
-                      className={`p-3 rounded-lg border transition-all duration-500 ${
-                        index === activeTaskIndex
-                          ? "bg-[#D97757]/10 border-[#D97757]/30 scale-[1.02]"
-                          : "bg-muted/30 border-border"
-                      } ${
-                        index === activeTaskIndex && isAnimating
-                          ? "animate-pulse"
-                          : ""
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          {task.provider === "claude" ? (
-                            <ClaudeIcon className="h-4 w-4" />
-                          ) : (
-                            <CodexIcon className="h-4 w-4" />
-                          )}
-                          <span className="font-mono text-sm">{task.model}</span>
+                  {/* Right - Task Detail Drawer */}
+                  <div className="w-[55%] border-l border-border bg-background p-4">
+                    {/* Drawer Header */}
+                    <div className="flex items-center justify-between mb-4 pb-3 border-b border-border">
+                      <span className="text-sm font-medium">Task Details</span>
+                      <X className="h-4 w-4 text-muted-foreground" />
+                    </div>
+
+                    {/* Task Info */}
+                    <div className="space-y-2 text-xs mb-4">
+                      <div className="flex items-center gap-2">
+                        <User className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Developer:</span>
+                        <span className="font-medium">sarah</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FolderKanban className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Project:</span>
+                        <span className="font-medium">api-service</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Cpu className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Model:</span>
+                        <span className="font-medium">Sonnet 4</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-muted-foreground">Time:</span>
+                        <span className="font-medium">2:34 PM</span>
+                      </div>
+                    </div>
+
+                    {/* Token Usage */}
+                    <div className="mb-4">
+                      <div className="text-xs text-muted-foreground mb-2">Token Usage</div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="rounded-md bg-muted/50 border border-border p-2 text-center">
+                          <p className="text-[10px] text-muted-foreground">Input</p>
+                          <p className="text-sm font-semibold">12.4k</p>
                         </div>
-                        <div className="flex items-center gap-4 text-sm">
-                          <span className="text-muted-foreground">
-                            {task.tokens}
-                          </span>
-                          <span className="text-emerald-500 font-medium">
-                            {task.cost}
-                          </span>
-                          <span className="text-muted-foreground">
-                            {task.time}
-                          </span>
+                        <div className="rounded-md bg-muted/50 border border-border p-2 text-center">
+                          <p className="text-[10px] text-muted-foreground">Output</p>
+                          <p className="text-sm font-semibold">3.2k</p>
+                        </div>
+                        <div className="rounded-md bg-muted/50 border border-border p-2 text-center">
+                          <p className="text-[10px] text-muted-foreground">Cache</p>
+                          <p className="text-sm font-semibold">8.1k</p>
                         </div>
                       </div>
                     </div>
-                  ))}
-                </div>
 
-                {/* Auto-sync indicator */}
-                <div className="mt-4 pt-4 border-t border-border flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">
-                    Tasks today: <span className="text-foreground font-medium">24</span>
-                  </span>
-                  <span className="flex items-center gap-1.5 text-muted-foreground">
-                    <RefreshCw className="h-3 w-3 animate-spin" />
-                    Syncing automatically
-                  </span>
+                    {/* Metrics */}
+                    <div className="grid grid-cols-3 gap-2 mb-4">
+                      <div className="flex items-center gap-1.5">
+                        <Coins className="h-3 w-3 text-emerald-500" />
+                        <div>
+                          <p className="text-[10px] text-muted-foreground">Cost</p>
+                          <p className="text-xs font-semibold text-emerald-500">$0.042</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-3 w-3 text-blue-500" />
+                        <div>
+                          <p className="text-[10px] text-muted-foreground">Duration</p>
+                          <p className="text-xs font-semibold">2m 15s</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <FileCode className="h-3 w-3 text-purple-500" />
+                        <div>
+                          <p className="text-[10px] text-muted-foreground">Files</p>
+                          <p className="text-xs font-semibold">3</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Tools Used */}
+                    <div>
+                      <div className="flex items-center gap-1.5 text-xs text-muted-foreground mb-2">
+                        <Wrench className="h-3 w-3" />
+                        Tools Used
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        <span className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Edit (5)</span>
+                        <span className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Read (3)</span>
+                        <span className="px-1.5 py-0.5 bg-muted rounded text-[10px]">Bash (2)</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -545,6 +573,9 @@ export default function LandingPage() {
               &copy; {new Date().getFullYear()} CodeUsage. All rights reserved.
             </p>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <Link href="/docs" className="hover:text-foreground transition-colors">
+                Docs
+              </Link>
               <Link href="/privacy" className="hover:text-foreground transition-colors">
                 Privacy
               </Link>
