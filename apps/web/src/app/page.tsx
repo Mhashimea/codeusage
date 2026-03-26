@@ -23,7 +23,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { CodeUsageLogoBrand } from "@/components/shared/CodeUsageLogo";
-import { ClaudeIcon } from "@/components/shared/ProviderBadge";
+import { ClaudeIcon, CodexIcon } from "@/components/shared/ProviderBadge";
 
 const features = [
   {
@@ -54,7 +54,7 @@ const features = [
     icon: Terminal,
     title: "CLI Integration",
     description:
-      "Simple CLI hooks into Claude Code. One command to start tracking.",
+      "Simple CLI hooks into Claude Code and Codex. One command to start tracking.",
   },
   {
     icon: Shield,
@@ -141,9 +141,12 @@ export default function LandingPage() {
             <div className="text-center lg:text-left">
               {/* Badge */}
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#D97757]/10 border border-[#D97757]/20 mb-8 animate-fade-in">
-                <ClaudeIcon className="h-4 w-4" />
+                <div className="flex items-center gap-1">
+                  <ClaudeIcon className="h-4 w-4" />
+                  <CodexIcon className="h-4 w-4" />
+                </div>
                 <span className="text-sm text-[#D97757]">
-                  Works with Claude Code
+                  Works with Claude Code & Codex
                 </span>
               </div>
 
