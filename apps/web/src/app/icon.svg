@@ -1,0 +1,14 @@
+<svg width="32" height="32" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="48" height="48" rx="10" fill="#D97757"/>
+  <!-- Background circle (faded) -->
+  <circle cx="24" cy="24" r="16" stroke="white" stroke-width="2.5" opacity="0.3"/>
+  <!-- Progress arc -->
+  <path d="M24 8A16 16 0 0 1 40 24A16 16 0 0 1 31.5 36" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Left bracket < -->
+  <path d="M19 19L15.5 24L19 29" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Right bracket > -->
+  <path d="M29 19L32.5 24L29 29" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Slash / -->
+  <path d="M26 17L22 31" stroke="white" stroke-width="2" stroke-linecap="round"/>
+</svg>

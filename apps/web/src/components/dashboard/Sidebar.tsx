@@ -12,10 +12,10 @@ import {
   FolderKanban,
   DollarSign,
   Settings,
-  BarChart2,
   LogOut,
   ChevronsUpDown,
 } from "lucide-react";
+import { CodeUsageLogoBrand } from "@/components/shared/CodeUsageLogo";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -65,10 +65,8 @@ export function Sidebar() {
     <>
       <aside className="flex h-screen w-60 flex-col bg-background border-r border-border">
         {/* Logo */}
-        <div className="flex h-14 items-center gap-3 px-4">
-          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-500">
-            <BarChart2 className="h-5 w-5 text-white" />
-          </div>
+        <div className="flex h-14 items-center gap-2 px-4">
+          <CodeUsageLogoBrand size={32} />
           <span className="text-base font-semibold text-foreground">
             CodeUsage
           </span>

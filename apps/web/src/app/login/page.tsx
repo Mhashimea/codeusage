@@ -13,7 +13,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BarChart2, Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft } from "lucide-react";
+import { CodeUsageLogoBrand } from "@/components/shared/CodeUsageLogo";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -227,9 +228,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-sm px-2">
         <CardHeader className="text-center space-y-4 pb-2">
           <div className="flex items-center justify-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500">
-              <BarChart2 className="h-5 w-5 text-white" />
-            </div>
+            <CodeUsageLogoBrand size={36} />
             <span className="text-xl font-semibold">CodeUsage</span>
           </div>
           <div>

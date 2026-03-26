@@ -1,0 +1,14 @@
+<svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="180" height="180" rx="36" fill="#D97757"/>
+  <!-- Background circle (faded) -->
+  <circle cx="90" cy="90" r="60" stroke="white" stroke-width="8" opacity="0.3"/>
+  <!-- Progress arc -->
+  <path d="M90 30A60 60 0 0 1 150 90A60 60 0 0 1 120 138" stroke="white" stroke-width="8" stroke-linecap="round"/>
+  <!-- Left bracket < -->
+  <path d="M72 72L58 90L72 108" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Right bracket > -->
+  <path d="M108 72L122 90L108 108" stroke="white" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Slash / -->
+  <path d="M98 64L82 116" stroke="white" stroke-width="7" stroke-linecap="round"/>
+</svg>
