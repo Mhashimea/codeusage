@@ -22,6 +22,20 @@
       "when": 1773928612647,
       "tag": "0002_marvelous_junta",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774444019385,
+      "tag": "0003_breezy_rumiko_fujikawa",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774545600000,
+      "tag": "0004_security_hardening",
+      "breakpoints": true
     }
   ]
 }

@@ -3,29 +3,7 @@ import { telemetryPayloadSchema } from "@codeusage/shared";
 import { getWorkspaceByApiKey } from "@/lib/db/queries/workspaces";
 import { insertTask } from "@/lib/db/queries/tasks";
 import { broadcastToWorkspace } from "@/app/api/v1/stream/route";
-
-// Simple in-memory rate limiter (use Redis in production)
-const rateLimitMap = new Map<string, { count: number; resetAt: number }>();
-const RATE_LIMIT = 100; // requests per minute
-const RATE_WINDOW = 60 * 1000; // 1 minute in ms
-
-function checkRateLimit(workspaceId: string): { allowed: boolean; retryAfter?: number } {
-  const now = Date.now();
-  const entry = rateLimitMap.get(workspaceId);
-
-  if (!entry || now > entry.resetAt) {
-    rateLimitMap.set(workspaceId, { count: 1, resetAt: now + RATE_WINDOW });
-    return { allowed: true };
-  }
-
-  if (entry.count >= RATE_LIMIT) {
-    const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
-    return { allowed: false, retryAfter };
-  }
-
-  entry.count++;
-  return { allowed: true };
-}
+import { rateLimiters } from "@/lib/rate-limit";
 
 /**
  * POST /api/v1/tasks
@@ -53,14 +31,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 3. Check rate limit
-    const rateCheck = checkRateLimit(workspace.id);
+    // 3. Check rate limit (database-backed for serverless)
+    const rateCheck = await rateLimiters.taskIngestion(workspace.id);
     if (!rateCheck.allowed) {
       return NextResponse.json(
         { error: "Rate limit exceeded" },
         {
           status: 429,
-          headers: { "Retry-After": String(rateCheck.retryAfter) }
+          headers: { "Retry-After": String(rateCheck.retryAfter || 60) }
         }
       );
     }

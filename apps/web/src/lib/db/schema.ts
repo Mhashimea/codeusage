@@ -14,15 +14,22 @@ import type { ToolUsage, FileChangeDetail } from "@codeusage/shared";
  * Workspaces table
  * Each workspace represents a team/organization using CodeUsage
  */
-export const workspaces = pgTable("workspaces", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(), // Used for email lookup in auth
-  display_name: text("display_name"), // User's display name
-  password_hash: text("password_hash"), // bcrypt hash for login password
-  api_key_hash: text("api_key_hash").notNull().unique(), // bcrypt hash for CLI API key
-  plan: text("plan").notNull().default("free"), // free | team | enterprise
-  created_at: timestamp("created_at").defaultNow().notNull(),
-});
+export const workspaces = pgTable(
+  "workspaces",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(), // Used for email lookup in auth
+    display_name: text("display_name"), // User's display name
+    password_hash: text("password_hash"), // bcrypt hash for login password
+    api_key_hash: text("api_key_hash").notNull().unique(), // bcrypt hash for CLI API key
+    api_key_prefix: text("api_key_prefix"), // First 12 chars of API key for O(1) lookup (timing attack prevention)
+    plan: text("plan").notNull().default("free"), // free | team | enterprise
+    created_at: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_workspaces_api_key_prefix").on(table.api_key_prefix), // Fast lookup by prefix
+  ]
+);
 
 /**
  * Tasks table
@@ -62,8 +69,52 @@ export const tasks = pgTable(
   ]
 );
 
+/**
+ * Verification tokens table for magic link / OTP authentication
+ * Tokens expire after 5 minutes and are deleted after use
+ * Brute force protection: max 5 attempts per token
+ */
+export const verificationTokens = pgTable(
+  "verification_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    token_hash: text("token_hash").notNull(), // bcrypt hash of 6-digit OTP (not plaintext!)
+    attempts: integer("attempts").notNull().default(0), // Track failed verification attempts
+    expires_at: timestamp("expires_at").notNull(),
+    created_at: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_verification_tokens_email").on(table.email),
+    index("idx_verification_tokens_expires").on(table.expires_at), // For cleanup queries
+  ]
+);
+
+/**
+ * Rate limiting table for distributed rate limiting across serverless instances
+ * Used for IP-based and email-based rate limiting
+ */
+export const rateLimits = pgTable(
+  "rate_limits",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    key: text("key").notNull(), // Format: "ip:{ip}" or "email:{email}" or "api:{workspace_id}"
+    count: integer("count").notNull().default(1),
+    window_start: timestamp("window_start").defaultNow().notNull(),
+    expires_at: timestamp("expires_at").notNull(),
+  },
+  (table) => [
+    index("idx_rate_limits_key").on(table.key),
+    index("idx_rate_limits_expires").on(table.expires_at), // For cleanup
+  ]
+);
+
 // Type exports for use in queries
 export type Workspace = typeof workspaces.$inferSelect;
 export type NewWorkspace = typeof workspaces.$inferInsert;
 export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;
+export type VerificationToken = typeof verificationTokens.$inferSelect;
+export type NewVerificationToken = typeof verificationTokens.$inferInsert;
+export type RateLimit = typeof rateLimits.$inferSelect;
+export type NewRateLimit = typeof rateLimits.$inferInsert;

@@ -1,10 +1,8 @@
 import NextAuth from "next-auth";
-import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import GitHub from "next-auth/providers/github";
 import { db, workspaces } from "./db";
 import { eq } from "drizzle-orm";
-import bcrypt from "bcryptjs";
 
 declare module "next-auth" {
   interface Session {
@@ -28,6 +26,7 @@ declare module "@auth/core/jwt" {
   interface JWT {
     id?: string;
     workspaceId?: string;
+    ipHash?: string;
   }
 }
 
@@ -41,49 +40,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     GitHub({
       clientId: process.env.GITHUB_CLIENT_ID,
       clientSecret: process.env.GITHUB_CLIENT_SECRET,
-    }),
-    // Credentials (email/password)
-    Credentials({
-      name: "credentials",
-      credentials: {
-        email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
-      },
-      async authorize(credentials) {
-        if (!credentials?.email || !credentials?.password) {
-          return null;
-        }
-
-        const email = credentials.email as string;
-        const password = credentials.password as string;
-
-        const existingWorkspace = await db
-          .select()
-          .from(workspaces)
-          .where(eq(workspaces.name, email))
-          .limit(1);
-
-        if (existingWorkspace.length > 0) {
-          const workspace = existingWorkspace[0];
-
-          if (!workspace.password_hash) {
-            return null;
-          }
-
-          const isValid = await bcrypt.compare(password, workspace.password_hash);
-
-          if (isValid) {
-            return {
-              id: workspace.id,
-              email: email,
-              name: workspace.display_name || email,
-              workspaceId: workspace.id,
-            };
-          }
-        }
-
-        return null;
-      },
     }),
   ],
   callbacks: {

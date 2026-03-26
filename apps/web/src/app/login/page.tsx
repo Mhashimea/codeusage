@@ -1,9 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BarChart2, Loader2 } from "lucide-react";
+import { BarChart2, Loader2, ArrowLeft } from "lucide-react";
 
 function GoogleIcon({ className }: { className?: string }) {
   return (
@@ -47,36 +46,157 @@ function GitHubIcon({ className }: { className?: string }) {
   );
 }
 
+type Step = "email" | "otp";
+
 export default function LoginPage() {
   const router = useRouter();
+  const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<string | null>(null);
+  const [countdown, setCountdown] = useState(0);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Countdown timer for resend
+  useEffect(() => {
+    if (countdown > 0) {
+      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [countdown]);
+
+  // Focus first OTP input when switching to OTP step
+  useEffect(() => {
+    if (step === "otp") {
+      otpInputsRef.current[0]?.focus();
+    }
+  }, [step]);
+
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setIsLoading(true);
 
     try {
-      const result = await signIn("credentials", {
-        email,
-        password,
-        redirect: false,
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
       });
 
-      if (result?.error) {
-        setError("Invalid email or password");
-      } else {
-        router.push("/");
-        router.refresh();
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to send verification code");
+        return;
       }
+
+      setStep("otp");
+      setCountdown(60);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (countdown > 0) return;
+
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to send verification code");
+        return;
+      }
+
+      setOtp(["", "", "", "", "", ""]);
+      setCountdown(60);
+      otpInputsRef.current[0]?.focus();
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async (otpValue: string) => {
+    setError("");
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/verify-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp: otpValue }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Invalid verification code");
+        setOtp(["", "", "", "", "", ""]);
+        otpInputsRef.current[0]?.focus();
+        return;
+      }
+
+      router.push("/");
+      router.refresh();
+    } catch {
+      setError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleOtpChange = (index: number, value: string) => {
+    // Only allow digits
+    if (value && !/^\d$/.test(value)) return;
+
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    // Move to next input
+    if (value && index < 5) {
+      otpInputsRef.current[index + 1]?.focus();
+    }
+
+    // Auto-submit when all digits entered
+    if (value && index === 5) {
+      const otpValue = newOtp.join("");
+      if (otpValue.length === 6) {
+        handleVerifyOTP(otpValue);
+      }
+    }
+  };
+
+  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace" && !otp[index] && index > 0) {
+      otpInputsRef.current[index - 1]?.focus();
+    }
+  };
+
+  const handleOtpPaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (pastedData.length === 6) {
+      const newOtp = pastedData.split("");
+      setOtp(newOtp);
+      handleVerifyOTP(pastedData);
     }
   };
 
@@ -91,6 +211,12 @@ export default function LoginPage() {
     }
   };
 
+  const handleBack = () => {
+    setStep("email");
+    setOtp(["", "", "", "", "", ""]);
+    setError("");
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm px-2">
@@ -102,9 +228,13 @@ export default function LoginPage() {
             <span className="text-xl font-semibold">CodeUsage</span>
           </div>
           <div>
-            <CardTitle className="text-2xl">Sign in</CardTitle>
+            <CardTitle className="text-2xl">
+              {step === "email" ? "Sign in" : "Enter verification code"}
+            </CardTitle>
             <CardDescription>
-              Choose your preferred sign in method
+              {step === "email"
+                ? "Choose your preferred sign in method"
+                : `We sent a code to ${email}`}
             </CardDescription>
           </div>
         </CardHeader>
@@ -115,91 +245,134 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* OAuth Buttons */}
-          <div className="grid gap-2">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => handleOAuthSignIn("google")}
-              disabled={isOAuthLoading !== null || isLoading}
-            >
-              {isOAuthLoading === "google" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <GoogleIcon className="mr-2 h-4 w-4" />
-              )}
-              Continue with Google
-            </Button>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => handleOAuthSignIn("github")}
-              disabled={isOAuthLoading !== null || isLoading}
-            >
-              {isOAuthLoading === "github" ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <GitHubIcon className="mr-2 h-4 w-4" />
-              )}
-              Continue with GitHub
-            </Button>
-          </div>
+          {step === "email" ? (
+            <>
+              {/* OAuth Buttons */}
+              <div className="grid gap-2">
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => handleOAuthSignIn("google")}
+                  disabled={isOAuthLoading !== null || isLoading}
+                >
+                  {isOAuthLoading === "google" ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <GoogleIcon className="mr-2 h-4 w-4" />
+                  )}
+                  Continue with Google
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => handleOAuthSignIn("github")}
+                  disabled={isOAuthLoading !== null || isLoading}
+                >
+                  {isOAuthLoading === "github" ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <GitHubIcon className="mr-2 h-4 w-4" />
+                  )}
+                  Continue with GitHub
+                </Button>
+              </div>
 
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <span className="w-full border-t" />
-            </div>
-            <div className="relative flex justify-center text-xs uppercase">
-              <span className="bg-card px-2 text-muted-foreground">
-                Or continue with email
-              </span>
-            </div>
-          </div>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-card px-2 text-muted-foreground">
+                    Or continue with email
+                  </span>
+                </div>
+              </div>
 
-          {/* Email/Password Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                disabled={isLoading || isOAuthLoading !== null}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <Input
-                id="password"
-                type="password"
-                placeholder="Your password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                disabled={isLoading || isOAuthLoading !== null}
-              />
-            </div>
-            <Button type="submit" className="w-full" disabled={isLoading || isOAuthLoading !== null}>
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                "Sign in with Email"
-              )}
-            </Button>
-          </form>
+              {/* Email Form */}
+              <form onSubmit={handleSendOTP} className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    disabled={isLoading || isOAuthLoading !== null}
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={isLoading || isOAuthLoading !== null || !email}
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending code...
+                    </>
+                  ) : (
+                    "Continue with Email"
+                  )}
+                </Button>
+              </form>
 
-          <p className="text-center text-sm text-muted-foreground pt-2">
-            Don&apos;t have an account?{" "}
-            <Link href="/register" className="text-foreground hover:underline">
-              Register
-            </Link>
-          </p>
+              <p className="text-center text-xs text-muted-foreground pt-2">
+                By continuing, you agree to our Terms of Service and Privacy Policy
+              </p>
+            </>
+          ) : (
+            <>
+              {/* OTP Input */}
+              <div className="space-y-4">
+                <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
+                  {otp.map((digit, index) => (
+                    <Input
+                      key={index}
+                      ref={(el) => { otpInputsRef.current[index] = el; }}
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={1}
+                      value={digit}
+                      onChange={(e) => handleOtpChange(index, e.target.value)}
+                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
+                      disabled={isLoading}
+                      className="w-12 h-12 text-center text-xl font-semibold"
+                    />
+                  ))}
+                </div>
+
+                <div className="text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Didn&apos;t receive the code?{" "}
+                    {countdown > 0 ? (
+                      <span>Resend in {countdown}s</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleResendOTP}
+                        disabled={isLoading}
+                        className="text-primary hover:underline disabled:opacity-50"
+                      >
+                        Resend
+                      </button>
+                    )}
+                  </p>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  className="w-full"
+                  onClick={handleBack}
+                  disabled={isLoading}
+                >
+                  <ArrowLeft className="mr-2 h-4 w-4" />
+                  Back to sign in
+                </Button>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -17,20 +17,36 @@ export async function getWorkspaceById(id: string) {
 
 /**
  * Get workspace by verifying API key
+ * Uses prefix-based lookup for O(1) query performance (prevents timing attacks)
  * Returns workspace if key is valid, null otherwise
  */
 export async function getWorkspaceByApiKey(apiKey: string) {
-  // We need to check against all workspaces since bcrypt hashes are unique
-  const allWorkspaces = await db.select().from(workspaces);
+  // Extract prefix for O(1) database lookup (prevents timing attack)
+  const prefix = apiKey.slice(0, 12);
 
-  for (const workspace of allWorkspaces) {
-    const isValid = await verifyApiKey(apiKey, workspace.api_key_hash);
-    if (isValid) {
-      return workspace;
-    }
+  // Query only workspaces matching the prefix
+  const candidates = await db
+    .select()
+    .from(workspaces)
+    .where(eq(workspaces.api_key_prefix, prefix))
+    .limit(1);
+
+  if (candidates.length === 0) {
+    // Add artificial delay to prevent timing-based prefix enumeration
+    await new Promise(resolve => setTimeout(resolve, 50));
+    return null;
   }
 
-  return null;
+  const workspace = candidates[0];
+
+  // Verify full key using bcrypt (constant-time comparison)
+  const isValid = await verifyApiKey(apiKey, workspace.api_key_hash);
+
+  if (!isValid) {
+    return null;
+  }
+
+  return workspace;
 }
 
 /**
@@ -40,12 +56,14 @@ export async function getWorkspaceByApiKey(apiKey: string) {
 export async function createWorkspace(name: string) {
   const apiKey = generateApiKey();
   const apiKeyHash = await hashApiKey(apiKey);
+  const apiKeyPrefix = apiKey.slice(0, 12); // Store prefix for O(1) lookup
 
   const [workspace] = await db
     .insert(workspaces)
     .values({
       name,
       api_key_hash: apiKeyHash,
+      api_key_prefix: apiKeyPrefix,
       plan: "free",
     })
     .returning();
@@ -63,10 +81,14 @@ export async function createWorkspace(name: string) {
 export async function rotateApiKey(workspaceId: string) {
   const apiKey = generateApiKey();
   const apiKeyHash = await hashApiKey(apiKey);
+  const apiKeyPrefix = apiKey.slice(0, 12); // Store prefix for O(1) lookup
 
   await db
     .update(workspaces)
-    .set({ api_key_hash: apiKeyHash })
+    .set({
+      api_key_hash: apiKeyHash,
+      api_key_prefix: apiKeyPrefix,
+    })
     .where(eq(workspaces.id, workspaceId));
 
   return apiKey;
