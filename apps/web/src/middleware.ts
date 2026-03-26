@@ -6,7 +6,7 @@ export default auth((req) => {
   const { pathname } = req.nextUrl;
 
   // Public routes - no auth required
-  const isPublicPage = pathname === "/" || pathname === "/login";
+  const isPublicPage = pathname === "/" || pathname === "/login" || pathname === "/privacy" || pathname === "/terms";
   const isAuthPage = pathname === "/login";
   const isApiRoute = pathname.startsWith("/api");
   const isPublicApiRoute =
