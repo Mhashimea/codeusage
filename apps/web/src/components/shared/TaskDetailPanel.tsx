@@ -3,6 +3,7 @@
 import { formatCost, formatTokens, formatModelName, PROVIDERS, type ProviderId, type FileChangeDetail } from "@codeusage/shared";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { ProviderIcon } from "@/components/shared/ProviderBadge";
 import {
   Clock,
   Coins,
@@ -76,9 +77,9 @@ export function TaskDetailPanel({ task }: TaskDetailPanelProps) {
           <span className="font-medium truncate">{task.project_slug}</span>
         </div>
         <div className="flex items-center gap-2">
-          <Cpu className="h-4 w-4 text-muted-foreground shrink-0" />
+          <ProviderIcon id={task.tool_source} className="h-4 w-4 shrink-0" />
           <span className="text-muted-foreground">Provider:</span>
-          <span className="font-medium text-emerald-500">
+          <span className="font-medium">
             {PROVIDERS[task.tool_source as ProviderId]?.displayName || task.tool_source}
           </span>
         </div>

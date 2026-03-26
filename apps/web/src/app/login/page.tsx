@@ -55,6 +55,7 @@ export default function LoginPage() {
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isVerifying, setIsVerifying] = useState(false);
   const [isOAuthLoading, setIsOAuthLoading] = useState<string | null>(null);
   const [countdown, setCountdown] = useState(0);
 
@@ -136,6 +137,7 @@ export default function LoginPage() {
   const handleVerifyOTP = async (otpValue: string) => {
     setError("");
     setIsLoading(true);
+    setIsVerifying(true);
 
     try {
       const res = await fetch("/api/auth/verify-otp", {
@@ -150,13 +152,16 @@ export default function LoginPage() {
         setError(data.error || "Invalid verification code");
         setOtp(["", "", "", "", "", ""]);
         otpInputsRef.current[0]?.focus();
+        setIsVerifying(false);
         return;
       }
 
+      // Keep showing the verifying state while redirecting
       router.push("/");
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
+      setIsVerifying(false);
     } finally {
       setIsLoading(false);
     }
@@ -318,59 +323,66 @@ export default function LoginPage() {
                 </Button>
               </form>
 
-              <p className="text-center text-xs text-muted-foreground pt-2">
-                By continuing, you agree to our Terms of Service and Privacy Policy
-              </p>
             </>
           ) : (
             <>
+              {/* Verifying Overlay */}
+              {isVerifying && (
+                <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Verifying code...</p>
+                </div>
+              )}
+
               {/* OTP Input */}
-              <div className="space-y-4">
-                <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
-                  {otp.map((digit, index) => (
-                    <Input
-                      key={index}
-                      ref={(el) => { otpInputsRef.current[index] = el; }}
-                      type="text"
-                      inputMode="numeric"
-                      maxLength={1}
-                      value={digit}
-                      onChange={(e) => handleOtpChange(index, e.target.value)}
-                      onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                      disabled={isLoading}
-                      className="w-12 h-12 text-center text-xl font-semibold"
-                    />
-                  ))}
-                </div>
-
-                <div className="text-center">
-                  <p className="text-sm text-muted-foreground">
-                    Didn&apos;t receive the code?{" "}
-                    {countdown > 0 ? (
-                      <span>Resend in {countdown}s</span>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={handleResendOTP}
+              {!isVerifying && (
+                <div className="space-y-4">
+                  <div className="flex justify-center gap-2" onPaste={handleOtpPaste}>
+                    {otp.map((digit, index) => (
+                      <Input
+                        key={index}
+                        ref={(el) => { otpInputsRef.current[index] = el; }}
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={1}
+                        value={digit}
+                        onChange={(e) => handleOtpChange(index, e.target.value)}
+                        onKeyDown={(e) => handleOtpKeyDown(index, e)}
                         disabled={isLoading}
-                        className="text-primary hover:underline disabled:opacity-50"
-                      >
-                        Resend
-                      </button>
-                    )}
-                  </p>
-                </div>
+                        className="w-12 h-12 text-center text-xl font-semibold"
+                      />
+                    ))}
+                  </div>
 
-                <Button
-                  variant="ghost"
-                  className="w-full"
-                  onClick={handleBack}
-                  disabled={isLoading}
-                >
-                  <ArrowLeft className="mr-2 h-4 w-4" />
-                  Back to sign in
-                </Button>
-              </div>
+                  <div className="text-center">
+                    <p className="text-sm text-muted-foreground">
+                      Didn&apos;t receive the code?{" "}
+                      {countdown > 0 ? (
+                        <span>Resend in {countdown}s</span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={handleResendOTP}
+                          disabled={isLoading}
+                          className="text-primary hover:underline disabled:opacity-50"
+                        >
+                          Resend
+                        </button>
+                      )}
+                    </p>
+                  </div>
+
+                  <Button
+                    variant="ghost"
+                    className="w-full"
+                    onClick={handleBack}
+                    disabled={isLoading}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to sign in
+                  </Button>
+                </div>
+              )}
             </>
           )}
         </CardContent>

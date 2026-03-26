@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -45,8 +45,14 @@ const navigation = [
 
 export function Sidebar() {
   const pathname = usePathname();
-  const { data: session } = useSession();
+  const { data: session, update } = useSession();
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
+
+  // Refresh session once on mount to pick up new login
+  useEffect(() => {
+    update();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const userInitials =
     session?.user?.name

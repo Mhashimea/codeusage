@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCost, formatTokens, PROVIDERS, type ProviderId } from "@codeusage/shared";
+import { ProviderIcon } from "@/components/shared/ProviderBadge";
 import { Cpu } from "lucide-react";
 
 interface ProviderCost {
@@ -41,7 +42,7 @@ export function CostByProvider({ data }: CostByProviderProps) {
   // Provider colors
   const providerColors: Record<string, string> = {
     claude_code: "bg-orange-500/60",
-    codex: "bg-green-500/60",
+    codex: "bg-violet-500/60",
   };
 
   return (
@@ -66,12 +67,10 @@ export function CostByProvider({ data }: CostByProviderProps) {
                 {/* Icon */}
                 <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${
                   provider.tool_source === "claude_code"
-                    ? "bg-orange-500/10 text-orange-500"
-                    : "bg-green-500/10 text-green-500"
+                    ? "bg-orange-500/10"
+                    : "bg-violet-500/10"
                 }`}>
-                  <span className="font-bold text-sm">
-                    {provider.tool_source === "claude_code" ? "C" : "O"}
-                  </span>
+                  <ProviderIcon id={provider.tool_source} className="h-5 w-5" />
                 </div>
 
                 {/* Provider Info */}

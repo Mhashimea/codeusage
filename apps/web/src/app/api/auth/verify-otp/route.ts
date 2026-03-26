@@ -15,11 +15,14 @@ const COOKIE_NAME = process.env.NODE_ENV === "production"
   ? "__Secure-authjs.session-token"
   : "authjs.session-token";
 
+// Get the auth secret (supports both AUTH_SECRET and NEXTAUTH_SECRET)
+const AUTH_SECRET = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET || "";
+
 /**
  * Hash IP for storage in JWT (privacy-preserving)
  */
 function hashIp(ip: string): string {
-  return createHash("sha256").update(ip + process.env.NEXTAUTH_SECRET).digest("hex").slice(0, 16);
+  return createHash("sha256").update(ip + AUTH_SECRET).digest("hex").slice(0, 16);
 }
 
 export async function POST(request: Request) {
@@ -172,7 +175,7 @@ export async function POST(request: Request) {
         workspaceId: workspaceId,
         ipHash: ipHash, // Bind session to IP (hashed for privacy)
       },
-      secret: process.env.NEXTAUTH_SECRET!,
+      secret: AUTH_SECRET,
       salt: COOKIE_NAME,
       maxAge: sessionMaxAge,
     });
