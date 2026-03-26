@@ -3,12 +3,16 @@ import { NextResponse } from "next/server";
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
-  const isAuthPage = req.nextUrl.pathname.startsWith("/login") ||
-                     req.nextUrl.pathname.startsWith("/register");
-  const isApiRoute = req.nextUrl.pathname.startsWith("/api");
-  const isPublicApiRoute = req.nextUrl.pathname.startsWith("/api/v1/tasks") ||
-                           req.nextUrl.pathname.startsWith("/api/v1/auth/validate") ||
-                           req.nextUrl.pathname.startsWith("/api/auth");
+  const { pathname } = req.nextUrl;
+
+  // Public routes - no auth required
+  const isPublicPage = pathname === "/" || pathname === "/login";
+  const isAuthPage = pathname === "/login";
+  const isApiRoute = pathname.startsWith("/api");
+  const isPublicApiRoute =
+    pathname.startsWith("/api/v1/tasks") ||
+    pathname.startsWith("/api/v1/auth/validate") ||
+    pathname.startsWith("/api/auth");
 
   // Allow public API routes (CLI endpoints and auth endpoints)
   if (isPublicApiRoute) {
@@ -20,13 +24,23 @@ export default auth((req) => {
     return NextResponse.next();
   }
 
-  // Redirect logged-in users away from auth pages
-  if (isLoggedIn && isAuthPage) {
-    return NextResponse.redirect(new URL("/", req.nextUrl));
+  // Allow public pages
+  if (isPublicPage && !isLoggedIn) {
+    return NextResponse.next();
   }
 
-  // Redirect unauthenticated users to login (except auth pages)
-  if (!isLoggedIn && !isAuthPage) {
+  // Redirect logged-in users from auth pages to dashboard
+  if (isLoggedIn && isAuthPage) {
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
+  }
+
+  // Redirect logged-in users from landing page to dashboard
+  if (isLoggedIn && pathname === "/") {
+    return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
+  }
+
+  // Redirect unauthenticated users from protected routes to login
+  if (!isLoggedIn && pathname.startsWith("/dashboard")) {
     return NextResponse.redirect(new URL("/login", req.nextUrl));
   }
 
