@@ -75,14 +75,6 @@ const commands = [
     description: "Check connection and sync status",
   },
   {
-    command: "codeusage project set <name>",
-    description: "Set the project for current directory",
-  },
-  {
-    command: "codeusage project list",
-    description: "List all tracked projects",
-  },
-  {
     command: "codeusage sync",
     description: "Manually sync pending tasks",
   },
@@ -90,14 +82,46 @@ const commands = [
     command: "codeusage config",
     description: "View current configuration",
   },
+  {
+    command: "codeusage project set <name>",
+    description: "Set project name for current directory",
+  },
+  {
+    command: "codeusage project list",
+    description: "List all project mappings",
+  },
+  {
+    command: "codeusage project ignore",
+    description: "Ignore current directory (stop tracking)",
+  },
+  {
+    command: "codeusage project current",
+    description: "Show project for current directory",
+  },
+  {
+    command: "codeusage provider list",
+    description: "List available AI coding tool providers",
+  },
+  {
+    command: "codeusage provider add <id>",
+    description: "Add hooks for an additional provider",
+  },
+  {
+    command: "codeusage provider switch <id>",
+    description: "Switch to a different provider",
+  },
+  {
+    command: "codeusage logout",
+    description: "Disconnect and remove configuration",
+  },
 ];
 
-// Animated task simulation
+// Animated task simulation - showing both Claude Code and Codex
 const mockTasks = [
-  { model: "claude-sonnet-4", tokens: "12.4k", cost: "$0.042", time: "2m 15s" },
-  { model: "claude-opus-4", tokens: "8.2k", cost: "$0.156", time: "45s" },
-  { model: "claude-sonnet-4", tokens: "24.1k", cost: "$0.089", time: "4m 32s" },
-  { model: "claude-haiku-4", tokens: "3.1k", cost: "$0.004", time: "12s" },
+  { provider: "claude", model: "claude-sonnet-4", tokens: "12.4k", cost: "$0.042", time: "2m 15s" },
+  { provider: "codex", model: "codex-1", tokens: "8.2k", cost: "$0.034", time: "45s" },
+  { provider: "claude", model: "claude-opus-4", tokens: "24.1k", cost: "$0.156", time: "4m 32s" },
+  { provider: "codex", model: "codex-1", tokens: "5.8k", cost: "$0.024", time: "1m 28s" },
 ];
 
 export default function LandingPage() {
@@ -239,7 +263,11 @@ export default function LandingPage() {
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                          <ClaudeIcon className="h-4 w-4" />
+                          {task.provider === "claude" ? (
+                            <ClaudeIcon className="h-4 w-4" />
+                          ) : (
+                            <CodexIcon className="h-4 w-4" />
+                          )}
                           <span className="font-mono text-sm">{task.model}</span>
                         </div>
                         <div className="flex items-center gap-4 text-sm">
