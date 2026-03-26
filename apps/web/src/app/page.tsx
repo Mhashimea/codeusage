@@ -370,7 +370,7 @@ export default function LandingPage() {
       {/* How It Works Section */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 border-t border-border/50">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
+          <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-4">
               Up and running in 60 seconds
             </h2>
@@ -379,57 +379,80 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="space-y-6">
-            {[
-              {
-                step: "1",
-                title: "Install the CLI",
-                description: "Install CodeUsage globally with npm",
-                code: "npm install -g codeusage",
-              },
-              {
-                step: "2",
-                title: "Initialize",
-                description: "Connect to your workspace with one command",
-                code: "codeusage init",
-              },
-              {
-                step: "3",
-                title: "Start Coding",
-                description:
-                  "Use Claude Code or Codex as usual. Every task is tracked automatically.",
-                code: "claude  # just code — we handle the rest!",
-              },
-            ].map((item, index, arr) => (
-              <div
-                key={item.step}
-                className="flex gap-6 items-start group"
-                style={{ animationDelay: `${index * 100}ms` }}
-              >
-                {/* Step number with connector */}
-                <div className="flex flex-col items-center">
-                  <div className="h-12 w-12 rounded-full bg-[#D97757] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform z-10">
-                    <span className="text-white font-bold text-lg">
-                      {item.step}
-                    </span>
-                  </div>
-                  {/* Connector line to next step */}
-                  {index < arr.length - 1 && (
-                    <div className="w-0.5 flex-1 min-h-[60px] bg-gradient-to-b from-[#D97757] to-[#D97757]/30 mt-2" />
-                  )}
+          {/* Terminal Window */}
+          <div className="bg-card border border-border rounded-xl overflow-hidden shadow-2xl">
+            {/* Terminal Header */}
+            <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 border-b border-border">
+              <div className="flex gap-1.5">
+                <div className="w-3 h-3 rounded-full bg-red-500" />
+                <div className="w-3 h-3 rounded-full bg-yellow-500" />
+                <div className="w-3 h-3 rounded-full bg-green-500" />
+              </div>
+              <span className="text-sm text-muted-foreground ml-2">
+                Terminal
+              </span>
+            </div>
+
+            {/* Terminal Content */}
+            <div className="p-6 font-mono text-sm space-y-6">
+              {/* Step 1 */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span className="text-emerald-500">#</span>
+                  <span>Step 1: Install the CLI</span>
                 </div>
-                {/* Content card */}
-                <div className="flex-1 p-6 rounded-xl border border-border bg-card hover:border-[#D97757]/30 transition-all duration-300 hover:shadow-lg hover:shadow-[#D97757]/5">
-                  <h3 className="text-lg font-semibold mb-1">{item.title}</h3>
-                  <p className="text-muted-foreground text-sm mb-3">
-                    {item.description}
-                  </p>
-                  <code className="inline-block px-4 py-2 rounded-lg bg-background border border-border font-mono text-sm text-[#D97757] group-hover:bg-[#D97757]/5 transition-colors">
-                    {item.code}
-                  </code>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#D97757]">$</span>
+                  <span className="text-foreground">npm install -g codeusage</span>
+                </div>
+                <div className="text-emerald-500 pl-4">✓ Installed successfully</div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span className="text-emerald-500">#</span>
+                  <span>Step 2: Connect to your workspace</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#D97757]">$</span>
+                  <span className="text-foreground">codeusage init</span>
+                </div>
+                <div className="text-muted-foreground pl-4">Enter your API key: ••••••••</div>
+                <div className="text-emerald-500 pl-4">✓ Connected to workspace</div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <span className="text-emerald-500">#</span>
+                  <span>Step 3: Start coding — we handle the rest</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[#D97757]">$</span>
+                  <span className="text-foreground">claude</span>
+                </div>
+                <div className="text-muted-foreground pl-4 italic">
+                  Every task is now tracked automatically...
                 </div>
               </div>
-            ))}
+            </div>
+          </div>
+
+          {/* Features below terminal */}
+          <div className="grid sm:grid-cols-3 gap-4 mt-8">
+            <div className="text-center p-4">
+              <div className="text-2xl font-bold text-[#D97757] mb-1">60s</div>
+              <div className="text-sm text-muted-foreground">Setup time</div>
+            </div>
+            <div className="text-center p-4">
+              <div className="text-2xl font-bold text-[#D97757] mb-1">0</div>
+              <div className="text-sm text-muted-foreground">Config files needed</div>
+            </div>
+            <div className="text-center p-4">
+              <div className="text-2xl font-bold text-[#D97757] mb-1">100%</div>
+              <div className="text-sm text-muted-foreground">Task coverage</div>
+            </div>
           </div>
         </div>
       </section>
