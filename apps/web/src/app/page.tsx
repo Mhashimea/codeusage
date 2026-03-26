@@ -379,54 +379,57 @@ export default function LandingPage() {
             </p>
           </div>
 
-          <div className="relative">
-            {/* Connection line */}
-            <div className="absolute left-[39px] top-0 bottom-0 w-0.5 bg-gradient-to-b from-[#D97757] via-[#D97757]/50 to-transparent hidden md:block" />
-
-            <div className="space-y-8">
-              {[
-                {
-                  step: "1",
-                  title: "Install the CLI",
-                  description: "Install CodeUsage globally with npm",
-                  code: "npm install -g codeusage",
-                },
-                {
-                  step: "2",
-                  title: "Initialize",
-                  description: "Connect to your workspace with one command",
-                  code: "codeusage init",
-                },
-                {
-                  step: "3",
-                  title: "Start Coding",
-                  description:
-                    "Use Claude Code or Codex as usual. Every task is tracked automatically.",
-                  code: "claude  # just code — we handle the rest!",
-                },
-              ].map((item, index) => (
-                <div
-                  key={item.step}
-                  className="flex gap-6 items-start p-6 rounded-xl border border-border bg-card group hover:border-[#D97757]/30 transition-all duration-300 hover:shadow-lg hover:shadow-[#D97757]/5"
-                  style={{ animationDelay: `${index * 100}ms` }}
-                >
-                  <div className="h-12 w-12 rounded-full bg-[#D97757] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+          <div className="space-y-6">
+            {[
+              {
+                step: "1",
+                title: "Install the CLI",
+                description: "Install CodeUsage globally with npm",
+                code: "npm install -g codeusage",
+              },
+              {
+                step: "2",
+                title: "Initialize",
+                description: "Connect to your workspace with one command",
+                code: "codeusage init",
+              },
+              {
+                step: "3",
+                title: "Start Coding",
+                description:
+                  "Use Claude Code or Codex as usual. Every task is tracked automatically.",
+                code: "claude  # just code — we handle the rest!",
+              },
+            ].map((item, index, arr) => (
+              <div
+                key={item.step}
+                className="flex gap-6 items-start group"
+                style={{ animationDelay: `${index * 100}ms` }}
+              >
+                {/* Step number with connector */}
+                <div className="flex flex-col items-center">
+                  <div className="h-12 w-12 rounded-full bg-[#D97757] flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform z-10">
                     <span className="text-white font-bold text-lg">
                       {item.step}
                     </span>
                   </div>
-                  <div className="flex-1">
-                    <h3 className="text-lg font-semibold mb-1">{item.title}</h3>
-                    <p className="text-muted-foreground text-sm mb-3">
-                      {item.description}
-                    </p>
-                    <code className="inline-block px-4 py-2 rounded-lg bg-background border border-border font-mono text-sm text-[#D97757] group-hover:bg-[#D97757]/5 transition-colors">
-                      {item.code}
-                    </code>
-                  </div>
+                  {/* Connector line to next step */}
+                  {index < arr.length - 1 && (
+                    <div className="w-0.5 flex-1 min-h-[60px] bg-gradient-to-b from-[#D97757] to-[#D97757]/30 mt-2" />
+                  )}
                 </div>
-              ))}
-            </div>
+                {/* Content card */}
+                <div className="flex-1 p-6 rounded-xl border border-border bg-card hover:border-[#D97757]/30 transition-all duration-300 hover:shadow-lg hover:shadow-[#D97757]/5">
+                  <h3 className="text-lg font-semibold mb-1">{item.title}</h3>
+                  <p className="text-muted-foreground text-sm mb-3">
+                    {item.description}
+                  </p>
+                  <code className="inline-block px-4 py-2 rounded-lg bg-background border border-border font-mono text-sm text-[#D97757] group-hover:bg-[#D97757]/5 transition-colors">
+                    {item.code}
+                  </code>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </section>
