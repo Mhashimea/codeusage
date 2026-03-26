@@ -123,10 +123,10 @@ export default function TermsPage() {
             <p className="text-muted-foreground">
               If you have any questions about these terms, please contact us at{" "}
               <a
-                href="mailto:legal@codeusage.dev"
+                href="mailto:info@codeusage.dev"
                 className="text-[#D97757] hover:underline"
               >
-                legal@codeusage.dev
+                info@codeusage.dev
               </a>
             </p>
           </section>

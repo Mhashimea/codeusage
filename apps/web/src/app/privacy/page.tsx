@@ -131,10 +131,10 @@ export default function PrivacyPage() {
             <p className="text-muted-foreground">
               If you have any questions about this privacy policy, please contact us at{" "}
               <a
-                href="mailto:privacy@codeusage.dev"
+                href="mailto:info@codeusage.dev"
                 className="text-[#D97757] hover:underline"
               >
-                privacy@codeusage.dev
+                info@codeusage.dev
               </a>
             </p>
           </section>
