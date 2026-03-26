@@ -21,10 +21,8 @@ import {
   FolderKanban,
   DollarSign,
   Terminal,
-  Zap,
   Shield,
   ArrowRight,
-  Check,
 } from "lucide-react";
 import { CodeUsageLogoBrand } from "@/components/shared/CodeUsageLogo";
 import { ClaudeIcon, CodexIcon } from "@/components/shared/ProviderBadge";
@@ -450,40 +448,6 @@ export default function LoginPage() {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing/Free Section */}
-      <section className="py-20 px-4 sm:px-6 lg:px-8 border-t border-border/50">
-        <div className="max-w-2xl mx-auto text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 border border-emerald-500/20 mb-6">
-            <Zap className="h-4 w-4 text-emerald-500" />
-            <span className="text-sm text-emerald-500">Free during beta</span>
-          </div>
-          <h2 className="text-3xl font-bold mb-4">Start tracking for free</h2>
-          <p className="text-muted-foreground mb-8">
-            CodeUsage is free while in beta. No credit card required.
-          </p>
-          <div className="inline-block p-6 rounded-xl border border-border bg-card text-left">
-            <div className="flex items-baseline gap-2 mb-4">
-              <span className="text-4xl font-bold">$0</span>
-              <span className="text-muted-foreground">/month</span>
-            </div>
-            <ul className="space-y-2">
-              {[
-                "Unlimited developers",
-                "Unlimited projects",
-                "Full usage analytics",
-                "Cost tracking",
-                "30-day data retention",
-              ].map((item) => (
-                <li key={item} className="flex items-center gap-2 text-sm">
-                  <Check className="h-4 w-4 text-emerald-500" />
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
           </div>
         </div>
       </section>
