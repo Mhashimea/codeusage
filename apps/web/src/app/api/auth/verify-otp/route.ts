@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { db, verificationTokens, workspaces } from "@/lib/db";
 import { eq, and, gt } from "drizzle-orm";
 import { generateApiKey, hashApiKey } from "@/lib/api-key";
-import { verifyOTP } from "@/lib/email";
+import { verifyOTP, sendWelcomeEmail } from "@/lib/email";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { cookies } from "next/headers";
 import { encode } from "next-auth/jwt";
@@ -158,6 +158,11 @@ export async function POST(request: Request) {
 
       workspaceId = newWorkspace.id;
       displayName = newWorkspace.display_name || normalizedEmail.split("@")[0];
+
+      // Send welcome email (non-blocking — don't delay login)
+      sendWelcomeEmail(normalizedEmail, displayName).catch((err) => {
+        console.error("Failed to send welcome email:", err);
+      });
     } else {
       workspaceId = existingWorkspace[0].id;
       displayName = existingWorkspace[0].display_name || normalizedEmail.split("@")[0];
