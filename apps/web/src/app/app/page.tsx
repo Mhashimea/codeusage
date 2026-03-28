@@ -248,7 +248,7 @@ async function OverviewContent({ searchParams }: PageProps) {
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-base font-medium">Recent Tasks</CardTitle>
             <Link
-              href="/tasks"
+              href="/app/tasks"
               className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
             >
               View all <ArrowRight className="h-3 w-3" />

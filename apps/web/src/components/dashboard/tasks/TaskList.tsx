@@ -48,7 +48,7 @@ export function TaskList({ sessionGroups, pagination }: TaskListProps) {
   const handlePageChange = (newPage: number) => {
     const params = new URLSearchParams(searchParams.toString());
     params.set("page", String(newPage));
-    router.push(`/tasks?${params.toString()}`);
+    router.push(`/app/tasks?${params.toString()}`);
   };
 
   const toggleSession = (sessionId: string) => {

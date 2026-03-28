@@ -36,11 +36,11 @@ import {
 } from "@/components/ui/alert-dialog";
 
 const navigation = [
-  { name: "Overview", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Tasks", href: "/dashboard/tasks", icon: ListTodo },
-  { name: "Developers", href: "/dashboard/developers", icon: Users },
-  { name: "Projects", href: "/dashboard/projects", icon: FolderKanban },
-  { name: "Cost & Usage", href: "/dashboard/cost", icon: DollarSign },
+  { name: "Overview", href: "/app", icon: LayoutDashboard },
+  { name: "Tasks", href: "/app/tasks", icon: ListTodo },
+  { name: "Developers", href: "/app/developers", icon: Users },
+  { name: "Projects", href: "/app/projects", icon: FolderKanban },
+  { name: "Cost & Usage", href: "/app/cost", icon: DollarSign },
 ];
 
 export function Sidebar() {
@@ -118,7 +118,7 @@ export function Sidebar() {
               <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-52" align="start" sideOffset={8}>
-              <Link href="/dashboard/settings">
+              <Link href="/app/settings">
                 <DropdownMenuItem className="cursor-pointer">
                   <Settings className="mr-2 h-4 w-4" />
                   Settings

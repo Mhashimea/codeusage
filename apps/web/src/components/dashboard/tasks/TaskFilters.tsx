@@ -71,7 +71,7 @@ export function TaskFilters({ developers, projects, providers = [] }: TaskFilter
       }
       // Reset to page 1 when filters change
       params.delete("page");
-      router.push(`/tasks?${params.toString()}`);
+      router.push(`/app/tasks?${params.toString()}`);
     },
     [router, searchParams]
   );
@@ -92,13 +92,13 @@ export function TaskFilters({ developers, projects, providers = [] }: TaskFilter
       }
       // Reset to page 1 when filters change
       params.delete("page");
-      router.push(`/tasks?${params.toString()}`);
+      router.push(`/app/tasks?${params.toString()}`);
     },
     [router, searchParams]
   );
 
   const clearFilters = useCallback(() => {
-    router.push("/tasks");
+    router.push("/app/tasks");
   }, [router]);
 
   const hasFilters = currentDeveloper || currentProject || currentProvider || startDateParam;
