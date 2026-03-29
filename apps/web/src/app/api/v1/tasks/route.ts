@@ -79,6 +79,9 @@ export async function POST(request: NextRequest) {
       cache_tokens: payload.cache_tokens,
       cost_usd: String(payload.cost_usd), // Drizzle expects string for numeric
       files_changed: payload.files_changed,
+      files_created: payload.files_created,
+      files_modified: payload.files_modified,
+      files_deleted: payload.files_deleted,
       files_changed_details: payload.files_changed_details,
       tools_used: payload.tools_used,
       task_duration_sec: payload.task_duration_sec,

@@ -1,7 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import os from "os";
-import type { FileChangeDetail } from "@codeusage/shared";
+import type { FileChangeDetail, FileChangeType } from "@codeusage/shared";
 
 /**
  * Stores cumulative session values to calculate deltas between tasks
@@ -12,8 +12,11 @@ export interface SessionState {
   output_tokens: number;
   cache_tokens: number;
   files_changed: number;
+  files_created: number;
+  files_modified: number;
+  files_deleted: number;
   /** Cumulative additions/deletions per file path */
-  file_stats: Record<string, { additions: number; deletions: number }>;
+  file_stats: Record<string, { additions: number; deletions: number; change_type: FileChangeType }>;
   tool_counts: Record<string, number>;
   last_timestamp: number;
   updated_at: string;
@@ -91,6 +94,9 @@ export function calculateDelta(
     output_tokens: number;
     cache_tokens: number;
     files_changed: number;
+    files_created: number;
+    files_modified: number;
+    files_deleted: number;
     files_changed_details: FileChangeDetail[];
     tool_counts: Record<string, number>;
   },
@@ -100,6 +106,9 @@ export function calculateDelta(
   output_tokens: number;
   cache_tokens: number;
   files_changed: number;
+  files_created: number;
+  files_modified: number;
+  files_deleted: number;
   files_changed_details: FileChangeDetail[];
   tools_used: { name: string; count: number }[];
 } {
@@ -110,6 +119,9 @@ export function calculateDelta(
       output_tokens: current.output_tokens,
       cache_tokens: current.cache_tokens,
       files_changed: current.files_changed,
+      files_created: current.files_created,
+      files_modified: current.files_modified,
+      files_deleted: current.files_deleted,
       files_changed_details: current.files_changed_details,
       tools_used: Object.entries(current.tool_counts).map(([name, count]) => ({
         name,
@@ -146,19 +158,25 @@ export function calculateDelta(
           path: file.path,
           additions: deltaAdditions,
           deletions: deltaDeletions,
+          change_type: file.change_type,
         });
       }
     }
   }
 
-  // Count unique files with changes
-  const filesChangedDelta = deltaFileDetails.length;
+  // Count files by change type from delta
+  const filesCreatedDelta = deltaFileDetails.filter(f => f.change_type === "created").length;
+  const filesModifiedDelta = deltaFileDetails.filter(f => f.change_type === "modified").length;
+  const filesDeletedDelta = deltaFileDetails.filter(f => f.change_type === "deleted").length;
 
   return {
     input_tokens: Math.max(0, current.input_tokens - previous.input_tokens),
     output_tokens: Math.max(0, current.output_tokens - previous.output_tokens),
     cache_tokens: Math.max(0, current.cache_tokens - previous.cache_tokens),
-    files_changed: filesChangedDelta,
+    files_changed: deltaFileDetails.length,
+    files_created: filesCreatedDelta,
+    files_modified: filesModifiedDelta,
+    files_deleted: filesDeletedDelta,
     files_changed_details: deltaFileDetails,
     tools_used: Object.entries(deltaToolCounts).map(([name, count]) => ({
       name,

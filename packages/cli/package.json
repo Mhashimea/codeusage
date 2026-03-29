@@ -25,12 +25,14 @@
     "chalk": "^5.4.1",
     "commander": "^13.1.0",
     "conf": "^13.1.0",
+    "diff": "^8.0.4",
     "execa": "^9.5.2",
     "ora": "^8.2.0",
     "zod": "^3.25.76"
   },
   "devDependencies": {
     "@codeusage/shared": "workspace:*",
+    "@types/diff": "^8.0.0",
     "@types/node": "^20.19.0",
     "tsup": "^8.5.0",
     "tsx": "^4.19.0",

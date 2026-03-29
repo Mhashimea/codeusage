@@ -1,6 +1,7 @@
 // Types
 export type {
   ToolUsage,
+  FileChangeType,
   FileChangeDetail,
   ToolSource,
   HookScope,

@@ -87,6 +87,9 @@ export const hookStopCommand = new Command("stop")
         output_tokens: session.output_tokens,
         cache_tokens: session.cache_tokens,
         files_changed: session.files_changed,
+        files_created: session.files_created,
+        files_modified: session.files_modified,
+        files_deleted: session.files_deleted,
         files_changed_details: session.files_changed_details,
         tool_counts: session.tool_counts,
       },
@@ -131,6 +134,9 @@ export const hookStopCommand = new Command("stop")
       cache_tokens: delta.cache_tokens,
       cost_usd: cost,
       files_changed: delta.files_changed,
+      files_created: delta.files_created,
+      files_modified: delta.files_modified,
+      files_deleted: delta.files_deleted,
       files_changed_details: delta.files_changed_details,
       tools_used: delta.tools_used,
       task_duration_sec: taskDuration,
@@ -153,7 +159,9 @@ export const hookStopCommand = new Command("stop")
         );
       }
       console.log(`Cost: ${chalk.green(`~$${payload.cost_usd.toFixed(4)}`)}`);
-      console.log(`Files changed: ${chalk.yellow(payload.files_changed)}`);
+      console.log(
+        `Files: ${chalk.yellow(payload.files_changed)} changed (${chalk.green(`+${payload.files_created}`)} created, ${chalk.blue(`~${payload.files_modified}`)} modified, ${chalk.red(`-${payload.files_deleted}`)} deleted)`
+      );
       console.log(`Duration: ${chalk.yellow(payload.task_duration_sec)}s`);
       if (payload.tools_used.length > 0) {
         console.log(
@@ -183,9 +191,13 @@ export const hookStopCommand = new Command("stop")
 
       // Save current cumulative state for next delta calculation
       // Convert files_changed_details to file_stats record
-      const file_stats: Record<string, { additions: number; deletions: number }> = {};
+      const file_stats: SessionState["file_stats"] = {};
       for (const file of session.files_changed_details) {
-        file_stats[file.path] = { additions: file.additions, deletions: file.deletions };
+        file_stats[file.path] = {
+          additions: file.additions,
+          deletions: file.deletions,
+          change_type: file.change_type,
+        };
       }
 
       const newState: SessionState = {
@@ -194,6 +206,9 @@ export const hookStopCommand = new Command("stop")
         output_tokens: session.output_tokens,
         cache_tokens: session.cache_tokens,
         files_changed: session.files_changed,
+        files_created: session.files_created,
+        files_modified: session.files_modified,
+        files_deleted: session.files_deleted,
         file_stats,
         tool_counts: session.tool_counts,
         last_timestamp: session.end_time || Date.now(),
@@ -212,9 +227,13 @@ export const hookStopCommand = new Command("stop")
 
       // Still save state even when buffering to avoid double-counting
       // Convert files_changed_details to file_stats record
-      const bufferedFileStats: Record<string, { additions: number; deletions: number }> = {};
+      const bufferedFileStats: SessionState["file_stats"] = {};
       for (const file of session.files_changed_details) {
-        bufferedFileStats[file.path] = { additions: file.additions, deletions: file.deletions };
+        bufferedFileStats[file.path] = {
+          additions: file.additions,
+          deletions: file.deletions,
+          change_type: file.change_type,
+        };
       }
 
       const newState: SessionState = {
@@ -223,6 +242,9 @@ export const hookStopCommand = new Command("stop")
         output_tokens: session.output_tokens,
         cache_tokens: session.cache_tokens,
         files_changed: session.files_changed,
+        files_created: session.files_created,
+        files_modified: session.files_modified,
+        files_deleted: session.files_deleted,
         file_stats: bufferedFileStats,
         tool_counts: session.tool_counts,
         last_timestamp: session.end_time || Date.now(),

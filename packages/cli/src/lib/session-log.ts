@@ -2,13 +2,37 @@ import fs from "fs/promises";
 import path from "path";
 import os from "os";
 import { execa } from "execa";
+import { diffLines } from "diff";
 import {
   type ProviderId,
   type FileChangeDetail,
+  type FileChangeType,
   getProviderById,
   isProviderActive,
   DEFAULT_PROVIDER,
 } from "@codeusage/shared";
+
+/**
+ * Calculate accurate line additions and deletions using diff algorithm
+ */
+function calculateLineDiff(
+  oldString: string,
+  newString: string
+): { additions: number; deletions: number } {
+  const changes = diffLines(oldString, newString);
+  let additions = 0;
+  let deletions = 0;
+
+  for (const change of changes) {
+    if (change.added) {
+      additions += change.count ?? 0;
+    } else if (change.removed) {
+      deletions += change.count ?? 0;
+    }
+  }
+
+  return { additions, deletions };
+}
 
 /**
  * Get git root directory for the current working directory
@@ -33,6 +57,9 @@ export interface SessionData {
   tools_used: { name: string; count: number }[];
   tool_counts: Record<string, number>;
   files_changed: number;
+  files_created: number;
+  files_modified: number;
+  files_deleted: number;
   files_changed_details: FileChangeDetail[];
   duration_sec: number;
   start_time: number | null;
@@ -138,7 +165,7 @@ async function parseClaudeCodeSession(
     let cacheTokens = 0;
     let model = "claude-sonnet-4-5";
     const toolCounts: Record<string, number> = {};
-    const fileChanges: Map<string, { additions: number; deletions: number }> = new Map();
+    const fileChanges: Map<string, { additions: number; deletions: number; change_type: FileChangeType }> = new Map();
     let startTime: number | null = null;
     let endTime: number | null = null;
 
@@ -174,32 +201,44 @@ async function parseClaudeCodeSession(
               if (block.type === "tool_use" && block.name) {
                 toolCounts[block.name] = (toolCounts[block.name] || 0) + 1;
 
-                // Track file changes with additions/deletions
+                // Track file changes with additions/deletions using proper diff
                 if (block.name === "Edit") {
                   const filePath = block.input?.file_path;
                   if (filePath && typeof filePath === "string") {
                     const oldString = block.input?.old_string || "";
                     const newString = block.input?.new_string || "";
-                    const deletions = oldString.split("\n").length;
-                    const additions = newString.split("\n").length;
+                    const { additions, deletions } = calculateLineDiff(oldString, newString);
 
-                    const existing = fileChanges.get(filePath) || { additions: 0, deletions: 0 };
+                    const existing = fileChanges.get(filePath) || { additions: 0, deletions: 0, change_type: "modified" as FileChangeType };
                     fileChanges.set(filePath, {
                       additions: existing.additions + additions,
                       deletions: existing.deletions + deletions,
+                      change_type: existing.change_type, // Keep original type (could be created then edited)
                     });
                   }
                 } else if (block.name === "Write") {
                   const filePath = block.input?.file_path;
                   if (filePath && typeof filePath === "string") {
                     const content = block.input?.content || "";
+                    // For new file writes, all lines are additions
                     const additions = content.split("\n").length;
 
-                    const existing = fileChanges.get(filePath) || { additions: 0, deletions: 0 };
-                    fileChanges.set(filePath, {
-                      additions: existing.additions + additions,
-                      deletions: existing.deletions,
-                    });
+                    const existing = fileChanges.get(filePath);
+                    if (existing) {
+                      // File was already touched in this task, add to it
+                      fileChanges.set(filePath, {
+                        additions: existing.additions + additions,
+                        deletions: existing.deletions,
+                        change_type: existing.change_type,
+                      });
+                    } else {
+                      // New file creation
+                      fileChanges.set(filePath, {
+                        additions,
+                        deletions: 0,
+                        change_type: "created",
+                      });
+                    }
                   }
                 }
               }
@@ -220,12 +259,18 @@ async function parseClaudeCodeSession(
 
     // Convert file changes map to array
     const files_changed_details: FileChangeDetail[] = Array.from(fileChanges.entries()).map(
-      ([path, stats]) => ({
-        path,
+      ([filePath, stats]) => ({
+        path: filePath,
         additions: stats.additions,
         deletions: stats.deletions,
+        change_type: stats.change_type,
       })
     );
+
+    // Count files by change type
+    const files_created = files_changed_details.filter(f => f.change_type === "created").length;
+    const files_modified = files_changed_details.filter(f => f.change_type === "modified").length;
+    const files_deleted = files_changed_details.filter(f => f.change_type === "deleted").length;
 
     return {
       session_id: sessionId,
@@ -236,6 +281,9 @@ async function parseClaudeCodeSession(
       tools_used,
       tool_counts: toolCounts,
       files_changed: fileChanges.size,
+      files_created,
+      files_modified,
+      files_deleted,
       files_changed_details,
       duration_sec,
       start_time: startTime,
@@ -319,19 +367,6 @@ async function findLatestCodexSession(): Promise<string | null> {
 }
 
 /**
- * Extract session ID from Codex rollout filename
- * Format: rollout-2026-03-11T00-04-17-019cdb11-1b11-7323-aaf3-edaac90171b5.jsonl
- */
-function extractCodexSessionId(filename: string): string {
-  const basename = path.basename(filename, ".jsonl");
-  // Extract the UUID portion after the timestamp
-  const match = basename.match(
-    /rollout-\d{4}-\d{2}-\d{2}T\d{2}-\d{2}-\d{2}-(.+)/
-  );
-  return match ? match[1] : basename;
-}
-
-/**
  * Parse Codex session log
  *
  * Codex log format uses entries with:
@@ -347,13 +382,11 @@ function extractCodexSessionId(filename: string): string {
  *
  * Token usage: We track tokens between the last task_started and task_complete.
  */
-async function parseCodexSession(cwd: string): Promise<SessionData | null> {
+async function parseCodexSession(_cwd: string): Promise<SessionData | null> {
   // Codex doesn't use per-project session files, it's global
   // We'll use the most recent session file
   const sessionFile = await findLatestCodexSession();
   if (!sessionFile) return null;
-
-  const sessionId = extractCodexSessionId(sessionFile);
 
   try {
     const content = await fs.readFile(sessionFile, "utf-8");
@@ -398,7 +431,7 @@ async function parseCodexSession(cwd: string): Promise<SessionData | null> {
               startIndex: i,
               startTime: new Date(entry.timestamp).getTime(),
             };
-          } else if (payload.type === "task_complete" && payload.turn_id && currentTurn) {
+          } else if (payload.type === "task_complete" && payload.turn_id && currentTurn && currentTurn.turnId) {
             // End current turn
             if (currentTurn.turnId === payload.turn_id) {
               turns.push({
@@ -457,7 +490,7 @@ async function parseCodexSession(cwd: string): Promise<SessionData | null> {
     let endOutputTokens = 0;
     let endCacheTokens = 0;
     const toolCounts: Record<string, number> = {};
-    const fileChanges: Map<string, { additions: number; deletions: number }> = new Map();
+    const fileChanges: Map<string, { additions: number; deletions: number; change_type: FileChangeType }> = new Map();
 
     for (let i = lastTurn.startIndex; i <= lastTurn.endIndex; i++) {
       try {
@@ -491,25 +524,34 @@ async function parseCodexSession(cwd: string): Promise<SessionData | null> {
           // Extract file changes from apply_patch
           if (toolName === "apply_patch" && payload.input) {
             const patchContent = payload.input as string;
-            // Parse "*** Update File: /path/to/file" lines
+            // Parse "*** Update File: /path/to/file" lines (modified files)
             const updateMatches = patchContent.matchAll(/\*\*\* Update File: ([^\n]+)/g);
             for (const match of updateMatches) {
               const filePath = match[1].trim();
-              const existing = fileChanges.get(filePath) || { additions: 0, deletions: 0 };
+              const existing = fileChanges.get(filePath) || { additions: 0, deletions: 0, change_type: "modified" as FileChangeType };
               // Count lines starting with + and - in the patch
               const additions = (patchContent.match(/^\+[^+]/gm) || []).length;
               const deletions = (patchContent.match(/^-[^-]/gm) || []).length;
               fileChanges.set(filePath, {
                 additions: existing.additions + additions,
                 deletions: existing.deletions + deletions,
+                change_type: existing.change_type,
               });
             }
-            // Parse "*** Add File: /path/to/file" lines
+            // Parse "*** Add File: /path/to/file" lines (created files)
             const addMatches = patchContent.matchAll(/\*\*\* Add File: ([^\n]+)/g);
             for (const match of addMatches) {
               const filePath = match[1].trim();
               const additions = (patchContent.split("\n").length || 1);
-              fileChanges.set(filePath, { additions, deletions: 0 });
+              fileChanges.set(filePath, { additions, deletions: 0, change_type: "created" });
+            }
+            // Parse "*** Delete File: /path/to/file" lines (deleted files)
+            const deleteMatches = patchContent.matchAll(/\*\*\* Delete File: ([^\n]+)/g);
+            for (const match of deleteMatches) {
+              const filePath = match[1].trim();
+              const existing = fileChanges.get(filePath);
+              const deletions = existing?.additions || 0; // Count previous additions as deletions
+              fileChanges.set(filePath, { additions: 0, deletions, change_type: "deleted" });
             }
           }
         }
@@ -546,8 +588,14 @@ async function parseCodexSession(cwd: string): Promise<SessionData | null> {
         path: filePath,
         additions: stats.additions,
         deletions: stats.deletions,
+        change_type: stats.change_type,
       })
     );
+
+    // Count files by change type
+    const files_created = files_changed_details.filter(f => f.change_type === "created").length;
+    const files_modified = files_changed_details.filter(f => f.change_type === "modified").length;
+    const files_deleted = files_changed_details.filter(f => f.change_type === "deleted").length;
 
     // Use turn_id as session_id for Codex to enable per-turn tracking
     // This allows delta tracking to work correctly across multiple hook calls
@@ -560,6 +608,9 @@ async function parseCodexSession(cwd: string): Promise<SessionData | null> {
       tools_used,
       tool_counts: toolCounts,
       files_changed: fileChanges.size,
+      files_created,
+      files_modified,
+      files_deleted,
       files_changed_details,
       duration_sec,
       start_time: lastTurn.startTime,

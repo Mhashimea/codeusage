@@ -7,12 +7,18 @@ export interface ToolUsage {
 }
 
 /**
+ * Type of file change
+ */
+export type FileChangeType = "created" | "modified" | "deleted";
+
+/**
  * Represents a file change with addition/deletion stats
  */
 export interface FileChangeDetail {
   path: string;
   additions: number;
   deletions: number;
+  change_type: FileChangeType;
 }
 
 /**
@@ -40,6 +46,9 @@ export interface TaskRecord {
   cache_tokens: number;
   cost_usd: number;
   files_changed: number;
+  files_created: number;
+  files_modified: number;
+  files_deleted: number;
   files_changed_details: FileChangeDetail[];
   tools_used: ToolUsage[];
   task_duration_sec: number;
@@ -63,6 +72,9 @@ export interface TelemetryPayload {
   cache_tokens: number;
   cost_usd: number;
   files_changed: number;
+  files_created: number;
+  files_modified: number;
+  files_deleted: number;
   files_changed_details: FileChangeDetail[];
   tools_used: ToolUsage[];
   task_duration_sec: number;

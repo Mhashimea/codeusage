@@ -9,12 +9,18 @@ export const toolUsageSchema = z.object({
 });
 
 /**
+ * File change type enum
+ */
+export const fileChangeTypeSchema = z.enum(["created", "modified", "deleted"]);
+
+/**
  * File change detail schema
  */
 export const fileChangeDetailSchema = z.object({
   path: z.string().min(1),
   additions: z.number().int().min(0),
   deletions: z.number().int().min(0),
+  change_type: fileChangeTypeSchema,
 });
 
 /**
@@ -40,6 +46,9 @@ export const telemetryPayloadSchema = z.object({
   cache_tokens: z.number().int().min(0),
   cost_usd: z.number().min(0).max(50), // Sanity check: no single task costs > $50
   files_changed: z.number().int().min(0),
+  files_created: z.number().int().min(0),
+  files_modified: z.number().int().min(0),
+  files_deleted: z.number().int().min(0),
   files_changed_details: z.array(fileChangeDetailSchema).default([]),
   tools_used: z.array(toolUsageSchema),
   task_duration_sec: z.number().int().min(0),
