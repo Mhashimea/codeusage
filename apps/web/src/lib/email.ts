@@ -8,7 +8,7 @@ const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KE
 const FROM_EMAIL = process.env.EMAIL_FROM || "CodeUsage <noreply@codeusage.dev>";
 
 // Dev mode: skip email sending and log OTP to console
-const DEV_MODE = !process.env.RESEND_API_KEY || process.env.NODE_ENV === "development";
+const DEV_MODE = !process.env.RESEND_API_KEY;
 
 /**
  * Generate a cryptographically secure 6-digit OTP
