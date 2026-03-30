@@ -21,7 +21,7 @@ export const workspaces = pgTable(
     name: text("name").notNull(), // Used for email lookup in auth
     display_name: text("display_name"), // User's display name
     password_hash: text("password_hash"), // bcrypt hash for login password
-    api_key_hash: text("api_key_hash").notNull().unique(), // bcrypt hash for CLI API key
+    api_key_hash: text("api_key_hash").unique(), // bcrypt hash for CLI API key (nullable until user generates)
     api_key_prefix: text("api_key_prefix"), // First 12 chars of API key for O(1) lookup (timing attack prevention)
     plan: text("plan").notNull().default("free"), // free | team | enterprise
     created_at: timestamp("created_at").defaultNow().notNull(),

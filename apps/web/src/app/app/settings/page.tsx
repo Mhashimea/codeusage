@@ -49,7 +49,7 @@ async function SettingsContent() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="rounded-lg bg-muted p-4 font-mono text-sm">
-            npm install -g @hashim_ea/codeusage
+            bun add -g codeusage-cli
           </div>
           <div className="text-sm text-muted-foreground">
             After installation, run <code className="rounded bg-muted px-1">codeusage init</code> and

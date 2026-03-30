@@ -413,7 +413,7 @@ export default function LandingPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[#D97757]">$</span>
-                  <span className="text-foreground">npm install -g codeusage</span>
+                  <span className="text-foreground">bun add -g codeusage-cli</span>
                 </div>
                 <div className="text-emerald-500 pl-4">✓ Installed successfully</div>
               </div>

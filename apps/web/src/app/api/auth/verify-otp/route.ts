@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db, verificationTokens, workspaces } from "@/lib/db";
 import { eq, and, gt } from "drizzle-orm";
-import { generateApiKey, hashApiKey } from "@/lib/api-key";
+// API key generation removed - users generate manually from settings
 import { verifyOTP, sendWelcomeEmail } from "@/lib/email";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { cookies } from "next/headers";
@@ -140,18 +140,12 @@ export async function POST(request: Request) {
     let displayName: string;
 
     if (existingWorkspace.length === 0) {
-      // Create new workspace for this user
-      const apiKey = generateApiKey();
-      const apiKeyHash = await hashApiKey(apiKey);
-      const apiKeyPrefix = apiKey.slice(0, 12); // Store prefix for O(1) lookup
-
+      // Create new workspace for this user (no API key yet - user generates manually)
       const [newWorkspace] = await db
         .insert(workspaces)
         .values({
           name: normalizedEmail,
           display_name: normalizedEmail.split("@")[0],
-          api_key_hash: apiKeyHash,
-          api_key_prefix: apiKeyPrefix,
           plan: "free",
         })
         .returning();

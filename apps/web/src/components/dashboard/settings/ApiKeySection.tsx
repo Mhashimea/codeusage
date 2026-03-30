@@ -66,16 +66,6 @@ export function ApiKeySection({ workspaceId, hasExistingKey = false }: ApiKeySec
     }
   };
 
-  const [copiedCommand, setCopiedCommand] = useState(false);
-
-  const handleCopyCommand = async () => {
-    if (apiKey) {
-      await navigator.clipboard.writeText(`codeusage config set-key ${apiKey}`);
-      setCopiedCommand(true);
-      setTimeout(() => setCopiedCommand(false), 2000);
-    }
-  };
-
   return (
     <Card>
       <CardHeader>
@@ -112,34 +102,6 @@ export function ApiKeySection({ workspaceId, hasExistingKey = false }: ApiKeySec
           </Button>
         </div>
 
-        {/* Show config command when key is available */}
-        {apiKey && (
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Or configure existing CLI:</p>
-            <div className="flex items-center gap-3">
-              <div className="flex-1 rounded-lg bg-muted p-3 font-mono text-sm overflow-x-auto">
-                codeusage config set-key <span className="text-muted-foreground">••••••••••••••••••••</span>
-              </div>
-              <Button
-                variant="outline"
-                onClick={handleCopyCommand}
-                className="gap-2 shrink-0"
-              >
-                {copiedCommand ? (
-                  <>
-                    <Check className="h-4 w-4 text-green-500" />
-                    Copied
-                  </>
-                ) : (
-                  <>
-                    <Copy className="h-4 w-4" />
-                    Copy
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        )}
 
         {/* Show confirmation dialog only when rotating an existing key */}
         {keyExistsInDb ? (

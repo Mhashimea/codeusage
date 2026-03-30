@@ -36,6 +36,20 @@
       "when": 1774545600000,
       "tag": "0004_security_hardening",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1774545700000,
+      "tag": "0001_add_display_name",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774545800000,
+      "tag": "0005_add_password_hash",
+      "breakpoints": true
     }
   ]
 }

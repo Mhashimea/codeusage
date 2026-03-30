@@ -34,6 +34,9 @@ const securityHeaders = [
 const nextConfig: NextConfig = {
   output: "standalone",
   transpilePackages: ["@codeusage/shared"],
+  turbopack: {
+    root: "../../",
+  },
   async headers() {
     return [
       {

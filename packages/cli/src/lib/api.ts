@@ -52,7 +52,7 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
     if (response.status === 429) {
       const retryAfter = parseInt(
         response.headers.get("Retry-After") || "60",
-        10
+        10,
       );
       return { success: false, error: "Rate limited", retryAfter };
     }
@@ -64,7 +64,9 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
       };
     }
 
-    const errorData = (await response.json().catch(() => ({}))) as { error?: string };
+    const errorData = (await response.json().catch(() => ({}))) as {
+      error?: string;
+    };
     return {
       success: false,
       error: errorData.error || `API error: ${response.status}`,
@@ -78,7 +80,7 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
 }
 
 export async function validateApiKey(
-  apiKey: string
+  apiKey: string,
 ): Promise<{ valid: boolean; workspace?: WorkspaceInfo; error?: string }> {
   const apiUrl = `${getApiBase()}/api/v1/auth/validate`;
 
@@ -91,7 +93,10 @@ export async function validateApiKey(
     });
 
     if (response.status === 200) {
-      const data = (await response.json()) as { workspace_id: string; workspace_name: string };
+      const data = (await response.json()) as {
+        workspace_id: string;
+        workspace_name: string;
+      };
       return {
         valid: true,
         workspace: {
@@ -106,7 +111,10 @@ export async function validateApiKey(
     }
 
     const errorBody = await response.text().catch(() => "");
-    return { valid: false, error: `Unexpected response ${response.status} from ${apiUrl}: ${errorBody}` };
+    return {
+      valid: false,
+      error: `Unexpected response ${response.status} from ${apiUrl}: ${errorBody}`,
+    };
   } catch (err) {
     const error = err as Error;
     const cause = error.cause ? ` (cause: ${JSON.stringify(error.cause)})` : "";

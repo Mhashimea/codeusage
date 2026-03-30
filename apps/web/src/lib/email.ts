@@ -59,15 +59,9 @@ export async function sendOTPEmail(email: string, otp: string): Promise<{ succes
           <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0a; color: #fafafa; padding: 40px 20px; margin: 0;">
             <div style="max-width: 400px; margin: 0 auto; text-align: center;">
               <div style="margin-bottom: 32px;">
-                <div style="display: inline-flex; align-items: center; gap: 8px;">
-                  <div style="width: 36px; height: 36px; background-color: #3b82f6; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <line x1="18" y1="20" x2="18" y2="10"></line>
-                      <line x1="12" y1="20" x2="12" y2="4"></line>
-                      <line x1="6" y1="20" x2="6" y2="14"></line>
-                    </svg>
-                  </div>
-                  <span style="font-size: 20px; font-weight: 600;">Codeusage</span>
+                <div style="display: inline-flex; align-items: center; gap: 10px;">
+                  <img src="https://codeusage.dev/brand/codeusage-logo.svg" alt="Codeusage" width="36" height="36" style="display: inline-block; vertical-align: middle;" />
+                  <span style="font-size: 20px; font-weight: 600; color: #D97757;">Codeusage</span>
                 </div>
               </div>
 
@@ -134,15 +128,9 @@ export async function sendWelcomeEmail(email: string, displayName: string): Prom
           <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0a; color: #fafafa; padding: 40px 20px; margin: 0;">
             <div style="max-width: 480px; margin: 0 auto;">
               <div style="text-align: center; margin-bottom: 32px;">
-                <div style="display: inline-flex; align-items: center; gap: 8px;">
-                  <div style="width: 36px; height: 36px; background-color: #3b82f6; border-radius: 8px; display: flex; align-items: center; justify-content: center;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <line x1="18" y1="20" x2="18" y2="10"></line>
-                      <line x1="12" y1="20" x2="12" y2="4"></line>
-                      <line x1="6" y1="20" x2="6" y2="14"></line>
-                    </svg>
-                  </div>
-                  <span style="font-size: 20px; font-weight: 600;">Codeusage</span>
+                <div style="display: inline-flex; align-items: center; gap: 10px;">
+                  <img src="https://codeusage.dev/brand/codeusage-logo.svg" alt="Codeusage" width="36" height="36" style="display: inline-block; vertical-align: middle;" />
+                  <span style="font-size: 20px; font-weight: 600; color: #D97757;">Codeusage</span>
                 </div>
               </div>
 
@@ -155,14 +143,14 @@ export async function sendWelcomeEmail(email: string, displayName: string): Prom
               <div style="background-color: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
                 <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 16px 0;">Get started in 2 steps:</h2>
                 <div style="margin-bottom: 12px;">
-                  <span style="color: #3b82f6; font-weight: 600;">1.</span>
+                  <span style="color: #D97757; font-weight: 600;">1.</span>
                   <span style="color: #d4d4d8;"> Install the CLI</span>
                   <div style="background-color: #09090b; border: 1px solid #27272a; border-radius: 8px; padding: 12px; margin-top: 8px; font-family: monospace; font-size: 14px; color: #a1a1aa;">
-                    npm install -g codeusage-cli
+                    bun add -g codeusage-cli
                   </div>
                 </div>
                 <div>
-                  <span style="color: #3b82f6; font-weight: 600;">2.</span>
+                  <span style="color: #D97757; font-weight: 600;">2.</span>
                   <span style="color: #d4d4d8;"> Connect to your workspace</span>
                   <div style="background-color: #09090b; border: 1px solid #27272a; border-radius: 8px; padding: 12px; margin-top: 8px; font-family: monospace; font-size: 14px; color: #a1a1aa;">
                     codeusage init
@@ -171,7 +159,7 @@ export async function sendWelcomeEmail(email: string, displayName: string): Prom
               </div>
 
               <div style="text-align: center; margin-bottom: 24px;">
-                <a href="https://codeusage.dev/docs" style="display: inline-block; background-color: #3b82f6; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 12px 24px; border-radius: 8px;">
+                <a href="https://codeusage.dev/docs" style="display: inline-block; background-color: #D97757; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 12px 24px; border-radius: 8px;">
                   View Documentation
                 </a>
               </div>
@@ -184,7 +172,7 @@ export async function sendWelcomeEmail(email: string, displayName: string): Prom
           </body>
         </html>
       `,
-      text: `Welcome to Codeusage!\n\nHi ${displayName}, thanks for signing up. Codeusage gives your team visibility into how AI coding tools are used across your projects.\n\nGet started:\n1. Install the CLI: npm install -g codeusage-cli\n2. Connect to your workspace: codeusage init\n\nDocumentation: https://codeusage.dev/docs\n\nNeed help? Reply to this email.`,
+      text: `Welcome to Codeusage!\n\nHi ${displayName}, thanks for signing up. Codeusage gives your team visibility into how AI coding tools are used across your projects.\n\nGet started:\n1. Install the CLI: bun add -g codeusage-cli\n2. Connect to your workspace: codeusage init\n\nDocumentation: https://codeusage.dev/docs\n\nNeed help? Reply to this email.`,
     });
 
     if (error) {

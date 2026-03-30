@@ -207,22 +207,22 @@ export default function DocsPage() {
                 Install the Codeusage CLI globally using bun:
               </Paragraph>
 
-              <CodeBlock>bun add -g codeusage</CodeBlock>
+              <CodeBlock>bun add -g codeusage-cli</CodeBlock>
 
               <Paragraph>Or using other package managers:</Paragraph>
 
               <TerminalBlock>
-                <CommandRow command="bun add -g codeusage" description="bun" />
+                <CommandRow command="bun add -g codeusage-cli" description="bun" />
                 <CommandRow
-                  command="npm install -g codeusage"
+                  command="npm install -g codeusage-cli"
                   description="npm"
                 />
                 <CommandRow
-                  command="yarn global add codeusage"
+                  command="yarn global add codeusage-cli"
                   description="yarn"
                 />
                 <CommandRow
-                  command="pnpm add -g codeusage"
+                  command="pnpm add -g codeusage-cli"
                   description="pnpm"
                 />
               </TerminalBlock>

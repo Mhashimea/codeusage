@@ -83,6 +83,11 @@ export const metadata: Metadata = {
     google: "G-KCDEDY5ZQS",
   },
   category: "technology",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/favicon.svg",
+  },
 };
 
 const jsonLd = {

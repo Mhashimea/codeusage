@@ -1,0 +1,40 @@
+<svg width="1584" height="396" viewBox="0 0 1584 396" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Dark background -->
+  <rect width="1584" height="396" fill="#0A0A0B"/>
+
+  <!-- Subtle grid pattern -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#D97757" stroke-width="0.5" opacity="0.08"/>
+    </pattern>
+  </defs>
+  <rect width="1584" height="396" fill="url(#grid)"/>
+
+  <!-- Brand name - centered -->
+  <text x="792" y="175" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="80" font-weight="700" fill="#D97757" text-anchor="middle">Codeusage</text>
+
+  <!-- Tagline - centered -->
+  <text x="792" y="240" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="28" font-weight="400" fill="#A1A1AA" text-anchor="middle">AI Coding Tool Analytics for Engineering Teams</text>
+
+  <!-- Accent line - centered -->
+  <rect x="736" y="265" width="120" height="3" rx="1.5" fill="#D97757"/>
+
+  <!-- Decorative circles -->
+  <g opacity="0.12">
+    <circle cx="150" cy="100" r="180" stroke="#D97757" stroke-width="1"/>
+    <circle cx="80" cy="350" r="120" stroke="#D97757" stroke-width="1"/>
+    <circle cx="1450" cy="80" r="150" stroke="#D97757" stroke-width="1"/>
+    <circle cx="1500" cy="350" r="100" stroke="#D97757" stroke-width="1"/>
+    <circle cx="1300" cy="250" r="60" stroke="#D97757" stroke-width="1"/>
+  </g>
+
+  <!-- Code brackets decoration - left side -->
+  <g opacity="0.2" transform="translate(100, 150)">
+    <path d="M30 20L10 50L30 80" stroke="#D97757" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Code brackets decoration - right side -->
+  <g opacity="0.2" transform="translate(1400, 150)">
+    <path d="M10 20L30 50L10 80" stroke="#D97757" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>
