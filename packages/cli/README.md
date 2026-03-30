@@ -1,4 +1,4 @@
-# CodeUsage CLI
+# Codeusage CLI
 
 Track your team's AI coding tool usage with zero friction.
 

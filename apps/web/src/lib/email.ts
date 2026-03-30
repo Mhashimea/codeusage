@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 // Only initialize Resend if API key is provided
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
-const FROM_EMAIL = process.env.EMAIL_FROM || "CodeUsage <noreply@codeusage.dev>";
+const FROM_EMAIL = process.env.EMAIL_FROM || "Codeusage <noreply@codeusage.dev>";
 
 // Dev mode: skip email sending and log OTP to console
 const DEV_MODE = !process.env.RESEND_API_KEY;
@@ -48,7 +48,7 @@ export async function sendOTPEmail(email: string, otp: string): Promise<{ succes
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: "Your CodeUsage verification code",
+      subject: "Your Codeusage verification code",
       html: `
         <!DOCTYPE html>
         <html>
@@ -67,12 +67,12 @@ export async function sendOTPEmail(email: string, otp: string): Promise<{ succes
                       <line x1="6" y1="20" x2="6" y2="14"></line>
                     </svg>
                   </div>
-                  <span style="font-size: 20px; font-weight: 600;">CodeUsage</span>
+                  <span style="font-size: 20px; font-weight: 600;">Codeusage</span>
                 </div>
               </div>
 
               <h1 style="font-size: 24px; font-weight: 600; margin: 0 0 8px 0;">Verification code</h1>
-              <p style="color: #a1a1aa; margin: 0 0 24px 0;">Enter this code to sign in to CodeUsage</p>
+              <p style="color: #a1a1aa; margin: 0 0 24px 0;">Enter this code to sign in to Codeusage</p>
 
               <div style="background-color: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
                 <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; font-family: monospace;">
@@ -88,7 +88,7 @@ export async function sendOTPEmail(email: string, otp: string): Promise<{ succes
           </body>
         </html>
       `,
-      text: `Your CodeUsage verification code is: ${otp}\n\nThis code expires in 5 minutes.\n\nIf you didn't request this, you can safely ignore this email.`,
+      text: `Your Codeusage verification code is: ${otp}\n\nThis code expires in 5 minutes.\n\nIf you didn't request this, you can safely ignore this email.`,
     });
 
     if (error) {
@@ -123,7 +123,7 @@ export async function sendWelcomeEmail(email: string, displayName: string): Prom
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: email,
-      subject: "Welcome to CodeUsage",
+      subject: "Welcome to Codeusage",
       html: `
         <!DOCTYPE html>
         <html>
@@ -142,14 +142,14 @@ export async function sendWelcomeEmail(email: string, displayName: string): Prom
                       <line x1="6" y1="20" x2="6" y2="14"></line>
                     </svg>
                   </div>
-                  <span style="font-size: 20px; font-weight: 600;">CodeUsage</span>
+                  <span style="font-size: 20px; font-weight: 600;">Codeusage</span>
                 </div>
               </div>
 
-              <h1 style="font-size: 24px; font-weight: 600; margin: 0 0 16px 0; text-align: center;">Welcome to CodeUsage!</h1>
+              <h1 style="font-size: 24px; font-weight: 600; margin: 0 0 16px 0; text-align: center;">Welcome to Codeusage!</h1>
 
               <p style="color: #d4d4d8; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0;">
-                Hi ${displayName}, thanks for signing up. CodeUsage gives your team visibility into how AI coding tools are used across your projects.
+                Hi ${displayName}, thanks for signing up. Codeusage gives your team visibility into how AI coding tools are used across your projects.
               </p>
 
               <div style="background-color: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 24px; margin-bottom: 24px;">
@@ -177,14 +177,14 @@ export async function sendWelcomeEmail(email: string, displayName: string): Prom
               </div>
 
               <p style="color: #71717a; font-size: 13px; text-align: center; margin: 0;">
-                You're receiving this because you signed up for CodeUsage.<br>
+                You're receiving this because you signed up for Codeusage.<br>
                 Need help? Reply to this email.
               </p>
             </div>
           </body>
         </html>
       `,
-      text: `Welcome to CodeUsage!\n\nHi ${displayName}, thanks for signing up. CodeUsage gives your team visibility into how AI coding tools are used across your projects.\n\nGet started:\n1. Install the CLI: npm install -g codeusage-cli\n2. Connect to your workspace: codeusage init\n\nDocumentation: https://codeusage.dev/docs\n\nNeed help? Reply to this email.`,
+      text: `Welcome to Codeusage!\n\nHi ${displayName}, thanks for signing up. Codeusage gives your team visibility into how AI coding tools are used across your projects.\n\nGet started:\n1. Install the CLI: npm install -g codeusage-cli\n2. Connect to your workspace: codeusage init\n\nDocumentation: https://codeusage.dev/docs\n\nNeed help? Reply to this email.`,
     });
 
     if (error) {

@@ -15,7 +15,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Loader2, ArrowLeft } from "lucide-react";
-import { CodeUsageLogoBrand } from "@/components/shared/CodeUsageLogo";
+import { CodeusageLogoBrand } from "@/components/shared/CodeusageLogo";
 
 function GitHubIcon({ className }: { className?: string }) {
   return (
@@ -216,8 +216,8 @@ export default function LoginPage() {
         <Card className="w-full max-w-sm border-border">
           <CardHeader className="text-center space-y-4 pb-2">
             <Link href="/" className="flex items-center justify-center gap-2">
-              <CodeUsageLogoBrand size={40} />
-              <span className="text-xl font-semibold">CodeUsage</span>
+              <CodeusageLogoBrand size={40} />
+              <span className="text-xl font-semibold">Codeusage</span>
             </Link>
             <div>
               <CardTitle className="text-2xl">

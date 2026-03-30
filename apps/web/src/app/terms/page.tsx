@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { CodeUsageLogoBrand } from "@/components/shared/CodeUsageLogo";
+import { CodeusageLogoBrand } from "@/components/shared/CodeusageLogo";
 
 export default function TermsPage() {
   return (
@@ -21,7 +21,7 @@ export default function TermsPage() {
       {/* Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex items-center gap-3 mb-8">
-          <CodeUsageLogoBrand size={32} />
+          <CodeusageLogoBrand size={32} />
           <h1 className="text-3xl font-bold">Terms of Service</h1>
         </div>
 
@@ -34,7 +34,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold mb-4">1. Acceptance of Terms</h2>
             <p className="text-muted-foreground">
-              By accessing or using CodeUsage, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our service.
+              By accessing or using Codeusage, you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use our service.
             </p>
           </section>
 
@@ -42,7 +42,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold mb-4">2. Description of Service</h2>
             <p className="text-muted-foreground">
-              CodeUsage is an analytics platform that helps engineering teams track usage of AI coding tools such as Claude Code and Codex. Our service consists of a command-line interface (CLI) that collects usage metadata and a web dashboard for viewing analytics.
+              Codeusage is an analytics platform that helps engineering teams track usage of AI coding tools such as Claude Code and Codex. Our service consists of a command-line interface (CLI) that collects usage metadata and a web dashboard for viewing analytics.
             </p>
           </section>
 
@@ -73,7 +73,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold mb-4">5. Data Ownership</h2>
             <p className="text-muted-foreground">
-              You retain ownership of all data you submit to CodeUsage. By using our service, you grant us a limited license to process and display this data solely for the purpose of providing the service to you.
+              You retain ownership of all data you submit to Codeusage. By using our service, you grant us a limited license to process and display this data solely for the purpose of providing the service to you.
             </p>
           </section>
 
@@ -105,7 +105,7 @@ export default function TermsPage() {
           <section>
             <h2 className="text-xl font-semibold mb-4">9. Limitation of Liability</h2>
             <p className="text-muted-foreground">
-              To the maximum extent permitted by law, CodeUsage shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly.
+              To the maximum extent permitted by law, Codeusage shall not be liable for any indirect, incidental, special, consequential, or punitive damages, or any loss of profits or revenues, whether incurred directly or indirectly.
             </p>
           </section>
 
@@ -136,7 +136,7 @@ export default function TermsPage() {
       {/* Footer */}
       <footer className="border-t border-border/50 py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} CodeUsage. All rights reserved.
+          &copy; {new Date().getFullYear()} Codeusage. All rights reserved.
         </div>
       </footer>
     </div>

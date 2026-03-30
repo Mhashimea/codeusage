@@ -12,7 +12,7 @@ import type { ToolUsage, FileChangeDetail } from "@codeusage/shared";
 
 /**
  * Workspaces table
- * Each workspace represents a team/organization using CodeUsage
+ * Each workspace represents a team/organization using Codeusage
  */
 export const workspaces = pgTable(
   "workspaces",

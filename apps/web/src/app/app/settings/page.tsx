@@ -44,7 +44,7 @@ async function SettingsContent() {
         <CardHeader>
           <CardTitle>CLI Installation</CardTitle>
           <CardDescription>
-            Install the CodeUsage CLI to start tracking Claude Code usage
+            Install the Codeusage CLI to start tracking Claude Code usage
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

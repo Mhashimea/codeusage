@@ -15,7 +15,7 @@ import {
   LogOut,
   ChevronsUpDown,
 } from "lucide-react";
-import { CodeUsageLogoBrand } from "@/components/shared/CodeUsageLogo";
+import { CodeusageLogoBrand } from "@/components/shared/CodeusageLogo";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -66,9 +66,9 @@ export function Sidebar() {
       <aside className="flex h-screen w-60 flex-col bg-background border-r border-border">
         {/* Logo */}
         <div className="flex h-14 items-center gap-2 px-4">
-          <CodeUsageLogoBrand size={32} />
+          <CodeusageLogoBrand size={32} />
           <span className="text-base font-semibold text-foreground">
-            CodeUsage
+            Codeusage
           </span>
         </div>
 

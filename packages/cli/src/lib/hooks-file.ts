@@ -66,7 +66,7 @@ interface ProviderHookConfig {
   settingsPath: (scope: "global" | "project", cwd: string) => string;
   registerHooks: (settings: unknown) => unknown;
   unregisterHooks: (settings: unknown) => unknown;
-  hasCodeUsage: (settings: unknown) => boolean;
+  hasCodeusage: (settings: unknown) => boolean;
 }
 
 /**
@@ -110,19 +110,19 @@ const claudeCodeConfig: ProviderHookConfig = {
 
     // Stop hook - include --provider flag so hook knows source
     const stopHooks = s.hooks.Stop || [];
-    const hasStopCodeUsage = stopHooks.some((entry) =>
+    const hasStopCodeusage = stopHooks.some((entry) =>
       entry.hooks?.some((h) => h.command.startsWith("codeusage"))
     );
-    if (!hasStopCodeUsage) {
+    if (!hasStopCodeusage) {
       s.hooks.Stop = [...stopHooks, createClaudeHookEntry("codeusage hook stop --provider claude_code")];
     }
 
     // PostToolUse hook
     const postToolHooks = s.hooks.PostToolUse || [];
-    const hasPostToolCodeUsage = postToolHooks.some((entry) =>
+    const hasPostToolCodeusage = postToolHooks.some((entry) =>
       entry.hooks?.some((h) => h.command.startsWith("codeusage"))
     );
-    if (!hasPostToolCodeUsage) {
+    if (!hasPostToolCodeusage) {
       s.hooks.PostToolUse = [
         ...postToolHooks,
         createClaudeHookEntry("codeusage hook post-tool-use --provider claude_code"),
@@ -131,10 +131,10 @@ const claudeCodeConfig: ProviderHookConfig = {
 
     // Notification hook
     const notifHooks = s.hooks.Notification || [];
-    const hasNotifCodeUsage = notifHooks.some((entry) =>
+    const hasNotifCodeusage = notifHooks.some((entry) =>
       entry.hooks?.some((h) => h.command.startsWith("codeusage"))
     );
-    if (!hasNotifCodeUsage) {
+    if (!hasNotifCodeusage) {
       s.hooks.Notification = [
         ...notifHooks,
         createClaudeHookEntry("codeusage hook notification --provider claude_code"),
@@ -165,7 +165,7 @@ const claudeCodeConfig: ProviderHookConfig = {
 
     return s;
   },
-  hasCodeUsage: (settings: unknown) => {
+  hasCodeusage: (settings: unknown) => {
     const s = settings as ClaudeSettings;
     if (!s?.hooks?.Stop) return false;
     return s.hooks.Stop.some((entry) =>
@@ -193,13 +193,13 @@ const codexConfig: ProviderHookConfig = {
 
     // Stop hook - include --provider flag so hook knows source
     const stopHooks = s.hooks.Stop || [];
-    const hasStopCodeUsage = stopHooks.some((h) =>
+    const hasStopCodeusage = stopHooks.some((h) =>
       h.command.startsWith("codeusage")
     );
-    if (!hasStopCodeUsage) {
+    if (!hasStopCodeusage) {
       s.hooks.Stop = [
         ...stopHooks,
-        createCodexHookCommand("codeusage hook stop --provider codex", "Syncing to CodeUsage..."),
+        createCodexHookCommand("codeusage hook stop --provider codex", "Syncing to Codeusage..."),
       ];
     }
 
@@ -217,7 +217,7 @@ const codexConfig: ProviderHookConfig = {
 
     return s;
   },
-  hasCodeUsage: (settings: unknown) => {
+  hasCodeusage: (settings: unknown) => {
     const s = settings as CodexSettings;
     if (!s?.hooks?.Stop) return false;
     return s.hooks.Stop.some((h) => h.command.startsWith("codeusage"));
@@ -329,7 +329,7 @@ export async function areHooksRegistered(
   try {
     const content = await fs.readFile(filePath, "utf-8");
     const settings: unknown = JSON.parse(content);
-    return config.hasCodeUsage(settings);
+    return config.hasCodeusage(settings);
   } catch {
     // File doesn't exist
   }

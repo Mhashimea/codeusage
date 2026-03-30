@@ -15,10 +15,10 @@ import {
 } from "@codeusage/shared";
 
 export const initCommand = new Command("init")
-  .description("Initialize CodeUsage CLI and connect to your workspace")
+  .description("Initialize Codeusage CLI and connect to your workspace")
   .option("--force", "Reinitialize even if already configured")
   .action(async (options) => {
-    console.log(chalk.bold("\n📊 CodeUsage CLI Setup\n"));
+    console.log(chalk.bold("\n📊 Codeusage CLI Setup\n"));
 
     // Check if already configured
     if (isConfigured() && !options.force) {
@@ -59,7 +59,7 @@ export const initCommand = new Command("init")
 
     // Step 2: Get workspace key (renumbered after provider selection)
     console.log(
-      chalk.dim("\nGet your workspace key from the CodeUsage dashboard Settings page.\n")
+      chalk.dim("\nGet your workspace key from the Codeusage dashboard Settings page.\n")
     );
 
     const workspaceKey = await input({
@@ -144,7 +144,7 @@ export const initCommand = new Command("init")
     });
 
     // Success!
-    console.log(chalk.green("\n✅ CodeUsage is ready!\n"));
+    console.log(chalk.green("\n✅ Codeusage is ready!\n"));
     console.log(chalk.dim(`Your ${providerInfo.displayName} sessions will now be tracked.`));
     console.log(chalk.dim("View your dashboard at: https://codeusage.dev\n"));
 

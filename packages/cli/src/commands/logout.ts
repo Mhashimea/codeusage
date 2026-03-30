@@ -21,7 +21,7 @@ function confirm(question: string): Promise<boolean> {
 }
 
 export const logoutCommand = new Command("logout")
-  .description("Disconnect from CodeUsage and remove local configuration")
+  .description("Disconnect from Codeusage and remove local configuration")
   .option("-f, --force", "Skip confirmation prompt")
   .action(async (options) => {
     if (!isConfigured()) {

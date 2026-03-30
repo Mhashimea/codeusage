@@ -19,7 +19,7 @@ import {
 } from "@codeusage/shared";
 
 export const configCommand = new Command("config")
-  .description("View or modify CodeUsage configuration");
+  .description("View or modify Codeusage configuration");
 
 configCommand
   .command("show")
@@ -33,7 +33,7 @@ configCommand
     const config = getConfig();
     const enabledProviders = getProviders();
 
-    console.log(chalk.bold("\nCodeUsage Configuration:\n"));
+    console.log(chalk.bold("\nCodeusage Configuration:\n"));
 
     const maskedKey = config.workspace_key.slice(0, 10) + "••••••••••••";
     console.log(`  Workspace Key: ${chalk.dim(maskedKey)}`);

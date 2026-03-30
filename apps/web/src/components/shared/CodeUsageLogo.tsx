@@ -2,15 +2,15 @@
 
 import { cn } from "@/lib/utils";
 
-interface CodeUsageLogoProps {
+interface CodeusageLogoProps {
   className?: string;
   size?: number;
 }
 
 /**
- * CodeUsage brand logo - circular progress with </> code symbol
+ * Codeusage brand logo - circular progress with </> code symbol
  */
-export function CodeUsageLogo({ className, size = 48 }: CodeUsageLogoProps) {
+export function CodeusageLogo({ className, size = 48 }: CodeusageLogoProps) {
   return (
     <svg
       width={size}
@@ -64,9 +64,9 @@ export function CodeUsageLogo({ className, size = 48 }: CodeUsageLogoProps) {
 }
 
 /**
- * CodeUsage logo with fixed brand color
+ * Codeusage logo with fixed brand color
  */
-export function CodeUsageLogoBrand({ className, size = 48 }: CodeUsageLogoProps) {
+export function CodeusageLogoBrand({ className, size = 48 }: CodeusageLogoProps) {
   return (
     <svg
       width={size}

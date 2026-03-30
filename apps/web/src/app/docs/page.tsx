@@ -9,7 +9,7 @@ import {
   AlertCircle,
   ArrowRight,
 } from "lucide-react";
-import { CodeUsageLogoBrand } from "@/components/shared/CodeUsageLogo";
+import { CodeusageLogoBrand } from "@/components/shared/CodeusageLogo";
 import { CopyButton } from "@/components/shared/CopyButton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -143,8 +143,8 @@ export default function DocsPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <Link href="/" className="flex items-center gap-2">
-              <CodeUsageLogoBrand size={32} />
-              <span className="text-lg font-semibold">CodeUsage</span>
+              <CodeusageLogoBrand size={32} />
+              <span className="text-lg font-semibold">Codeusage</span>
             </Link>
             <div className="flex items-center gap-4">
               <Link
@@ -196,7 +196,7 @@ export default function DocsPage() {
               </SectionHeading>
 
               <Paragraph>
-                CodeUsage is a CLI tool that automatically tracks your AI coding
+                Codeusage is a CLI tool that automatically tracks your AI coding
                 tool usage and sends telemetry to your team dashboard. It
                 captures metadata only — no prompts, no code, no sensitive data.
               </Paragraph>
@@ -204,7 +204,7 @@ export default function DocsPage() {
               <SubHeading>Installation</SubHeading>
 
               <Paragraph>
-                Install the CodeUsage CLI globally using bun:
+                Install the Codeusage CLI globally using bun:
               </Paragraph>
 
               <CodeBlock>bun add -g codeusage</CodeBlock>
@@ -230,7 +230,7 @@ export default function DocsPage() {
               <SubHeading>Quick Start</SubHeading>
 
               <Paragraph>
-                After installation, initialize CodeUsage to connect to your
+                After installation, initialize Codeusage to connect to your
                 workspace:
               </Paragraph>
 
@@ -248,7 +248,7 @@ export default function DocsPage() {
 
               <Paragraph>
                 Once initialized, tracking is automatic. Every time you complete
-                a task with Claude Code, CodeUsage sends the metadata to your
+                a task with Claude Code, Codeusage sends the metadata to your
                 dashboard.
               </Paragraph>
 
@@ -274,12 +274,12 @@ export default function DocsPage() {
               <SectionHeading id="commands">Commands</SectionHeading>
 
               <Paragraph>
-                Complete reference for all CodeUsage CLI commands.
+                Complete reference for all Codeusage CLI commands.
               </Paragraph>
 
               <SubHeading>codeusage init</SubHeading>
               <Paragraph>
-                Initialize CodeUsage and connect to your workspace. This
+                Initialize Codeusage and connect to your workspace. This
                 registers hooks with your AI coding tool.
               </Paragraph>
               <TerminalBlock>
@@ -301,7 +301,7 @@ export default function DocsPage() {
 
               <SubHeading>codeusage project</SubHeading>
               <Paragraph>
-                Manage project mappings. By default, CodeUsage detects projects
+                Manage project mappings. By default, Codeusage detects projects
                 from git remotes. Use these commands to override or customize.
               </Paragraph>
               <TerminalBlock>
@@ -368,7 +368,7 @@ export default function DocsPage() {
 
               <SubHeading>codeusage logout</SubHeading>
               <Paragraph>
-                Disconnect from CodeUsage and remove all local configuration.
+                Disconnect from Codeusage and remove all local configuration.
                 This unregisters hooks and clears buffered tasks.
               </Paragraph>
               <TerminalBlock>
@@ -389,7 +389,7 @@ export default function DocsPage() {
 
               <SubHeading>Config File Location</SubHeading>
               <Paragraph>
-                CodeUsage stores configuration in{" "}
+                Codeusage stores configuration in{" "}
                 <code className="bg-muted px-1.5 py-0.5 rounded text-sm">
                   ~/.codeusage/config.json
                 </code>
@@ -465,7 +465,7 @@ export default function DocsPage() {
               </div>
 
               <SubHeading>Hook Scopes</SubHeading>
-              <Paragraph>CodeUsage supports two hook scopes:</Paragraph>
+              <Paragraph>Codeusage supports two hook scopes:</Paragraph>
 
               <div className="grid sm:grid-cols-2 gap-4 mb-6">
                 <div className="p-4 rounded-lg border border-border bg-card">
@@ -498,7 +498,7 @@ export default function DocsPage() {
 
               <SubHeading>Project Detection</SubHeading>
               <Paragraph>
-                CodeUsage detects projects in the following priority order:
+                Codeusage detects projects in the following priority order:
               </Paragraph>
               <ol className="list-decimal list-inside space-y-2 text-muted-foreground mb-6 ml-4">
                 <li>
@@ -615,7 +615,7 @@ export default function DocsPage() {
 
               <SubHeading>Reset everything</SubHeading>
               <Paragraph>
-                To completely reset CodeUsage and start fresh:
+                To completely reset Codeusage and start fresh:
               </Paragraph>
               <TerminalBlock>
                 <CommandRow

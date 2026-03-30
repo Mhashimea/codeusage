@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { CodeUsageLogoBrand } from "@/components/shared/CodeUsageLogo";
+import { CodeusageLogoBrand } from "@/components/shared/CodeusageLogo";
 
 export default function PrivacyPage() {
   return (
@@ -21,7 +21,7 @@ export default function PrivacyPage() {
       {/* Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex items-center gap-3 mb-8">
-          <CodeUsageLogoBrand size={32} />
+          <CodeusageLogoBrand size={32} />
           <h1 className="text-3xl font-bold">Privacy Policy</h1>
         </div>
 
@@ -34,7 +34,7 @@ export default function PrivacyPage() {
           <section>
             <h2 className="text-xl font-semibold mb-4">1. Information We Collect</h2>
             <p className="text-muted-foreground mb-4">
-              CodeUsage collects minimal data necessary to provide our service:
+              Codeusage collects minimal data necessary to provide our service:
             </p>
             <ul className="list-disc pl-6 space-y-2 text-muted-foreground">
               <li>
@@ -144,7 +144,7 @@ export default function PrivacyPage() {
       {/* Footer */}
       <footer className="border-t border-border/50 py-8">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-muted-foreground">
-          &copy; {new Date().getFullYear()} CodeUsage. All rights reserved.
+          &copy; {new Date().getFullYear()} Codeusage. All rights reserved.
         </div>
       </footer>
     </div>

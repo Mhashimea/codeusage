@@ -1,10 +1,10 @@
-# CodeUsage
+# Codeusage
 
 AI coding tool intelligence platform for engineering teams. Get visibility into how AI coding assistants are used across your organization—who's using them, on which projects, and what it costs.
 
 ## Overview
 
-CodeUsage provides:
+Codeusage provides:
 
 - **Usage tracking** — Automatic capture of token usage, costs, and task metadata
 - **Team dashboard** — Real-time visibility into AI tool usage across developers and projects
@@ -15,7 +15,7 @@ CodeUsage provides:
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   AI Coding     │     │   CodeUsage     │     │    Dashboard    │
+│   AI Coding     │     │   Codeusage     │     │    Dashboard    │
 │     Tool        │────▶│      CLI        │────▶│    (Next.js)    │
 │ (Claude Code)   │     │                 │     │                 │
 └─────────────────┘     └─────────────────┘     └─────────────────┘
@@ -52,7 +52,7 @@ You'll be prompted for:
 - Your name (for the dashboard)
 - Hook scope (global or project-only)
 
-That's it. CodeUsage now tracks your AI coding tool usage automatically.
+That's it. Codeusage now tracks your AI coding tool usage automatically.
 
 ## Project Structure
 
@@ -243,7 +243,7 @@ Returns workspace info if key is valid.
 
 ## Data Privacy
 
-CodeUsage captures **metadata only**:
+Codeusage captures **metadata only**:
 
 - Token counts and costs
 - Model names

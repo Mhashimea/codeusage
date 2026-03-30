@@ -103,7 +103,7 @@ providerCommand
     try {
       await registerHooks(config.hook_scope, cwd, newProviderId as ProviderId);
       console.log(chalk.green(`\n✓ ${newProvider.displayName} hooks registered!\n`));
-      console.log(chalk.dim(`Both providers are now active. Tasks from either tool will sync to CodeUsage.\n`));
+      console.log(chalk.dim(`Both providers are now active. Tasks from either tool will sync to Codeusage.\n`));
     } catch (err) {
       console.log(chalk.red(`\nFailed to register hooks: ${(err as Error).message}\n`));
     }

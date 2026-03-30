@@ -27,7 +27,7 @@ export interface FileChangeDetail {
 export type ToolSource = "claude_code" | "codex";
 
 /**
- * Hook scope - where the CodeUsage hook is registered
+ * Hook scope - where the Codeusage hook is registered
  */
 export type HookScope = "global" | "project";
 
@@ -86,7 +86,7 @@ export interface TelemetryPayload {
 /**
  * CLI configuration stored in ~/.codeusage/config.json
  */
-export interface CodeUsageConfig {
+export interface CodeusageConfig {
   workspace_key: string;
   developer_alias: string;
   /** Primary AI coding tool provider (for backwards compatibility) */

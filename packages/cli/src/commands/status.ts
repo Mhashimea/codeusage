@@ -7,9 +7,9 @@ import { detectProjectSlug } from "../lib/git.js";
 import { getProviderById } from "@codeusage/shared";
 
 export const statusCommand = new Command("status")
-  .description("Show current CodeUsage configuration and connection status")
+  .description("Show current Codeusage configuration and connection status")
   .action(async () => {
-    console.log(chalk.bold("\n📊 CodeUsage Status\n"));
+    console.log(chalk.bold("\n📊 Codeusage Status\n"));
 
     if (!isConfigured()) {
       console.log(chalk.yellow("Not configured. Run: codeusage init\n"));

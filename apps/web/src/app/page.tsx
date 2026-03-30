@@ -22,7 +22,7 @@ import {
   Activity,
   RefreshCw,
 } from "lucide-react";
-import { CodeUsageLogoBrand } from "@/components/shared/CodeUsageLogo";
+import { CodeusageLogoBrand } from "@/components/shared/CodeusageLogo";
 import { ClaudeIcon, CodexIcon } from "@/components/shared/ProviderBadge";
 
 const features = [
@@ -112,8 +112,8 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-2">
-              <CodeUsageLogoBrand size={32} />
-              <span className="text-lg font-semibold">CodeUsage</span>
+              <CodeusageLogoBrand size={32} />
+              <span className="text-lg font-semibold">Codeusage</span>
             </div>
             <div className="flex items-center gap-4">
               <Link
@@ -158,7 +158,7 @@ export default function LandingPage() {
 
               {/* Subheading */}
               <p className="text-xl text-muted-foreground max-w-xl mb-10 animate-slide-up animation-delay-100">
-                CodeUsage gives engineering leaders visibility into AI tool
+                Codeusage gives engineering leaders visibility into AI tool
                 adoption — who&apos;s using them, on which projects, and what it
                 costs.
               </p>
@@ -188,7 +188,7 @@ export default function LandingPage() {
                     <div className="w-3 h-3 rounded-full bg-green-500" />
                   </div>
                   <span className="text-sm text-muted-foreground ml-2">
-                    CodeUsage Dashboard
+                    Codeusage Dashboard
                   </span>
                 </div>
 
@@ -328,7 +328,7 @@ export default function LandingPage() {
           </h2>
 
           <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
-            CodeUsage hooks directly into your AI coding workflow. No manual logging,
+            Codeusage hooks directly into your AI coding workflow. No manual logging,
             no exports — just code and let us handle the rest.
           </p>
 
@@ -569,11 +569,11 @@ export default function LandingPage() {
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-2">
-              <CodeUsageLogoBrand size={24} />
-              <span className="font-semibold">CodeUsage</span>
+              <CodeusageLogoBrand size={24} />
+              <span className="font-semibold">Codeusage</span>
             </div>
             <p className="text-sm text-muted-foreground">
-              &copy; {new Date().getFullYear()} CodeUsage. All rights reserved.
+              &copy; {new Date().getFullYear()} Codeusage. All rights reserved.
             </p>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
               <Link href="/docs" className="hover:text-foreground transition-colors">

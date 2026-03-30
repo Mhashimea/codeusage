@@ -1,8 +1,8 @@
 import Conf from "conf";
-import type { CodeUsageConfig, ToolSource } from "@codeusage/shared";
+import type { CodeusageConfig, ToolSource } from "@codeusage/shared";
 import { DEFAULT_PROVIDER } from "@codeusage/shared";
 
-const config = new Conf<CodeUsageConfig>({
+const config = new Conf<CodeusageConfig>({
   projectName: "codeusage",
   defaults: {
     workspace_key: "",
@@ -14,26 +14,26 @@ const config = new Conf<CodeUsageConfig>({
   },
 });
 
-export function getConfig(): CodeUsageConfig {
+export function getConfig(): CodeusageConfig {
   return config.store;
 }
 
-export function getConfigValue<K extends keyof CodeUsageConfig>(
+export function getConfigValue<K extends keyof CodeusageConfig>(
   key: K
-): CodeUsageConfig[K] {
+): CodeusageConfig[K] {
   return config.get(key);
 }
 
-export function setConfig<K extends keyof CodeUsageConfig>(
+export function setConfig<K extends keyof CodeusageConfig>(
   key: K,
-  value: CodeUsageConfig[K]
+  value: CodeusageConfig[K]
 ): void {
   config.set(key, value);
 }
 
-export function setFullConfig(newConfig: Partial<CodeUsageConfig>): void {
+export function setFullConfig(newConfig: Partial<CodeusageConfig>): void {
   for (const [key, value] of Object.entries(newConfig)) {
-    config.set(key as keyof CodeUsageConfig, value);
+    config.set(key as keyof CodeusageConfig, value);
   }
 }
 
