@@ -1,0 +1,35 @@
+name: Build & Deploy Codeusage To Production
+
+env:
+  IMAGE_NAME: code-usage
+  REGISTRY_NAME: rxhr-registry
+  NAMESPACE: prod
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    name: Build image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Build the Docker image
+        run: docker build --build-arg NODE_OPTIONS=--max-old-space-size=4096 . --tag $IMAGE_NAME
+
+      - name: Install doctl
+        uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DO_API_KEY }}
+
+      - name: Push image to DigitalOcean
+        run: |
+          doctl registry login
+          docker tag $IMAGE_NAME registry.digitalocean.com/$REGISTRY_NAME/$IMAGE_NAME
+          docker push registry.digitalocean.com/$REGISTRY_NAME/$IMAGE_NAME
