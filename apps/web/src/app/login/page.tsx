@@ -373,10 +373,7 @@ export default function LoginPage() {
 
       {/* Footer */}
       <footer className="p-4 text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
-        <Link href="/login" className="text-[#D97757] hover:underline">
-          Sign up for free
-        </Link>
+        New here? Just enter your email above — we&apos;ll create your account automatically.
       </footer>
     </div>
   );

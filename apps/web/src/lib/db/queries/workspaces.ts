@@ -39,6 +39,11 @@ export async function getWorkspaceByApiKey(apiKey: string) {
 
   const workspace = candidates[0];
 
+  // Workspace has no API key set yet
+  if (!workspace.api_key_hash) {
+    return null;
+  }
+
   // Verify full key using bcrypt (constant-time comparison)
   const isValid = await verifyApiKey(apiKey, workspace.api_key_hash);
 
