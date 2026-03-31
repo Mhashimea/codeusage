@@ -53,7 +53,7 @@ export function OverviewDatePicker() {
         params.delete("startDate");
         params.delete("endDate");
       }
-      router.push(`/?${params.toString()}`);
+      router.push(`/app?${params.toString()}`);
     },
     [router, searchParams]
   );
