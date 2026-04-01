@@ -14,6 +14,6 @@ export default defineConfig({
   banner: {
     js: "#!/usr/bin/env node",
   },
-  // Bundle @afterburn/shared for standalone distribution
-  noExternal: ["@afterburn/shared"],
+  // Bundle @codeusage/shared for standalone distribution
+  noExternal: ["@codeusage/shared"],
 });
