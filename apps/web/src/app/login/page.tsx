@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { signIn } from "next-auth/react";
+import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,7 @@ type Step = "email" | "otp";
 
 export default function LoginPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
@@ -40,12 +41,28 @@ export default function LoginPage() {
 
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
+  // Redirect to app if already logged in
+  useEffect(() => {
+    if (status === "authenticated" && session) {
+      router.push("/app");
+    }
+  }, [status, session, router]);
+
   useEffect(() => {
     if (countdown > 0) {
       const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(timer);
     }
   }, [countdown]);
+
+  // Show loading while checking session
+  if (status === "loading" || (status === "authenticated" && session)) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="h-8 w-8 animate-spin text-[#D97757]" />
+      </div>
+    );
+  }
 
   useEffect(() => {
     if (step === "otp") {

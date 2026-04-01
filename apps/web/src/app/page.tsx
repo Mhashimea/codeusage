@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import {
   BarChart3,
@@ -104,6 +105,8 @@ const commands = [
 ];
 
 export default function LandingPage() {
+  const { data: session } = useSession();
+  const ctaLink = session ? "/app" : "/login";
 
   return (
     <div className="min-h-screen bg-background">
@@ -122,9 +125,9 @@ export default function LandingPage() {
               >
                 Docs
               </Link>
-              <Link href="/login">
+              <Link href={ctaLink}>
                 <Button className="bg-[#D97757] hover:bg-[#c5684a] text-white">
-                  Get Started
+                  {session ? "Go to App" : "Get Started"}
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -165,12 +168,12 @@ export default function LandingPage() {
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row items-center lg:items-start justify-center lg:justify-start gap-4 animate-slide-up animation-delay-200">
-                <Link href="/login">
+                <Link href={ctaLink}>
                   <Button
                     size="lg"
                     className="bg-[#D97757] hover:bg-[#c5684a] text-white px-8"
                   >
-                    Start Free
+                    {session ? "Go to App" : "Start Free"}
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
                 </Link>
@@ -551,12 +554,12 @@ export default function LandingPage() {
             Get started in under a minute. Free while in beta.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link href="/login">
+            <Link href={ctaLink}>
               <Button
                 size="lg"
                 className="bg-[#D97757] hover:bg-[#c5684a] text-white px-8"
               >
-                Get Started Free
+                {session ? "Go to App" : "Get Started Free"}
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </Link>

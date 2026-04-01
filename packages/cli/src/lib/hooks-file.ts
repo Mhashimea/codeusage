@@ -14,6 +14,7 @@ import {
 interface ClaudeHookCommand {
   type: "command";
   command: string;
+  shell?: string;
 }
 
 /**
@@ -44,6 +45,7 @@ interface CodexHookCommand {
   command: string;
   statusMessage?: string;
   timeout?: number;
+  shell?: string;
 }
 
 /**
@@ -70,28 +72,52 @@ interface ProviderHookConfig {
 }
 
 /**
+ * Detect if running on Windows
+ */
+function isWindows(): boolean {
+  return process.platform === "win32";
+}
+
+/**
  * Create Claude Code hook entry
+ * On Windows, explicitly use PowerShell to ensure the command is found in PATH
  */
 function createClaudeHookEntry(command: string): ClaudeHookEntry {
+  const hookCommand: ClaudeHookCommand = { type: "command", command };
+
+  // On Windows, Claude Code uses Git Bash by default which may not have npm globals in PATH
+  // Using PowerShell ensures the codeusage command is found
+  if (isWindows()) {
+    hookCommand.shell = "powershell";
+  }
+
   return {
     matcher: "",
-    hooks: [{ type: "command", command }],
+    hooks: [hookCommand],
   };
 }
 
 /**
  * Create Codex hook command
+ * On Windows, explicitly use PowerShell to ensure the command is found in PATH
  */
 function createCodexHookCommand(
   command: string,
   statusMessage: string
 ): CodexHookCommand {
-  return {
+  const hookCommand: CodexHookCommand = {
     type: "command",
     command,
     statusMessage,
     timeout: 10,
   };
+
+  // On Windows, use PowerShell to ensure npm globals are in PATH
+  if (isWindows()) {
+    hookCommand.shell = "powershell";
+  }
+
+  return hookCommand;
 }
 
 /**

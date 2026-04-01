@@ -6,7 +6,7 @@ import input from "@inquirer/input";
 import { setFullConfig, getConfig, isConfigured } from "../lib/config.js";
 import { validateApiKey } from "../lib/api.js";
 import { detectProjectSlug } from "../lib/git.js";
-import { registerHooks } from "../lib/hooks-file.js";
+import { registerHooks, unregisterHooks } from "../lib/hooks-file.js";
 import {
   getAllProviders,
   getProviderById,
@@ -121,6 +121,15 @@ export const initCommand = new Command("init")
     const hookSpinner = ora(`Registering ${providerInfo.displayName} hooks...`).start();
 
     try {
+      // When reinitializing, unregister old hooks first to ensure fresh config
+      if (options.force) {
+        await unregisterHooks(
+          hookScope as "global" | "project",
+          cwd,
+          selectedProvider as ProviderId
+        );
+      }
+
       await registerHooks(
         hookScope as "global" | "project",
         cwd,
