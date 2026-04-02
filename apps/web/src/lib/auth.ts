@@ -3,6 +3,7 @@ import GitHub from "next-auth/providers/github";
 import { db, users, workspaces, workspaceMembers } from "./db";
 import { eq, and } from "drizzle-orm";
 import type { MemberRole } from "./db/schema";
+import { sendNewUserNotification } from "./email";
 
 declare module "next-auth" {
   interface Session {
@@ -84,6 +85,11 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             })
             .returning();
           userId = newUser.id;
+
+          // Notify admin of new signup (non-blocking)
+          sendNewUserNotification(email, user.name || null, "github").catch((err) => {
+            console.error("Failed to send admin notification:", err);
+          });
         } else {
           userId = existingUser[0].id;
           currentWorkspaceId = existingUser[0].current_workspace_id;

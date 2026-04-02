@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 const FROM_EMAIL = process.env.EMAIL_FROM || "Codeusage <noreply@codeusage.dev>";
+const ADMIN_EMAIL = "info@codeusage.dev";
 
 // Dev mode: skip email sending and log OTP to console
 const DEV_MODE = !process.env.RESEND_API_KEY;
@@ -264,6 +265,78 @@ export async function sendWelcomeEmail(email: string, displayName: string): Prom
     return { success: true };
   } catch (err) {
     console.error("Welcome email sending error:", err);
+    return { success: false, error: (err as Error).message };
+  }
+}
+
+/**
+ * Send admin notification when a new user registers
+ * This helps track signups before admin panel is built
+ */
+export async function sendNewUserNotification(
+  userEmail: string,
+  userName: string | null,
+  signupMethod: "email" | "github"
+): Promise<{ success: boolean; error?: string }> {
+  const timestamp = new Date().toISOString();
+
+  if (DEV_MODE || !resend) {
+    console.log("\n========================================");
+    console.log(`🎉 NEW USER REGISTERED`);
+    console.log(`   Email: ${userEmail}`);
+    console.log(`   Name: ${userName || "Not provided"}`);
+    console.log(`   Method: ${signupMethod}`);
+    console.log(`   Time: ${timestamp}`);
+    console.log("========================================\n");
+    return { success: true };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: ADMIN_EMAIL,
+      subject: `New Codeusage signup: ${userEmail}`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; padding: 20px; margin: 0;">
+            <h2 style="color: #D97757; margin: 0 0 20px 0;">🎉 New User Registered</h2>
+
+            <table style="border-collapse: collapse; width: 100%; max-width: 400px;">
+              <tr>
+                <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-weight: 600;">Email</td>
+                <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${userEmail}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-weight: 600;">Name</td>
+                <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${userName || "Not provided"}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-weight: 600;">Signup Method</td>
+                <td style="padding: 8px 12px; border: 1px solid #e5e7eb; text-transform: capitalize;">${signupMethod}</td>
+              </tr>
+              <tr>
+                <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-weight: 600;">Time</td>
+                <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${timestamp}</td>
+              </tr>
+            </table>
+          </body>
+        </html>
+      `,
+      text: `New Codeusage User Registered\n\nEmail: ${userEmail}\nName: ${userName || "Not provided"}\nSignup Method: ${signupMethod}\nTime: ${timestamp}`,
+    });
+
+    if (error) {
+      console.error("Failed to send admin notification:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Admin notification error:", err);
     return { success: false, error: (err as Error).message };
   }
 }

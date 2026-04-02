@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { db, verificationTokens, users, workspaceMembers } from "@/lib/db";
 import { eq, and, gt } from "drizzle-orm";
-import { verifyOTP, sendWelcomeEmail } from "@/lib/email";
+import { verifyOTP, sendWelcomeEmail, sendNewUserNotification } from "@/lib/email";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { cookies } from "next/headers";
 import { encode } from "next-auth/jwt";
@@ -157,6 +157,11 @@ export async function POST(request: Request) {
       // Send welcome email (non-blocking — don't delay login)
       sendWelcomeEmail(normalizedEmail, userName).catch((err) => {
         console.error("Failed to send welcome email:", err);
+      });
+
+      // Notify admin of new signup (non-blocking)
+      sendNewUserNotification(normalizedEmail, userName, "email").catch((err) => {
+        console.error("Failed to send admin notification:", err);
       });
     } else {
       userId = existingUser[0].id;
