@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useId } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -47,6 +47,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: session, update } = useSession();
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
+  const userMenuTriggerId = useId();
 
   // Refresh session once on mount to pick up new login
   useEffect(() => {
@@ -99,7 +100,7 @@ export function Sidebar() {
         {/* User menu */}
         <div className="border-t border-border p-3">
           <DropdownMenu>
-            <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors outline-none">
+            <DropdownMenuTrigger id={userMenuTriggerId} className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors outline-none">
               <Avatar className="h-7 w-7">
                 <AvatarFallback className="bg-primary/10 text-primary text-xs">
                   {userInitials}

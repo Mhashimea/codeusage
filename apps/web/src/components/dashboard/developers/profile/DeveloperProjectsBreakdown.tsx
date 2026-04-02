@@ -1,0 +1,109 @@
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCost, formatTokens } from "@codeusage/shared";
+import { FolderKanban } from "lucide-react";
+import Link from "next/link";
+
+interface Project {
+  project_slug: string;
+  task_count: number;
+  total_cost: number;
+  total_tokens: number;
+  last_activity: string;
+}
+
+interface DeveloperProjectsBreakdownProps {
+  projects: Project[];
+}
+
+function formatLastActivity(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 0) return "Today";
+  if (diffDays === 1) return "Yesterday";
+  if (diffDays < 7) return `${diffDays}d ago`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)}w ago`;
+  return `${Math.floor(diffDays / 30)}mo ago`;
+}
+
+export function DeveloperProjectsBreakdown({ projects }: DeveloperProjectsBreakdownProps) {
+  if (projects.length === 0) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base font-medium">Projects</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col items-center justify-center py-8 text-center">
+            <div className="rounded-full bg-muted p-4 mb-4">
+              <FolderKanban className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">No projects yet</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Calculate max cost for progress bar
+  const maxCost = Math.max(...projects.map((p) => p.total_cost));
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base font-medium">Projects</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-4">
+          {projects.map((project) => {
+            const progressWidth = maxCost > 0 ? (project.total_cost / maxCost) * 100 : 0;
+
+            return (
+              <Link
+                key={project.project_slug}
+                href={`/app/projects?project=${encodeURIComponent(project.project_slug)}`}
+                className="block"
+              >
+                <div className="rounded-lg border border-border p-4 hover:bg-muted/50 transition-colors">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="rounded-lg bg-primary/10 p-1.5">
+                        <FolderKanban className="h-4 w-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="font-medium text-sm">{project.project_slug}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {project.task_count} tasks · {formatTokens(project.total_tokens)} tokens
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-emerald-500 text-sm">
+                        {formatCost(project.total_cost)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {formatLastActivity(project.last_activity)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Progress Bar */}
+                  <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-emerald-500/50 rounded-full transition-all"
+                      style={{ width: `${progressWidth}%` }}
+                    />
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}

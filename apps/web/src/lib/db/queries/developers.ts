@@ -1,6 +1,6 @@
 import { db } from "..";
 import { tasks } from "../schema";
-import { eq, desc, sql, and, gte } from "drizzle-orm";
+import { eq, desc, sql, and, gte, lte } from "drizzle-orm";
 
 /**
  * Get all developers for a workspace with their stats
@@ -114,4 +114,102 @@ export async function getDeveloperActivity(
   }
 
   return activityByDeveloper;
+}
+
+/**
+ * Get daily activity for a specific developer (for heatmap)
+ * CRITICAL: Always filter by workspace_id
+ */
+export async function getDeveloperDailyActivity(
+  workspaceId: string,
+  developerAlias: string,
+  options: { year?: number } = {}
+) {
+  const { year = new Date().getFullYear() } = options;
+  const startDate = new Date(year, 0, 1);
+  const endDate = new Date(year, 11, 31, 23, 59, 59, 999);
+
+  const result = await db
+    .select({
+      date: sql<string>`date(${tasks.created_at})::text`,
+      task_count: sql<number>`count(*)::int`,
+    })
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.workspace_id, workspaceId),
+        eq(tasks.developer_alias, developerAlias),
+        gte(tasks.created_at, startDate),
+        lte(tasks.created_at, endDate)
+      )
+    )
+    .groupBy(sql`date(${tasks.created_at})`)
+    .orderBy(sql`date(${tasks.created_at})`);
+
+  const activityMap: Record<string, number> = {};
+  for (const row of result) {
+    activityMap[row.date] = row.task_count;
+  }
+
+  return activityMap;
+}
+
+/**
+ * Get projects worked on by a specific developer
+ * CRITICAL: Always filter by workspace_id
+ */
+export async function getDeveloperProjects(
+  workspaceId: string,
+  developerAlias: string,
+  options: { limit?: number } = {}
+) {
+  const { limit = 10 } = options;
+
+  const result = await db
+    .select({
+      project_slug: tasks.project_slug,
+      task_count: sql<number>`count(*)::int`,
+      total_cost: sql<string>`coalesce(sum(${tasks.cost_usd}), 0)::numeric(10,6)`,
+      total_tokens: sql<number>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::int`,
+      last_activity: sql<string>`max(${tasks.created_at})::text`,
+    })
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.workspace_id, workspaceId),
+        eq(tasks.developer_alias, developerAlias)
+      )
+    )
+    .groupBy(tasks.project_slug)
+    .orderBy(desc(sql`sum(${tasks.cost_usd})`))
+    .limit(limit);
+
+  return result.map((row) => ({
+    project_slug: row.project_slug,
+    task_count: row.task_count,
+    total_cost: parseFloat(row.total_cost),
+    total_tokens: row.total_tokens,
+    last_activity: row.last_activity,
+  }));
+}
+
+/**
+ * Get providers used by a specific developer
+ * CRITICAL: Always filter by workspace_id
+ */
+export async function getDeveloperProviders(
+  workspaceId: string,
+  developerAlias: string
+): Promise<string[]> {
+  const result = await db
+    .selectDistinct({ tool_source: tasks.tool_source })
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.workspace_id, workspaceId),
+        eq(tasks.developer_alias, developerAlias)
+      )
+    );
+
+  return result.map((r) => r.tool_source);
 }

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProviderIndicator } from "@/components/shared/ProviderBadge";
@@ -110,9 +111,10 @@ export function DeveloperList({ developers, activity }: DeveloperListProps) {
           ) : (
             <div className="space-y-4">
               {activeDevelopers.map((dev) => (
-                <div
+                <Link
                   key={dev.alias}
-                  className="flex items-center justify-between rounded-lg border border-border p-4"
+                  href={`/app/developers/${encodeURIComponent(dev.alias)}`}
+                  className="flex items-center justify-between rounded-lg border border-border p-4 hover:bg-muted/50 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
@@ -151,7 +153,7 @@ export function DeveloperList({ developers, activity }: DeveloperListProps) {
                       <p className="text-xs text-muted-foreground">cost</p>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}
@@ -169,9 +171,10 @@ export function DeveloperList({ developers, activity }: DeveloperListProps) {
           <CardContent>
             <div className="space-y-4">
               {inactiveDevelopers.map((dev) => (
-                <div
+                <Link
                   key={dev.alias}
-                  className="flex items-center justify-between rounded-lg border border-border p-4 opacity-60"
+                  href={`/app/developers/${encodeURIComponent(dev.alias)}`}
+                  className="flex items-center justify-between rounded-lg border border-border p-4 opacity-60 hover:bg-muted/50 hover:opacity-80 transition-all cursor-pointer"
                 >
                   <div className="flex items-center gap-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground font-semibold">
@@ -205,7 +208,7 @@ export function DeveloperList({ developers, activity }: DeveloperListProps) {
                       <p className="text-xs text-muted-foreground">cost</p>
                     </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </CardContent>

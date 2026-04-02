@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ChevronDown } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback } from "react";
+import { useCallback, useId } from "react";
 import type { Period } from "@/lib/period";
 
 export type { Period };
@@ -26,6 +26,7 @@ const periodLabels: Record<Period, string> = {
 export function PeriodSelector({ defaultPeriod = "30d" }: PeriodSelectorProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const triggerId = useId();
 
   const currentPeriod = (searchParams.get("period") as Period) || defaultPeriod;
 
@@ -40,7 +41,7 @@ export function PeriodSelector({ defaultPeriod = "30d" }: PeriodSelectorProps) {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
+      <DropdownMenuTrigger id={triggerId} className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2">
         {periodLabels[currentPeriod]}
         <ChevronDown className="h-4 w-4 opacity-50" />
       </DropdownMenuTrigger>

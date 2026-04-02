@@ -25,7 +25,7 @@ import {
   type SessionState,
 } from "../lib/session-state.js";
 
-const CLI_VERSION = "0.1.19";
+const CLI_VERSION = "0.1.21";
 
 export const hookStopCommand = new Command("stop")
   .description("Handle AI coding tool stop hook (internal)")

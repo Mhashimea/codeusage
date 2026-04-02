@@ -1,6 +1,6 @@
 {
   "name": "codeusage-cli",
-  "version": "0.1.19",
+  "version": "0.1.21",
   "description": "CLI for Codeusage - AI coding tool intelligence platform",
   "author": "Hashim",
   "license": "MIT",
@@ -10,7 +10,8 @@
   },
   "main": "./dist/index.cjs",
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ],
   "scripts": {
     "dev": "tsx watch src/index.ts",
