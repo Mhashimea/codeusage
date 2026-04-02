@@ -42,7 +42,8 @@ async function getGitRoot(cwd: string): Promise<string | null> {
     const { stdout } = await execa("git", ["rev-parse", "--show-toplevel"], {
       cwd,
     });
-    return stdout.trim();
+    // Normalize to OS-native path separators (git returns forward slashes on Windows)
+    return path.normalize(stdout.trim());
   } catch {
     return null;
   }
@@ -97,8 +98,9 @@ export function getSessionParser(
 // === Claude Code Session Parser ===
 
 function getClaudeProjectHash(cwd: string): string {
-  // Claude Code replaces "/" and spaces with "-" in the path
-  return cwd.replace(/[/ ]/g, "-");
+  // Claude Code replaces non-alphanumeric/hyphen characters with "-" in the project path
+  // On Windows, cwd is like "C:\Users\foo.bar\project" — backslashes, colons, dots all become "-"
+  return cwd.replace(/[^\w-]/g, "-");
 }
 
 async function findLatestClaudeSession(

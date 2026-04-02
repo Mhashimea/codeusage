@@ -45,7 +45,8 @@ export async function isGitRepo(): Promise<boolean> {
 export async function getGitRoot(): Promise<string | null> {
   try {
     const { stdout } = await execa("git", ["rev-parse", "--show-toplevel"]);
-    return stdout.trim();
+    // Normalize to OS-native path separators (git returns forward slashes on Windows)
+    return path.normalize(stdout.trim());
   } catch {
     return null;
   }

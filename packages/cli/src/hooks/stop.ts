@@ -1,4 +1,5 @@
 import { Command } from "commander";
+import path from "path";
 import chalk from "chalk";
 import {
   estimateCost,
@@ -24,7 +25,7 @@ import {
   type SessionState,
 } from "../lib/session-state.js";
 
-const CLI_VERSION = "0.1.18";
+const CLI_VERSION = "0.1.19";
 
 export const hookStopCommand = new Command("stop")
   .description("Handle AI coding tool stop hook (internal)")
@@ -69,7 +70,7 @@ export const hookStopCommand = new Command("stop")
     let projectSlug = config.project_overrides[effectiveCwd];
     if (!projectSlug) {
       projectSlug = await detectProjectSlug(effectiveCwd);
-      if (projectSlug === effectiveCwd.split("/").pop()) {
+      if (projectSlug === path.basename(effectiveCwd)) {
         // Just directory name, no git remote
         console.log(
           chalk.dim("Tip: Set a project name: codeusage project set <name>")
