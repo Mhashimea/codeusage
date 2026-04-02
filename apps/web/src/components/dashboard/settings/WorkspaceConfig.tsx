@@ -7,17 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check, Pencil } from "lucide-react";
-import type { Workspace } from "@/lib/db/schema";
+import type { Workspace, MemberRole } from "@/lib/db/schema";
 
 interface WorkspaceConfigProps {
   workspace: Workspace;
+  userRole: MemberRole | null;
 }
 
-export function WorkspaceConfig({ workspace }: WorkspaceConfigProps) {
+export function WorkspaceConfig({ workspace, userRole }: WorkspaceConfigProps) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(false);
-  const [displayName, setDisplayName] = useState(workspace.display_name || "");
+  const [workspaceName, setWorkspaceName] = useState(workspace.name);
   const [isSaving, setIsSaving] = useState(false);
+
+  const canEdit = userRole === "owner" || userRole === "admin";
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -25,12 +28,11 @@ export function WorkspaceConfig({ workspace }: WorkspaceConfigProps) {
       const response = await fetch("/api/v1/workspaces/update", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ displayName }),
+        body: JSON.stringify({ name: workspaceName }),
       });
 
       if (response.ok) {
         setIsEditing(false);
-        // Refresh the page to update session data
         router.refresh();
       }
     } catch (error) {
@@ -43,28 +45,28 @@ export function WorkspaceConfig({ workspace }: WorkspaceConfigProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Profile</CardTitle>
+        <CardTitle>Workspace</CardTitle>
         <CardDescription>
-          Your profile and workspace settings
+          Manage your workspace settings
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="display-name">Display Name</Label>
+          <Label htmlFor="workspace-name">Workspace Name</Label>
           <div className="flex items-center gap-2">
             {isEditing ? (
               <>
                 <Input
-                  id="display-name"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  placeholder="Enter your name"
+                  id="workspace-name"
+                  value={workspaceName}
+                  onChange={(e) => setWorkspaceName(e.target.value)}
+                  placeholder="Enter workspace name"
                   className="max-w-sm"
                 />
                 <Button
                   size="sm"
                   onClick={handleSave}
-                  disabled={isSaving || displayName === (workspace.display_name || "")}
+                  disabled={isSaving || workspaceName === workspace.name || !workspaceName.trim()}
                 >
                   <Check className="h-4 w-4" />
                 </Button>
@@ -73,7 +75,7 @@ export function WorkspaceConfig({ workspace }: WorkspaceConfigProps) {
                   variant="ghost"
                   onClick={() => {
                     setIsEditing(false);
-                    setDisplayName(workspace.display_name || "");
+                    setWorkspaceName(workspace.name);
                   }}
                 >
                   Cancel
@@ -82,23 +84,25 @@ export function WorkspaceConfig({ workspace }: WorkspaceConfigProps) {
             ) : (
               <>
                 <span className="text-lg font-medium">
-                  {workspace.display_name || "Not set"}
+                  {workspace.name}
                 </span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setIsEditing(true)}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
+                {canEdit && (
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
               </>
             )}
           </div>
         </div>
 
         <div className="space-y-2">
-          <Label>Email</Label>
-          <p className="text-sm text-muted-foreground">{workspace.name}</p>
+          <Label>Plan</Label>
+          <p className="text-sm text-muted-foreground capitalize">{workspace.plan}</p>
         </div>
 
         <div className="space-y-2">

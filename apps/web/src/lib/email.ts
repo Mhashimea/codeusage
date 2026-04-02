@@ -105,6 +105,87 @@ export async function sendOTPEmail(email: string, otp: string): Promise<{ succes
   }
 }
 
+export async function sendInvitationEmail(
+  email: string,
+  workspaceName: string,
+  inviterName: string | null,
+  role: string,
+  inviteUrl: string
+): Promise<{ success: boolean; error?: string }> {
+  const inviter = inviterName || "A team member";
+
+  if (DEV_MODE || !resend) {
+    console.log("\n========================================");
+    console.log(`📧 Invitation email for ${email}`);
+    console.log(`   Workspace: ${workspaceName}`);
+    console.log(`   Invited by: ${inviter}`);
+    console.log(`   Role: ${role}`);
+    console.log(`   URL: ${inviteUrl}`);
+    console.log("========================================\n");
+    return { success: true };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from: FROM_EMAIL,
+      to: email,
+      subject: `You're invited to join ${workspaceName} on Codeusage`,
+      html: `
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          </head>
+          <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0a0a0a; color: #fafafa; padding: 40px 20px; margin: 0;">
+            <div style="max-width: 480px; margin: 0 auto;">
+              <div style="text-align: center; margin-bottom: 32px;">
+                <div style="display: inline-flex; align-items: center; gap: 10px;">
+                  <img src="https://codeusage.dev/brand/codeusage-logo.svg" alt="Codeusage" width="36" height="36" style="display: inline-block; vertical-align: middle;" />
+                  <span style="font-size: 20px; font-weight: 600; color: #D97757;">Codeusage</span>
+                </div>
+              </div>
+
+              <h1 style="font-size: 24px; font-weight: 600; margin: 0 0 16px 0; text-align: center;">You're invited!</h1>
+
+              <p style="color: #d4d4d8; font-size: 16px; line-height: 1.6; margin: 0 0 24px 0; text-align: center;">
+                ${inviter} has invited you to join <strong>${workspaceName}</strong> as a <strong style="text-transform: capitalize;">${role}</strong>.
+              </p>
+
+              <div style="background-color: #18181b; border: 1px solid #27272a; border-radius: 12px; padding: 24px; margin-bottom: 24px; text-align: center;">
+                <p style="color: #a1a1aa; font-size: 14px; margin: 0 0 16px 0;">
+                  Codeusage helps teams track AI coding tool usage across projects.
+                </p>
+                <a href="${inviteUrl}" style="display: inline-block; background-color: #D97757; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 14px; padding: 12px 32px; border-radius: 8px;">
+                  Accept Invitation
+                </a>
+              </div>
+
+              <p style="color: #71717a; font-size: 13px; text-align: center; margin: 0 0 8px 0;">
+                This invitation expires in 7 days.
+              </p>
+              <p style="color: #71717a; font-size: 13px; text-align: center; margin: 0;">
+                If you didn't expect this invitation, you can safely ignore this email.
+              </p>
+            </div>
+          </body>
+        </html>
+      `,
+      text: `You're invited to join ${workspaceName} on Codeusage!\n\n${inviter} has invited you to join as a ${role}.\n\nAccept invitation: ${inviteUrl}\n\nThis invitation expires in 7 days.\n\nIf you didn't expect this invitation, you can safely ignore this email.`,
+    });
+
+    if (error) {
+      console.error("Failed to send invitation email:", error);
+      return { success: false, error: error.message };
+    }
+
+    return { success: true };
+  } catch (err) {
+    console.error("Invitation email sending error:", err);
+    return { success: false, error: (err as Error).message };
+  }
+}
+
 export async function sendWelcomeEmail(email: string, displayName: string): Promise<{ success: boolean; error?: string }> {
   if (DEV_MODE || !resend) {
     console.log("\n========================================");

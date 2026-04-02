@@ -1,10 +1,11 @@
 import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
-import { getWorkspaceById } from "@/lib/db/queries/workspaces";
+import { getWorkspaceById, getUserWorkspaceRole } from "@/lib/db/queries/workspaces";
 import { ApiKeySection } from "@/components/dashboard/settings/ApiKeySection";
 import { WorkspaceConfig } from "@/components/dashboard/settings/WorkspaceConfig";
 import { DeveloperRoster } from "@/components/dashboard/settings/DeveloperRoster";
+import { MembersSection } from "@/components/dashboard/settings/MembersSection";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 async function SettingsContent() {
@@ -20,6 +21,9 @@ async function SettingsContent() {
     redirect("/login");
   }
 
+  // Fetch role directly from database (more reliable than session)
+  const userRole = await getUserWorkspaceRole(session.user.id, session.user.workspaceId);
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -31,7 +35,14 @@ async function SettingsContent() {
       </div>
 
       {/* Workspace Config */}
-      <WorkspaceConfig workspace={workspace} />
+      <WorkspaceConfig workspace={workspace} userRole={userRole} />
+
+      {/* Team Members */}
+      <MembersSection
+        workspaceId={workspace.id}
+        userRole={userRole}
+        currentUserId={session.user.id}
+      />
 
       {/* API Key */}
       <ApiKeySection workspaceId={workspace.id} hasExistingKey={!!workspace.api_key_hash} />

@@ -7,8 +7,35 @@ import {
   timestamp,
   jsonb,
   index,
+  uniqueIndex,
+  pgEnum,
 } from "drizzle-orm/pg-core";
 import type { ToolUsage, FileChangeDetail } from "@codeusage/shared";
+
+// Enums
+export const memberRoleEnum = pgEnum("member_role", ["owner", "admin", "member"]);
+export const invitationStatusEnum = pgEnum("invitation_status", ["pending", "accepted", "expired", "revoked"]);
+
+/**
+ * Users table
+ * Each row represents an individual user account
+ * A user can belong to multiple workspaces with different roles
+ */
+export const users = pgTable(
+  "users",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    email: text("email").notNull(),
+    name: text("name"),
+    avatar_url: text("avatar_url"),
+    current_workspace_id: uuid("current_workspace_id"), // Currently selected workspace (null if none)
+    created_at: timestamp("created_at").defaultNow().notNull(),
+    updated_at: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_users_email").on(table.email),
+  ]
+);
 
 /**
  * Workspaces table
@@ -18,16 +45,73 @@ export const workspaces = pgTable(
   "workspaces",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    name: text("name").notNull(), // Used for email lookup in auth
-    display_name: text("display_name"), // User's display name
-    password_hash: text("password_hash"), // bcrypt hash for login password
-    api_key_hash: text("api_key_hash").unique(), // bcrypt hash for CLI API key (nullable until user generates)
-    api_key_prefix: text("api_key_prefix"), // First 12 chars of API key for O(1) lookup (timing attack prevention)
+    name: text("name").notNull(), // Workspace name (e.g. "Acme Engineering")
+    owner_id: uuid("owner_id").references(() => users.id, { onDelete: "restrict" }), // Owner cannot be deleted while workspace exists
+    api_key_hash: text("api_key_hash").unique(), // bcrypt hash for CLI API key
+    api_key_prefix: text("api_key_prefix"), // First 12 chars for O(1) lookup (e.g. "ab-ws-4f9a2c")
     plan: text("plan").notNull().default("free"), // free | team | enterprise
+    created_at: timestamp("created_at").defaultNow().notNull(),
+    updated_at: timestamp("updated_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("idx_workspaces_api_key_prefix").on(table.api_key_prefix),
+    index("idx_workspaces_owner").on(table.owner_id),
+  ]
+);
+
+/**
+ * Workspace members table
+ * Links users to workspaces with their role
+ * A user can be a member of multiple workspaces
+ */
+export const workspaceMembers = pgTable(
+  "workspace_members",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspace_id: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    user_id: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    role: memberRoleEnum("role").notNull().default("member"),
+    invited_by: uuid("invited_by").references(() => users.id, { onDelete: "set null" }),
+    joined_at: timestamp("joined_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("idx_workspace_members_unique").on(table.workspace_id, table.user_id),
+    index("idx_workspace_members_user").on(table.user_id),
+    index("idx_workspace_members_workspace").on(table.workspace_id),
+  ]
+);
+
+/**
+ * Invitations table
+ * Tracks pending invitations to join a workspace
+ * Invitations expire after 7 days
+ */
+export const invitations = pgTable(
+  "invitations",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspace_id: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" }),
+    email: text("email").notNull(), // Email of the invitee
+    role: memberRoleEnum("role").notNull().default("member"), // Role to assign on acceptance
+    token_hash: text("token_hash").notNull(), // bcrypt hash of invitation token
+    status: invitationStatusEnum("status").notNull().default("pending"),
+    invited_by: uuid("invited_by")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    expires_at: timestamp("expires_at").notNull(),
     created_at: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
-    index("idx_workspaces_api_key_prefix").on(table.api_key_prefix), // Fast lookup by prefix
+    index("idx_invitations_workspace").on(table.workspace_id),
+    index("idx_invitations_email").on(table.email),
+    index("idx_invitations_token").on(table.token_hash),
+    index("idx_invitations_status").on(table.status),
   ]
 );
 
@@ -113,11 +197,20 @@ export const rateLimits = pgTable(
 );
 
 // Type exports for use in queries
+export type User = typeof users.$inferSelect;
+export type NewUser = typeof users.$inferInsert;
 export type Workspace = typeof workspaces.$inferSelect;
 export type NewWorkspace = typeof workspaces.$inferInsert;
+export type WorkspaceMember = typeof workspaceMembers.$inferSelect;
+export type NewWorkspaceMember = typeof workspaceMembers.$inferInsert;
+export type Invitation = typeof invitations.$inferSelect;
+export type NewInvitation = typeof invitations.$inferInsert;
 export type Task = typeof tasks.$inferSelect;
 export type NewTask = typeof tasks.$inferInsert;
 export type VerificationToken = typeof verificationTokens.$inferSelect;
 export type NewVerificationToken = typeof verificationTokens.$inferInsert;
 export type RateLimit = typeof rateLimits.$inferSelect;
 export type NewRateLimit = typeof rateLimits.$inferInsert;
+
+// Role type for use in authorization
+export type MemberRole = "owner" | "admin" | "member";

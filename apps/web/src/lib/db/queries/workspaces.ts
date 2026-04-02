@@ -1,6 +1,7 @@
-import { db, workspaces } from "..";
-import { eq } from "drizzle-orm";
+import { db, workspaces, users, workspaceMembers, invitations } from "..";
+import { eq, and } from "drizzle-orm";
 import { generateApiKey, hashApiKey, verifyApiKey } from "@/lib/api-key";
+import type { MemberRole } from "../schema";
 
 /**
  * Get workspace by ID
@@ -13,6 +14,82 @@ export async function getWorkspaceById(id: string) {
     .limit(1);
 
   return workspace || null;
+}
+
+/**
+ * Get user by ID
+ */
+export async function getUserById(id: string) {
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.id, id))
+    .limit(1);
+
+  return user || null;
+}
+
+/**
+ * Get user by email
+ */
+export async function getUserByEmail(email: string) {
+  const [user] = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1);
+
+  return user || null;
+}
+
+/**
+ * Get user's role in a workspace
+ */
+export async function getUserWorkspaceRole(userId: string, workspaceId: string): Promise<MemberRole | null> {
+  const [membership] = await db
+    .select({ role: workspaceMembers.role })
+    .from(workspaceMembers)
+    .where(
+      and(
+        eq(workspaceMembers.user_id, userId),
+        eq(workspaceMembers.workspace_id, workspaceId)
+      )
+    )
+    .limit(1);
+
+  return membership?.role || null;
+}
+
+/**
+ * Get all workspaces a user belongs to
+ * Returns simplified format for workspace switcher
+ */
+export async function getUserWorkspaces(userId: string) {
+  const result = await db
+    .select({
+      id: workspaces.id,
+      name: workspaces.name,
+      role: workspaceMembers.role,
+      joined_at: workspaceMembers.joined_at,
+    })
+    .from(workspaceMembers)
+    .innerJoin(workspaces, eq(workspaceMembers.workspace_id, workspaces.id))
+    .where(eq(workspaceMembers.user_id, userId));
+
+  return result;
+}
+
+/**
+ * Update user's currently selected workspace
+ */
+export async function updateUserCurrentWorkspace(userId: string, workspaceId: string | null) {
+  const [user] = await db
+    .update(users)
+    .set({ current_workspace_id: workspaceId, updated_at: new Date() })
+    .where(eq(users.id, userId))
+    .returning();
+
+  return user;
 }
 
 /**
@@ -55,23 +132,39 @@ export async function getWorkspaceByApiKey(apiKey: string) {
 }
 
 /**
- * Create a new workspace with API key
+ * Create a new workspace with API key and add owner as member
  * Returns the workspace and the plaintext API key (shown once)
  */
-export async function createWorkspace(name: string) {
+export async function createWorkspace(name: string, ownerId: string) {
   const apiKey = generateApiKey();
   const apiKeyHash = await hashApiKey(apiKey);
   const apiKeyPrefix = apiKey.slice(0, 12); // Store prefix for O(1) lookup
 
+  // Create workspace
   const [workspace] = await db
     .insert(workspaces)
     .values({
       name,
+      owner_id: ownerId,
       api_key_hash: apiKeyHash,
       api_key_prefix: apiKeyPrefix,
       plan: "free",
     })
     .returning();
+
+  // Add owner as member with owner role
+  await db.insert(workspaceMembers).values({
+    workspace_id: workspace.id,
+    user_id: ownerId,
+    role: "owner",
+    invited_by: null, // Owner wasn't invited
+  });
+
+  // Set this as the user's current workspace
+  await db
+    .update(users)
+    .set({ current_workspace_id: workspace.id })
+    .where(eq(users.id, ownerId));
 
   return {
     workspace,
@@ -100,12 +193,12 @@ export async function rotateApiKey(workspaceId: string) {
 }
 
 /**
- * Update workspace display name
+ * Update workspace name
  */
-export async function updateWorkspaceDisplayName(workspaceId: string, displayName: string) {
+export async function updateWorkspaceName(workspaceId: string, name: string) {
   const [workspace] = await db
     .update(workspaces)
-    .set({ display_name: displayName })
+    .set({ name, updated_at: new Date() })
     .where(eq(workspaces.id, workspaceId))
     .returning();
 
@@ -121,9 +214,92 @@ export async function updateWorkspacePlan(
 ) {
   const [workspace] = await db
     .update(workspaces)
-    .set({ plan })
+    .set({ plan, updated_at: new Date() })
     .where(eq(workspaces.id, workspaceId))
     .returning();
 
   return workspace;
+}
+
+/**
+ * Get workspace members with user details
+ */
+export async function getWorkspaceMembers(workspaceId: string) {
+  const result = await db
+    .select({
+      id: workspaceMembers.id,
+      user: users,
+      role: workspaceMembers.role,
+      joined_at: workspaceMembers.joined_at,
+    })
+    .from(workspaceMembers)
+    .innerJoin(users, eq(workspaceMembers.user_id, users.id))
+    .where(eq(workspaceMembers.workspace_id, workspaceId));
+
+  return result;
+}
+
+/**
+ * Add a member to a workspace
+ */
+export async function addWorkspaceMember(
+  workspaceId: string,
+  userId: string,
+  role: MemberRole,
+  invitedBy: string | null
+) {
+  const [member] = await db
+    .insert(workspaceMembers)
+    .values({
+      workspace_id: workspaceId,
+      user_id: userId,
+      role,
+      invited_by: invitedBy,
+    })
+    .returning();
+
+  return member;
+}
+
+/**
+ * Update member role
+ */
+export async function updateMemberRole(
+  workspaceId: string,
+  userId: string,
+  role: MemberRole
+) {
+  const [member] = await db
+    .update(workspaceMembers)
+    .set({ role })
+    .where(
+      and(
+        eq(workspaceMembers.workspace_id, workspaceId),
+        eq(workspaceMembers.user_id, userId)
+      )
+    )
+    .returning();
+
+  return member;
+}
+
+/**
+ * Remove a member from a workspace
+ */
+export async function removeWorkspaceMember(workspaceId: string, userId: string) {
+  await db
+    .delete(workspaceMembers)
+    .where(
+      and(
+        eq(workspaceMembers.workspace_id, workspaceId),
+        eq(workspaceMembers.user_id, userId)
+      )
+    );
+}
+
+/**
+ * Delete a workspace (owner only)
+ */
+export async function deleteWorkspace(workspaceId: string) {
+  await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
 }

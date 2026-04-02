@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useId } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
@@ -15,6 +15,7 @@ import {
   ChevronsUpDown,
 } from "lucide-react";
 import { CodeusageLogoBrand } from "@/components/shared/CodeusageLogo";
+import { WorkspaceSwitcher } from "@/components/dashboard/WorkspaceSwitcher";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -45,7 +46,6 @@ export function Sidebar() {
   const pathname = usePathname();
   const { data: session, update } = useSession();
   const [showSignOutDialog, setShowSignOutDialog] = useState(false);
-  const userMenuTriggerId = useId();
 
   // Refresh session once on mount to pick up new login
   useEffect(() => {
@@ -70,6 +70,9 @@ export function Sidebar() {
             Codeusage
           </span>
         </div>
+
+        {/* Workspace Switcher */}
+        <WorkspaceSwitcher />
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-2">
@@ -98,7 +101,7 @@ export function Sidebar() {
         {/* User menu */}
         <div className="border-t border-border p-3">
           <DropdownMenu>
-            <DropdownMenuTrigger id={userMenuTriggerId} className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors outline-none">
+            <DropdownMenuTrigger className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors outline-none">
               <Avatar className="h-7 w-7">
                 <AvatarFallback className="bg-primary/10 text-primary text-xs">
                   {userInitials}

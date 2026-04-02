@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { db, verificationTokens, workspaces } from "@/lib/db";
+import { db, verificationTokens, users, workspaceMembers } from "@/lib/db";
 import { eq, and, gt } from "drizzle-orm";
-// API key generation removed - users generate manually from settings
 import { verifyOTP, sendWelcomeEmail } from "@/lib/email";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { cookies } from "next/headers";
 import { encode } from "next-auth/jwt";
 import { createHash } from "crypto";
+import type { MemberRole } from "@/lib/db/schema";
 
 const MAX_ATTEMPTS = 5;
 const SESSION_MAX_AGE_DAYS = 7; // Reduced from 30 days
@@ -129,37 +129,56 @@ export async function POST(request: Request) {
     // OTP verified! Delete the used token
     await db.delete(verificationTokens).where(eq(verificationTokens.id, token.id));
 
-    // Check if user (workspace) exists
-    const existingWorkspace = await db
+    // Check if user exists
+    const existingUser = await db
       .select()
-      .from(workspaces)
-      .where(eq(workspaces.name, normalizedEmail))
+      .from(users)
+      .where(eq(users.email, normalizedEmail))
       .limit(1);
 
-    let workspaceId: string;
-    let displayName: string;
+    let userId: string;
+    let userName: string;
+    let isNewUser = false;
 
-    if (existingWorkspace.length === 0) {
-      // Create new workspace for this user (no API key yet - user generates manually)
-      const [newWorkspace] = await db
-        .insert(workspaces)
+    if (existingUser.length === 0) {
+      // Create new user
+      const [newUser] = await db
+        .insert(users)
         .values({
-          name: normalizedEmail,
-          display_name: normalizedEmail.split("@")[0],
-          plan: "free",
+          email: normalizedEmail,
+          name: normalizedEmail.split("@")[0],
         })
         .returning();
 
-      workspaceId = newWorkspace.id;
-      displayName = newWorkspace.display_name || normalizedEmail.split("@")[0];
+      userId = newUser.id;
+      userName = newUser.name || normalizedEmail.split("@")[0];
+      isNewUser = true;
 
       // Send welcome email (non-blocking — don't delay login)
-      sendWelcomeEmail(normalizedEmail, displayName).catch((err) => {
+      sendWelcomeEmail(normalizedEmail, userName).catch((err) => {
         console.error("Failed to send welcome email:", err);
       });
     } else {
-      workspaceId = existingWorkspace[0].id;
-      displayName = existingWorkspace[0].display_name || normalizedEmail.split("@")[0];
+      userId = existingUser[0].id;
+      userName = existingUser[0].name || normalizedEmail.split("@")[0];
+    }
+
+    // Check if user has any workspace memberships
+    let workspaceId: string | null = null;
+    let role: MemberRole | null = null;
+
+    const membership = await db
+      .select({
+        workspace_id: workspaceMembers.workspace_id,
+        role: workspaceMembers.role,
+      })
+      .from(workspaceMembers)
+      .where(eq(workspaceMembers.user_id, userId))
+      .limit(1);
+
+    if (membership.length > 0) {
+      workspaceId = membership[0].workspace_id;
+      role = membership[0].role;
     }
 
     // Create JWT token with IP binding for session security
@@ -169,9 +188,10 @@ export async function POST(request: Request) {
     const jwtToken = await encode({
       token: {
         email: normalizedEmail,
-        name: displayName,
-        id: workspaceId,
+        name: userName,
+        id: userId,
         workspaceId: workspaceId,
+        role: role,
         ipHash: ipHash, // Bind session to IP (hashed for privacy)
       },
       secret: AUTH_SECRET,

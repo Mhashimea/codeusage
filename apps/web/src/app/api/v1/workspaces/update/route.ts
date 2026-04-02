@@ -1,41 +1,52 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
-import { updateWorkspaceDisplayName } from "@/lib/db/queries/workspaces";
+import { updateWorkspaceName, getUserWorkspaceRole } from "@/lib/db/queries/workspaces";
 
 /**
  * PATCH /api/v1/workspaces/update
- * Update workspace settings (requires authentication)
+ * Update workspace settings (requires admin or owner role)
  */
 export async function PATCH(request: NextRequest) {
   try {
     const session = await auth();
 
-    if (!session?.user?.workspaceId) {
+    if (!session?.user?.workspaceId || !session?.user?.id) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
 
-    const body = await request.json();
-    const { displayName } = body;
+    // Fetch role from database (more reliable than session)
+    const userRole = await getUserWorkspaceRole(session.user.id, session.user.workspaceId);
 
-    if (!displayName || typeof displayName !== "string" || displayName.trim().length === 0) {
+    // Only admins and owners can update workspace settings
+    if (userRole !== "admin" && userRole !== "owner") {
       return NextResponse.json(
-        { error: "Display name is required" },
+        { error: "Forbidden: Admin or owner role required" },
+        { status: 403 }
+      );
+    }
+
+    const body = await request.json();
+    const { name } = body;
+
+    if (!name || typeof name !== "string" || name.trim().length === 0) {
+      return NextResponse.json(
+        { error: "Workspace name is required" },
         { status: 400 }
       );
     }
 
-    const workspace = await updateWorkspaceDisplayName(
+    const workspace = await updateWorkspaceName(
       session.user.workspaceId,
-      displayName.trim()
+      name.trim()
     );
 
     return NextResponse.json({
       workspace: {
         id: workspace.id,
-        displayName: workspace.display_name,
+        name: workspace.name,
         plan: workspace.plan,
       },
     });
