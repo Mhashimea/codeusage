@@ -181,54 +181,6 @@ export async function countTasksFiltered(
 }
 
 /**
- * Get top projects by token volume
- * CRITICAL: Always filter by workspace_id
- */
-export async function getTopProjects(
-  workspaceId: string,
-  options: {
-    limit?: number;
-    startDate?: Date;
-    endDate?: Date;
-    provider?: string;
-  } = {}
-) {
-  const { limit = 5, startDate, endDate, provider } = options;
-
-  const conditions = [eq(tasks.workspace_id, workspaceId)];
-
-  if (startDate) {
-    conditions.push(gte(tasks.created_at, startDate));
-  }
-  if (endDate) {
-    conditions.push(lte(tasks.created_at, endDate));
-  }
-  if (provider) {
-    conditions.push(eq(tasks.tool_source, provider));
-  }
-
-  const result = await db
-    .select({
-      project_slug: tasks.project_slug,
-      total_tokens: sql<number>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::int`,
-      total_cost_usd: sql<string>`coalesce(sum(${tasks.cost_usd}), 0)::numeric(10,6)`,
-      task_count: sql<number>`count(*)::int`,
-    })
-    .from(tasks)
-    .where(and(...conditions))
-    .groupBy(tasks.project_slug)
-    .orderBy(desc(sql`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))`))
-    .limit(limit);
-
-  return result.map((row) => ({
-    project_slug: row.project_slug,
-    total_tokens: row.total_tokens,
-    total_cost_usd: parseFloat(row.total_cost_usd),
-    task_count: row.task_count,
-  }));
-}
-
-/**
  * Get unique developers for a workspace (for filters)
  */
 export async function getUniqueDevelopers(workspaceId: string) {

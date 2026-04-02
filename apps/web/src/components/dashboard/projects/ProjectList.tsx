@@ -1,10 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ProviderIndicator } from "@/components/shared/ProviderBadge";
-import { AlertTriangle, FolderGit2, Users, FileCode, Zap } from "lucide-react";
+import { AlertTriangle, FolderGit2, Users, FileCode, Zap, ChevronRight } from "lucide-react";
 import { formatCost, formatTokens } from "@codeusage/shared";
 
 interface Project {
@@ -124,16 +125,21 @@ export function ProjectList({ projects, hasUntagged }: ProjectListProps) {
       {/* Project Cards */}
       <div className="grid gap-4 md:grid-cols-2">
         {projects.map((project) => (
-          <Card key={project.project_slug} className="overflow-hidden">
+          <Link
+            key={project.project_slug}
+            href={`/app/projects/${encodeURIComponent(project.project_slug)}`}
+            className="group block"
+          >
+            <Card className="overflow-hidden hover:bg-muted/50 hover:border-primary/50 transition-all">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3 min-w-0">
-                  <div className="rounded-lg bg-primary/10 p-2 shrink-0">
+                  <div className="rounded-lg bg-primary/10 p-2 shrink-0 group-hover:bg-primary/20 transition-colors">
                     <FolderGit2 className="h-5 w-5 text-primary" />
                   </div>
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
-                      <CardTitle className="text-base truncate">
+                      <CardTitle className="text-base truncate group-hover:text-primary transition-colors">
                         {project.project_slug}
                       </CardTitle>
                       {project.providers.map((p) => (
@@ -147,13 +153,16 @@ export function ProjectList({ projects, hasUntagged }: ProjectListProps) {
                     )}
                   </div>
                 </div>
-                <div className="text-right shrink-0">
-                  <p className="text-lg font-bold text-emerald-500">
-                    {formatCost(project.total_cost)}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {project.share_percentage.toFixed(1)}% of total
-                  </p>
+                <div className="flex items-center gap-3 shrink-0">
+                  <div className="text-right">
+                    <p className="text-lg font-bold text-emerald-500">
+                      {formatCost(project.total_cost)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {project.share_percentage.toFixed(1)}% of total
+                    </p>
+                  </div>
+                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                 </div>
               </div>
             </CardHeader>
@@ -215,6 +224,7 @@ export function ProjectList({ projects, hasUntagged }: ProjectListProps) {
               )}
             </CardContent>
           </Card>
+          </Link>
         ))}
       </div>
     </div>

@@ -10,7 +10,6 @@ import {
   ListTodo,
   Users,
   FolderKanban,
-  DollarSign,
   Settings,
   LogOut,
   ChevronsUpDown,
@@ -40,7 +39,6 @@ const navigation = [
   { name: "Tasks", href: "/app/tasks", icon: ListTodo },
   { name: "Developers", href: "/app/developers", icon: Users },
   { name: "Projects", href: "/app/projects", icon: FolderKanban },
-  { name: "Cost & Usage", href: "/app/cost", icon: DollarSign },
 ];
 
 export function Sidebar() {

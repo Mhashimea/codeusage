@@ -2,15 +2,14 @@ import { Suspense } from "react";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { parse, format, subDays } from "date-fns";
-import { getTaskStats, getTasksByWorkspace, getTopProjects, getDailyActivity, getUniqueProviders } from "@/lib/db/queries/tasks";
-import { getCostByProvider } from "@/lib/db/queries/cost";
+import { getTaskStats, getTasksByWorkspace, getDailyActivity, getUniqueProviders } from "@/lib/db/queries/tasks";
+import { getCostByProvider, getCostByProject, getCostByDeveloper, getMonthlyCostTrend } from "@/lib/db/queries/cost";
 import { ProviderIndicator } from "@/components/shared/ProviderBadge";
 import { ProviderFilter } from "@/components/shared/ProviderFilter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { formatCost, formatTokens } from "@codeusage/shared";
-import { Coins, Zap, ListTodo, Users, FileCode, ArrowRight, Database } from "lucide-react";
-import { TopProjects } from "@/components/dashboard/overview/TopProjects";
+import { Coins, Zap, ListTodo, Users, FileCode, ArrowRight, Database, FolderGit2, Calendar, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Heatmap } from "@/components/shared/Heatmap";
 import { OverviewDatePicker } from "@/components/dashboard/overview/OverviewDatePicker";
 import Link from "next/link";
@@ -73,12 +72,14 @@ async function OverviewContent({ searchParams }: PageProps) {
   const provider = params.provider;
   const currentYear = new Date().getFullYear();
 
-  const [stats, recentTasks, topProjects, dailyActivity, costByProvider, providers] = await Promise.all([
+  const [stats, recentTasks, dailyActivity, costByProvider, costByProject, costByDeveloper, monthlyTrend, providers] = await Promise.all([
     getTaskStats(workspaceId, { startDate, endDate, provider }),
     getTasksByWorkspace(workspaceId, { limit: 5, provider }),
-    getTopProjects(workspaceId, { startDate, endDate, limit: 5, provider }),
     getDailyActivity(workspaceId, { year: currentYear }),
     getCostByProvider(workspaceId, { startDate, endDate }),
+    getCostByProject(workspaceId, { startDate, endDate, limit: 5, provider }),
+    getCostByDeveloper(workspaceId, { startDate, endDate, provider }),
+    getMonthlyCostTrend(workspaceId, { months: 6, provider }),
     getUniqueProviders(workspaceId),
   ]);
 
@@ -235,13 +236,222 @@ async function OverviewContent({ searchParams }: PageProps) {
         </Card>
       </div>
 
+      {/* Monthly Trend */}
+      {monthlyTrend.length > 0 && (
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle className="flex items-center gap-2 text-base font-medium">
+              <Calendar className="h-5 w-5 text-muted-foreground" />
+              {monthlyTrend.length === 1 ? 'This Month' : 'Monthly Usage'}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {monthlyTrend.length === 1 ? (
+              // Single month - show as horizontal stats
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-foreground">
+                    {new Date(parseInt(monthlyTrend[0].month.split('-')[0]), parseInt(monthlyTrend[0].month.split('-')[1]) - 1).toLocaleDateString("en-US", { month: "long", year: "numeric" })}
+                  </span>
+                </div>
+                <div className="flex items-center gap-6">
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Tasks</p>
+                    <p className="text-sm font-semibold">{monthlyTrend[0].task_count}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Tokens</p>
+                    <p className="text-sm font-semibold">{formatTokens(monthlyTrend[0].total_tokens)}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">Cost</p>
+                    <p className="text-sm font-semibold text-emerald-500">{formatCost(monthlyTrend[0].total_cost)}</p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              // Multiple months - show bar chart
+              <>
+                <div className="space-y-3">
+                  {monthlyTrend.map((month, index) => {
+                    const maxCost = Math.max(...monthlyTrend.map((d) => d.total_cost));
+                    const widthPercent = maxCost > 0 ? (month.total_cost / maxCost) * 100 : 0;
+                    const isCurrentMonth = index === monthlyTrend.length - 1;
+
+                    return (
+                      <div key={month.month} className="group">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <div className="flex items-center gap-2">
+                            <span className={`text-sm font-medium ${isCurrentMonth ? 'text-foreground' : 'text-muted-foreground'}`}>
+                              {new Date(parseInt(month.month.split('-')[0]), parseInt(month.month.split('-')[1]) - 1).toLocaleDateString("en-US", { month: "short", year: "numeric" })}
+                            </span>
+                            {isCurrentMonth && (
+                              <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+                                Current
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <span className="text-xs text-muted-foreground">
+                              {month.task_count} tasks
+                            </span>
+                            <span className={`text-sm font-semibold ${isCurrentMonth ? 'text-emerald-500' : 'text-muted-foreground'}`}>
+                              {formatCost(month.total_cost)}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all ${isCurrentMonth ? 'bg-emerald-500' : 'bg-primary/40'}`}
+                            style={{ width: `${Math.max(widthPercent, 2)}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                {/* Month-over-Month Change */}
+                {(() => {
+                  const current = monthlyTrend[monthlyTrend.length - 1];
+                  const previous = monthlyTrend[monthlyTrend.length - 2];
+                  const costChange = previous.total_cost > 0
+                    ? ((current.total_cost - previous.total_cost) / previous.total_cost) * 100
+                    : 0;
+                  return (
+                    <div className="mt-4 pt-4 border-t border-border">
+                      <div className="flex items-center gap-2">
+                        {costChange > 0 ? (
+                          <TrendingUp className="h-4 w-4 text-amber-500" />
+                        ) : costChange < 0 ? (
+                          <TrendingDown className="h-4 w-4 text-emerald-500" />
+                        ) : (
+                          <Minus className="h-4 w-4 text-muted-foreground" />
+                        )}
+                        <span className="text-sm text-muted-foreground">
+                          {costChange > 0 ? '+' : ''}{costChange.toFixed(1)}% vs last month
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Activity Heatmap */}
       <Heatmap initialData={dailyActivity} initialYear={currentYear} />
 
-      {/* Two Column Layout: Projects + Recent Tasks */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Top Projects */}
-        <TopProjects projects={topProjects} />
+      {/* Three Column Layout: Projects + Developers + Recent Tasks */}
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Cost by Project */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="flex items-center gap-2 text-base font-medium">
+              <FolderGit2 className="h-5 w-5 text-muted-foreground" />
+              By Project
+            </CardTitle>
+            <Link
+              href="/app/projects"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+            >
+              View all <ArrowRight className="h-3 w-3" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {costByProject.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="rounded-full bg-muted p-3 mb-3">
+                  <FolderGit2 className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm text-muted-foreground">No project data yet</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {costByProject.map((project, index) => (
+                  <div
+                    key={project.project_slug}
+                    className="flex items-center gap-3 py-2.5 border-b border-border last:border-0"
+                  >
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground shrink-0">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="font-medium text-sm truncate pr-2">
+                          {project.project_slug}
+                        </span>
+                        <span className="text-sm font-semibold text-emerald-500 whitespace-nowrap">
+                          {formatCost(project.total_cost)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{project.task_count} tasks</span>
+                        <span>·</span>
+                        <span>{formatTokens(project.total_tokens)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Cost by Developer */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="flex items-center gap-2 text-base font-medium">
+              <Users className="h-5 w-5 text-muted-foreground" />
+              By Developer
+            </CardTitle>
+            <Link
+              href="/app/developers"
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1 transition-colors"
+            >
+              View all <ArrowRight className="h-3 w-3" />
+            </Link>
+          </CardHeader>
+          <CardContent>
+            {costByDeveloper.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="rounded-full bg-muted p-3 mb-3">
+                  <Users className="h-6 w-6 text-muted-foreground" />
+                </div>
+                <p className="text-sm text-muted-foreground">No developer data yet</p>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                {costByDeveloper.slice(0, 5).map((dev) => (
+                  <div
+                    key={dev.developer_alias}
+                    className="flex items-center gap-3 py-2.5 border-b border-border last:border-0"
+                  >
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold shrink-0">
+                      {dev.developer_alias.charAt(0).toUpperCase()}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-0.5">
+                        <span className="font-medium text-sm truncate pr-2">
+                          {dev.developer_alias}
+                        </span>
+                        <span className="text-sm font-semibold text-emerald-500 whitespace-nowrap">
+                          {formatCost(dev.total_cost)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{dev.task_count} tasks</span>
+                        <span>·</span>
+                        <span>{formatTokens(dev.total_tokens)}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Recent Tasks */}
         <Card>
@@ -256,9 +466,9 @@ async function OverviewContent({ searchParams }: PageProps) {
           </CardHeader>
           <CardContent>
             {recentTasks.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <div className="rounded-full bg-muted p-4 mb-4">
-                  <ListTodo className="h-8 w-8 text-muted-foreground" />
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <div className="rounded-full bg-muted p-3 mb-3">
+                  <ListTodo className="h-6 w-6 text-muted-foreground" />
                 </div>
                 <p className="text-sm font-medium text-foreground mb-1">No tasks yet</p>
                 <p className="text-xs text-muted-foreground">
@@ -270,11 +480,11 @@ async function OverviewContent({ searchParams }: PageProps) {
                 {recentTasks.map((task) => (
                   <div
                     key={task.id}
-                    className="flex items-center justify-between py-3 px-2 rounded-lg hover:bg-muted/50 transition-colors"
+                    className="flex items-center justify-between py-2.5 px-2 rounded-lg hover:bg-muted/50 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2">
-                        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
+                        <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary text-[10px] font-semibold">
                           {task.developer_alias.charAt(0).toUpperCase()}
                         </div>
                         <div className="min-w-0">
@@ -287,17 +497,14 @@ async function OverviewContent({ searchParams }: PageProps) {
                             </Badge>
                           </div>
                           <p className="text-xs text-muted-foreground">
-                            {formatTokens(task.input_tokens + task.output_tokens)} tokens · {task.files_changed} files
+                            {formatTokens(task.input_tokens + task.output_tokens)} tokens
                           </p>
                         </div>
                       </div>
                     </div>
-                    <div className="text-right shrink-0 ml-4">
+                    <div className="text-right shrink-0 ml-2">
                       <p className="font-semibold text-emerald-500 text-sm">
                         {formatCost(parseFloat(task.cost_usd))}
-                      </p>
-                      <p className="text-[10px] text-muted-foreground">
-                        {new Date(task.created_at).toLocaleDateString()}
                       </p>
                     </div>
                   </div>
@@ -331,9 +538,11 @@ function OverviewSkeleton() {
         ))}
       </div>
       <div className="h-48 animate-pulse rounded-lg bg-muted" />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <div className="h-80 animate-pulse rounded-lg bg-muted" />
-        <div className="h-80 animate-pulse rounded-lg bg-muted" />
+      <div className="h-48 animate-pulse rounded-lg bg-muted" />
+      <div className="grid gap-6 lg:grid-cols-3">
+        <div className="h-72 animate-pulse rounded-lg bg-muted" />
+        <div className="h-72 animate-pulse rounded-lg bg-muted" />
+        <div className="h-72 animate-pulse rounded-lg bg-muted" />
       </div>
     </div>
   );

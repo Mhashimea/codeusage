@@ -55,6 +55,13 @@ export default function LoginPage() {
     }
   }, [countdown]);
 
+  // Focus OTP input when step changes
+  useEffect(() => {
+    if (step === "otp") {
+      otpInputsRef.current[0]?.focus();
+    }
+  }, [step]);
+
   // Show loading while checking session
   if (status === "loading" || (status === "authenticated" && session)) {
     return (
@@ -63,12 +70,6 @@ export default function LoginPage() {
       </div>
     );
   }
-
-  useEffect(() => {
-    if (step === "otp") {
-      otpInputsRef.current[0]?.focus();
-    }
-  }, [step]);
 
   const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();

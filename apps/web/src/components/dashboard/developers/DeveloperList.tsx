@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProviderIndicator } from "@/components/shared/ProviderBadge";
+import { ChevronRight } from "lucide-react";
 import { formatCost, formatTokens } from "@codeusage/shared";
 
 interface Developer {
@@ -109,20 +110,20 @@ export function DeveloperList({ developers, activity }: DeveloperListProps) {
               No active developers in the last 14 days.
             </p>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {activeDevelopers.map((dev) => (
                 <Link
                   key={dev.alias}
                   href={`/app/developers/${encodeURIComponent(dev.alias)}`}
-                  className="flex items-center justify-between rounded-lg border border-border p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                  className="group flex items-center justify-between rounded-lg border border-border p-4 hover:bg-muted/50 hover:border-primary/50 transition-all"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10 text-primary font-semibold group-hover:bg-primary/20 transition-colors">
                       {dev.alias.charAt(0).toUpperCase()}
                     </div>
                     <div>
                       <div className="flex items-center gap-2">
-                        <p className="font-medium">{dev.alias}</p>
+                        <p className="font-medium group-hover:text-primary transition-colors">{dev.alias}</p>
                         {dev.providers.map((p) => (
                           <ProviderIndicator key={p} providerId={p} />
                         ))}
@@ -147,11 +148,13 @@ export function DeveloperList({ developers, activity }: DeveloperListProps) {
                     </div>
 
                     <div className="text-right min-w-[80px]">
-                      <p className="font-medium text-green-500">
+                      <p className="font-medium text-emerald-500">
                         {formatCost(dev.totalCost)}
                       </p>
                       <p className="text-xs text-muted-foreground">cost</p>
                     </div>
+
+                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </Link>
               ))}
@@ -169,19 +172,19 @@ export function DeveloperList({ developers, activity }: DeveloperListProps) {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-3">
               {inactiveDevelopers.map((dev) => (
                 <Link
                   key={dev.alias}
                   href={`/app/developers/${encodeURIComponent(dev.alias)}`}
-                  className="flex items-center justify-between rounded-lg border border-border p-4 opacity-60 hover:bg-muted/50 hover:opacity-80 transition-all cursor-pointer"
+                  className="group flex items-center justify-between rounded-lg border border-border p-4 opacity-60 hover:bg-muted/50 hover:border-muted-foreground/50 hover:opacity-80 transition-all"
                 >
                   <div className="flex items-center gap-4">
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground font-semibold">
                       {dev.alias.charAt(0).toUpperCase()}
                     </div>
                     <div>
-                      <p className="font-medium">{dev.alias}</p>
+                      <p className="font-medium group-hover:text-foreground transition-colors">{dev.alias}</p>
                       <p className="text-sm text-muted-foreground">
                         {formatLastActive(dev.lastActive)}
                       </p>
@@ -202,11 +205,13 @@ export function DeveloperList({ developers, activity }: DeveloperListProps) {
                     </div>
 
                     <div className="text-right min-w-[80px]">
-                      <p className="font-medium text-green-500">
+                      <p className="font-medium text-emerald-500">
                         {formatCost(dev.totalCost)}
                       </p>
                       <p className="text-xs text-muted-foreground">cost</p>
                     </div>
+
+                    <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-0.5 transition-all" />
                   </div>
                 </Link>
               ))}
