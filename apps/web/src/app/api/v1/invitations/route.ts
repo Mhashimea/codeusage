@@ -191,7 +191,11 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     // Send invitation email
-    const baseUrl = process.env.NEXTAUTH_URL || "http://localhost:3003";
+    // Use APP_URL for production, fallback to NEXTAUTH_URL, then VERCEL_URL, then localhost
+    const baseUrl = process.env.APP_URL
+      || process.env.NEXTAUTH_URL
+      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+      || "http://localhost:3003";
     const inviteUrl = `${baseUrl}/invite/${token}`;
 
     await sendInvitationEmail(
