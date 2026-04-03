@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ProviderIndicator } from "@/components/shared/ProviderBadge";
 import { ChevronRight } from "lucide-react";
-import { formatCost, formatTokens } from "@codeusage/shared";
+import { formatTokens } from "@codeusage/shared";
 
 interface Developer {
   alias: string;
@@ -143,15 +143,8 @@ export function DeveloperList({ developers, activity }: DeveloperListProps) {
                     </div>
 
                     <div className="text-right min-w-[100px]">
-                      <p className="font-medium">{formatTokens(dev.totalTokens)}</p>
+                      <p className="font-medium text-blue-400">{formatTokens(dev.totalTokens)}</p>
                       <p className="text-xs text-muted-foreground">tokens</p>
-                    </div>
-
-                    <div className="text-right min-w-[80px]">
-                      <p className="font-medium text-emerald-500">
-                        {formatCost(dev.totalCost)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">cost</p>
                     </div>
 
                     <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
@@ -200,15 +193,8 @@ export function DeveloperList({ developers, activity }: DeveloperListProps) {
                     </div>
 
                     <div className="text-right min-w-[100px]">
-                      <p className="font-medium">{formatTokens(dev.totalTokens)}</p>
+                      <p className="font-medium text-blue-400">{formatTokens(dev.totalTokens)}</p>
                       <p className="text-xs text-muted-foreground">tokens</p>
-                    </div>
-
-                    <div className="text-right min-w-[80px]">
-                      <p className="font-medium text-emerald-500">
-                        {formatCost(dev.totalCost)}
-                      </p>
-                      <p className="text-xs text-muted-foreground">cost</p>
                     </div>
 
                     <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-0.5 transition-all" />

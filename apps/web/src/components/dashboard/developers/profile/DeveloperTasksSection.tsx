@@ -28,8 +28,8 @@ import {
 } from "@/components/ui/sheet";
 import { TaskDetailPanel } from "@/components/shared/TaskDetailPanel";
 import { ProviderBadge } from "@/components/shared/ProviderBadge";
-import { formatCost, formatTokens } from "@codeusage/shared";
-import { ListTodo, Calendar as CalendarIcon, Clock, FileCode, Coins } from "lucide-react";
+import { formatTokens } from "@codeusage/shared";
+import { ListTodo, Calendar as CalendarIcon, Clock, FileCode, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Task } from "@/lib/db/schema";
 
@@ -114,7 +114,6 @@ export function DeveloperTasksSection({ tasks, projects, alias }: DeveloperTasks
   }, [tasks, projectParam, dateRange]);
 
   // Calculate summary stats
-  const totalCost = filteredTasks.reduce((sum, t) => sum + parseFloat(t.cost_usd), 0);
   const totalTokens = filteredTasks.reduce((sum, t) => sum + t.input_tokens + t.output_tokens, 0);
 
   const updateFilters = (params: URLSearchParams) => {
@@ -165,9 +164,7 @@ export function DeveloperTasksSection({ tasks, projects, alias }: DeveloperTasks
                 {filteredTasks.length} task{filteredTasks.length !== 1 ? "s" : ""}
                 {hasFilters && " (filtered)"}
                 {" · "}
-                <span className="text-emerald-500">{formatCost(totalCost)}</span>
-                {" · "}
-                {formatTokens(totalTokens)} tokens
+                <span className="text-blue-400">{formatTokens(totalTokens)}</span> tokens
               </p>
             </div>
 
@@ -283,8 +280,8 @@ export function DeveloperTasksSection({ tasks, projects, alias }: DeveloperTasks
                           </p>
                         </div>
                         <div className="text-right shrink-0">
-                          <p className="font-semibold text-emerald-500 text-sm">
-                            {formatCost(parseFloat(task.cost_usd))}
+                          <p className="font-semibold text-blue-400 text-sm">
+                            {formatTokens(task.input_tokens + task.output_tokens)}
                           </p>
                         </div>
                       </div>
@@ -296,7 +293,7 @@ export function DeveloperTasksSection({ tasks, projects, alias }: DeveloperTasks
                           <span>{formatDuration(task.task_duration_sec)}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Coins className="h-3 w-3" />
+                          <Zap className="h-3 w-3" />
                           <span>{formatTokens(task.input_tokens + task.output_tokens)}</span>
                         </div>
                         <div className="flex items-center gap-1">

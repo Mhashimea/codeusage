@@ -17,8 +17,8 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { formatCost, formatTokens } from "@codeusage/shared";
-import { Download, RefreshCw, ChevronRight, Clock, Coins, Hash } from "lucide-react";
+import { formatTokens } from "@codeusage/shared";
+import { Download, RefreshCw, ChevronRight, Clock, Hash, Zap } from "lucide-react";
 import type { Task } from "@/lib/db/schema";
 import type { SessionGroup } from "@/lib/db/queries/tasks";
 
@@ -115,10 +115,6 @@ export function TaskList({ sessionGroups, pagination }: TaskListProps) {
   };
 
   // Calculate summary stats from session groups
-  const totalCost = sessionGroups.reduce(
-    (sum, group) => sum + group.totalCost,
-    0
-  );
   const totalTokens = sessionGroups.reduce(
     (sum, group) => sum + group.totalTokens,
     0
@@ -138,12 +134,6 @@ export function TaskList({ sessionGroups, pagination }: TaskListProps) {
           <div>
             <span className="text-muted-foreground">Tasks: </span>
             <span className="font-medium">{pagination.totalTasks}</span>
-          </div>
-          <div>
-            <span className="text-muted-foreground">Cost: </span>
-            <span className="font-medium text-green-500">
-              {formatCost(totalCost)}
-            </span>
           </div>
           <div>
             <span className="text-muted-foreground">Tokens: </span>
@@ -217,12 +207,9 @@ export function TaskList({ sessionGroups, pagination }: TaskListProps) {
                         <Clock className="h-3.5 w-3.5" />
                         <span>{formatDuration(group.totalDuration)}</span>
                       </div>
-                      <div className="text-muted-foreground">
-                        {formatTokens(group.totalTokens)}
-                      </div>
-                      <div className="flex items-center gap-1.5 text-green-500 font-medium">
-                        <Coins className="h-3.5 w-3.5" />
-                        <span>{formatCost(group.totalCost)}</span>
+                      <div className="flex items-center gap-1.5 text-blue-400 font-medium">
+                        <Zap className="h-3.5 w-3.5" />
+                        <span>{formatTokens(group.totalTokens)}</span>
                       </div>
                     </div>
                   </div>
@@ -251,14 +238,11 @@ export function TaskList({ sessionGroups, pagination }: TaskListProps) {
                             </div>
                           </div>
                           <div className="flex items-center gap-6 text-sm">
-                            <span className="text-muted-foreground">
+                            <span className="text-blue-400 font-medium">
                               {formatTokens(task.input_tokens + task.output_tokens)}
                             </span>
                             <span className="text-muted-foreground">
                               {task.files_changed} files
-                            </span>
-                            <span className="text-green-500 font-medium">
-                              {formatCost(parseFloat(task.cost_usd))}
                             </span>
                           </div>
                         </div>

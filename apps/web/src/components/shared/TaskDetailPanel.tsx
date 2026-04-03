@@ -1,12 +1,12 @@
 "use client";
 
-import { formatCost, formatTokens, formatModelName, PROVIDERS, type ProviderId, type FileChangeDetail } from "@codeusage/shared";
+import { formatTokens, formatModelName, PROVIDERS, type ProviderId, type FileChangeDetail } from "@codeusage/shared";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ProviderIcon } from "@/components/shared/ProviderBadge";
 import {
   Clock,
-  Coins,
+  Zap,
   FileCode,
   Wrench,
   User,
@@ -49,9 +49,6 @@ interface TaskDetailPanelProps {
 }
 
 export function TaskDetailPanel({ task }: TaskDetailPanelProps) {
-  const costUsd =
-    typeof task.cost_usd === "string" ? parseFloat(task.cost_usd) : task.cost_usd;
-
   const createdAt =
     typeof task.created_at === "string" ? new Date(task.created_at) : task.created_at;
 
@@ -121,10 +118,10 @@ export function TaskDetailPanel({ task }: TaskDetailPanelProps) {
       {/* Metrics Row */}
       <div className="grid grid-cols-3 gap-4">
         <div className="flex items-center gap-2">
-          <Coins className="h-4 w-4 text-green-500" />
+          <Zap className="h-4 w-4 text-blue-400" />
           <div>
-            <p className="text-xs text-muted-foreground">Cost</p>
-            <p className="font-semibold text-green-500">{formatCost(costUsd)}</p>
+            <p className="text-xs text-muted-foreground">Tokens</p>
+            <p className="font-semibold text-blue-400">{formatTokens(task.input_tokens + task.output_tokens)}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">

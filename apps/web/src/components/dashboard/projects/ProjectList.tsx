@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { ProviderIndicator } from "@/components/shared/ProviderBadge";
 import { AlertTriangle, FolderGit2, Users, FileCode, Zap, ChevronRight } from "lucide-react";
-import { formatCost, formatTokens } from "@codeusage/shared";
+import { formatTokens } from "@codeusage/shared";
 
 interface Project {
   project_slug: string;
@@ -48,9 +48,8 @@ export function ProjectList({ projects, hasUntagged }: ProjectListProps) {
   }
 
   // Calculate summary stats
-  const totalCost = projects.reduce((sum, p) => sum + p.total_cost, 0);
   const totalTasks = projects.reduce((sum, p) => sum + p.task_count, 0);
-  const totalFiles = projects.reduce((sum, p) => sum + p.total_files_changed, 0);
+  const totalTokens = projects.reduce((sum, p) => sum + p.total_tokens, 0);
   const uniqueContributors = new Set(projects.flatMap(p => p.contributors)).size;
 
   return (
@@ -114,8 +113,8 @@ export function ProjectList({ projects, hasUntagged }: ProjectListProps) {
                 <FileCode className="h-4 w-4 text-muted-foreground" />
               </div>
               <div>
-                <p className="text-2xl font-bold text-emerald-500">{formatCost(totalCost)}</p>
-                <p className="text-xs text-muted-foreground">Total Cost</p>
+                <p className="text-2xl font-bold text-blue-400">{formatTokens(totalTokens)}</p>
+                <p className="text-xs text-muted-foreground">Total Tokens</p>
               </div>
             </div>
           </CardContent>
@@ -155,8 +154,8 @@ export function ProjectList({ projects, hasUntagged }: ProjectListProps) {
                 </div>
                 <div className="flex items-center gap-3 shrink-0">
                   <div className="text-right">
-                    <p className="text-lg font-bold text-emerald-500">
-                      {formatCost(project.total_cost)}
+                    <p className="text-lg font-bold text-blue-400">
+                      {formatTokens(project.total_tokens)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {project.share_percentage.toFixed(1)}% of total

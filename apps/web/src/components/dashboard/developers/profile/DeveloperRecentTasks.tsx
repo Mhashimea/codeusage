@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/sheet";
 import { TaskDetailPanel } from "@/components/shared/TaskDetailPanel";
 import { ProviderBadge } from "@/components/shared/ProviderBadge";
-import { formatCost, formatTokens } from "@codeusage/shared";
+import { formatTokens } from "@codeusage/shared";
 import { ListTodo } from "lucide-react";
 import type { Task } from "@/lib/db/schema";
 
@@ -71,8 +71,8 @@ export function DeveloperRecentTasks({ tasks }: DeveloperRecentTasksProps) {
                   </div>
                 </div>
                 <div className="text-right shrink-0 ml-4">
-                  <p className="font-semibold text-emerald-500 text-sm">
-                    {formatCost(parseFloat(task.cost_usd))}
+                  <p className="font-semibold text-blue-400 text-sm">
+                    {formatTokens(task.input_tokens + task.output_tokens)}
                   </p>
                   <p className="text-[10px] text-muted-foreground">
                     {new Date(task.created_at).toLocaleDateString()}

@@ -8,8 +8,8 @@ import { ProviderIndicator } from "@/components/shared/ProviderBadge";
 import { ProviderFilter } from "@/components/shared/ProviderFilter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { formatCost, formatTokens } from "@codeusage/shared";
-import { Coins, Zap, ListTodo, Users, FileCode, ArrowRight, Database, FolderGit2, Calendar, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { formatTokens } from "@codeusage/shared";
+import { Zap, ListTodo, Users, FileCode, ArrowRight, Database, FolderGit2, Calendar, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Heatmap } from "@/components/shared/Heatmap";
 import { OverviewDatePicker } from "@/components/dashboard/overview/OverviewDatePicker";
 import Link from "next/link";
@@ -84,8 +84,6 @@ async function OverviewContent({ searchParams }: PageProps) {
   ]);
 
   const totalTokens = stats.total_input_tokens + stats.total_output_tokens;
-  const avgCostPerTask = stats.total_tasks > 0 ? stats.total_cost_usd / stats.total_tasks : 0;
-  const avgTokensPerTask = stats.total_tasks > 0 ? totalTokens / stats.total_tasks : 0;
 
   return (
     <div className="space-y-8">
@@ -103,79 +101,27 @@ async function OverviewContent({ searchParams }: PageProps) {
         </div>
       </div>
 
-      {/* Hero Stats - Cost & Tokens */}
-      <div className="grid gap-6 md:grid-cols-2">
-        {/* Total Cost Card */}
-        <Card className="bg-gradient-to-br from-emerald-500/10 to-emerald-500/5 border-emerald-500/20">
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-emerald-400">Total Cost</p>
-                <p className="text-4xl font-bold text-emerald-400 mt-2">
-                  {formatCost(stats.total_cost_usd)}
-                </p>
-                <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-                  <span>{formatCost(avgCostPerTask)} avg/task</span>
-                </div>
-              </div>
-              <div className="rounded-xl bg-emerald-500/20 p-3">
-                <Coins className="h-6 w-6 text-emerald-400" />
+      {/* Hero Stats - Tokens */}
+      <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
+        <CardContent className="pt-6">
+          <div className="flex items-start justify-between">
+            <div>
+              <p className="text-sm font-medium text-blue-400">Total Tokens</p>
+              <p className="text-4xl font-bold text-blue-400 mt-2">
+                {formatTokens(totalTokens)}
+              </p>
+              <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
+                <span>{formatTokens(stats.total_input_tokens)} in</span>
+                <span>·</span>
+                <span>{formatTokens(stats.total_output_tokens)} out</span>
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Total Tokens Card */}
-        <Card className="bg-gradient-to-br from-blue-500/10 to-blue-500/5 border-blue-500/20">
-          <CardContent className="pt-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-400">Total Tokens</p>
-                <p className="text-4xl font-bold text-blue-400 mt-2">
-                  {formatTokens(totalTokens)}
-                </p>
-                <div className="flex items-center gap-4 mt-3 text-sm text-muted-foreground">
-                  <span>{formatTokens(stats.total_input_tokens)} in</span>
-                  <span>·</span>
-                  <span>{formatTokens(stats.total_output_tokens)} out</span>
-                </div>
-              </div>
-              <div className="rounded-xl bg-blue-500/20 p-3">
-                <Zap className="h-6 w-6 text-blue-400" />
-              </div>
+            <div className="rounded-xl bg-blue-500/20 p-3">
+              <Zap className="h-6 w-6 text-blue-400" />
             </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Provider Breakdown - Only show if multiple providers */}
-      {costByProvider.length > 1 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-medium">Cost by Provider</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-4">
-              {costByProvider.map((provider) => (
-                <div
-                  key={provider.tool_source}
-                  className="flex items-center gap-3 rounded-lg border border-border p-3 min-w-[180px]"
-                >
-                  <ProviderIndicator providerId={provider.tool_source} />
-                  <div>
-                    <p className="font-semibold text-emerald-500">
-                      {formatCost(provider.total_cost)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {provider.task_count} tasks · {provider.share_percentage.toFixed(0)}%
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Secondary Stats Row */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
@@ -263,10 +209,6 @@ async function OverviewContent({ searchParams }: PageProps) {
                     <p className="text-xs text-muted-foreground">Tokens</p>
                     <p className="text-sm font-semibold">{formatTokens(monthlyTrend[0].total_tokens)}</p>
                   </div>
-                  <div className="text-right">
-                    <p className="text-xs text-muted-foreground">Cost</p>
-                    <p className="text-sm font-semibold text-emerald-500">{formatCost(monthlyTrend[0].total_cost)}</p>
-                  </div>
                 </div>
               </div>
             ) : (
@@ -274,8 +216,8 @@ async function OverviewContent({ searchParams }: PageProps) {
               <>
                 <div className="space-y-3">
                   {monthlyTrend.map((month, index) => {
-                    const maxCost = Math.max(...monthlyTrend.map((d) => d.total_cost));
-                    const widthPercent = maxCost > 0 ? (month.total_cost / maxCost) * 100 : 0;
+                    const maxTokens = Math.max(...monthlyTrend.map((d) => d.total_tokens));
+                    const widthPercent = maxTokens > 0 ? (month.total_tokens / maxTokens) * 100 : 0;
                     const isCurrentMonth = index === monthlyTrend.length - 1;
 
                     return (
@@ -295,14 +237,14 @@ async function OverviewContent({ searchParams }: PageProps) {
                             <span className="text-xs text-muted-foreground">
                               {month.task_count} tasks
                             </span>
-                            <span className={`text-sm font-semibold ${isCurrentMonth ? 'text-emerald-500' : 'text-muted-foreground'}`}>
-                              {formatCost(month.total_cost)}
+                            <span className={`text-sm font-semibold ${isCurrentMonth ? 'text-blue-400' : 'text-muted-foreground'}`}>
+                              {formatTokens(month.total_tokens)}
                             </span>
                           </div>
                         </div>
                         <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
                           <div
-                            className={`h-full rounded-full transition-all ${isCurrentMonth ? 'bg-emerald-500' : 'bg-primary/40'}`}
+                            className={`h-full rounded-full transition-all ${isCurrentMonth ? 'bg-blue-500' : 'bg-primary/40'}`}
                             style={{ width: `${Math.max(widthPercent, 2)}%` }}
                           />
                         </div>
@@ -314,21 +256,21 @@ async function OverviewContent({ searchParams }: PageProps) {
                 {(() => {
                   const current = monthlyTrend[monthlyTrend.length - 1];
                   const previous = monthlyTrend[monthlyTrend.length - 2];
-                  const costChange = previous.total_cost > 0
-                    ? ((current.total_cost - previous.total_cost) / previous.total_cost) * 100
+                  const tokenChange = previous.total_tokens > 0
+                    ? ((current.total_tokens - previous.total_tokens) / previous.total_tokens) * 100
                     : 0;
                   return (
                     <div className="mt-4 pt-4 border-t border-border">
                       <div className="flex items-center gap-2">
-                        {costChange > 0 ? (
-                          <TrendingUp className="h-4 w-4 text-amber-500" />
-                        ) : costChange < 0 ? (
-                          <TrendingDown className="h-4 w-4 text-emerald-500" />
+                        {tokenChange > 0 ? (
+                          <TrendingUp className="h-4 w-4 text-blue-400" />
+                        ) : tokenChange < 0 ? (
+                          <TrendingDown className="h-4 w-4 text-blue-400" />
                         ) : (
                           <Minus className="h-4 w-4 text-muted-foreground" />
                         )}
                         <span className="text-sm text-muted-foreground">
-                          {costChange > 0 ? '+' : ''}{costChange.toFixed(1)}% vs last month
+                          {tokenChange > 0 ? '+' : ''}{tokenChange.toFixed(1)}% tokens vs last month
                         </span>
                       </div>
                     </div>
@@ -382,14 +324,12 @@ async function OverviewContent({ searchParams }: PageProps) {
                         <span className="font-medium text-sm truncate pr-2">
                           {project.project_slug}
                         </span>
-                        <span className="text-sm font-semibold text-emerald-500 whitespace-nowrap">
-                          {formatCost(project.total_cost)}
+                        <span className="text-sm font-semibold text-blue-400 whitespace-nowrap">
+                          {formatTokens(project.total_tokens)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{project.task_count} tasks</span>
-                        <span>·</span>
-                        <span>{formatTokens(project.total_tokens)}</span>
                       </div>
                     </div>
                   </div>
@@ -436,14 +376,12 @@ async function OverviewContent({ searchParams }: PageProps) {
                         <span className="font-medium text-sm truncate pr-2">
                           {dev.developer_alias}
                         </span>
-                        <span className="text-sm font-semibold text-emerald-500 whitespace-nowrap">
-                          {formatCost(dev.total_cost)}
+                        <span className="text-sm font-semibold text-blue-400 whitespace-nowrap">
+                          {formatTokens(dev.total_tokens)}
                         </span>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-muted-foreground">
                         <span>{dev.task_count} tasks</span>
-                        <span>·</span>
-                        <span>{formatTokens(dev.total_tokens)}</span>
                       </div>
                     </div>
                   </div>
@@ -503,8 +441,8 @@ async function OverviewContent({ searchParams }: PageProps) {
                       </div>
                     </div>
                     <div className="text-right shrink-0 ml-2">
-                      <p className="font-semibold text-emerald-500 text-sm">
-                        {formatCost(parseFloat(task.cost_usd))}
+                      <p className="font-semibold text-blue-400 text-sm">
+                        {formatTokens(task.input_tokens + task.output_tokens)}
                       </p>
                     </div>
                   </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatCost, formatTokens } from "@codeusage/shared";
+import { formatTokens } from "@codeusage/shared";
 import { FolderKanban } from "lucide-react";
 import Link from "next/link";
 
@@ -49,8 +49,8 @@ export function DeveloperProjectsBreakdown({ projects }: DeveloperProjectsBreakd
     );
   }
 
-  // Calculate max cost for progress bar
-  const maxCost = Math.max(...projects.map((p) => p.total_cost));
+  // Calculate max tokens for progress bar
+  const maxTokens = Math.max(...projects.map((p) => p.total_tokens));
 
   return (
     <Card>
@@ -60,7 +60,7 @@ export function DeveloperProjectsBreakdown({ projects }: DeveloperProjectsBreakd
       <CardContent>
         <div className="space-y-4">
           {projects.map((project) => {
-            const progressWidth = maxCost > 0 ? (project.total_cost / maxCost) * 100 : 0;
+            const progressWidth = maxTokens > 0 ? (project.total_tokens / maxTokens) * 100 : 0;
 
             return (
               <Link
@@ -77,13 +77,13 @@ export function DeveloperProjectsBreakdown({ projects }: DeveloperProjectsBreakd
                       <div>
                         <p className="font-medium text-sm">{project.project_slug}</p>
                         <p className="text-xs text-muted-foreground">
-                          {project.task_count} tasks · {formatTokens(project.total_tokens)} tokens
+                          {project.task_count} tasks
                         </p>
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="font-semibold text-emerald-500 text-sm">
-                        {formatCost(project.total_cost)}
+                      <p className="font-semibold text-blue-400 text-sm">
+                        {formatTokens(project.total_tokens)}
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {formatLastActivity(project.last_activity)}
@@ -94,7 +94,7 @@ export function DeveloperProjectsBreakdown({ projects }: DeveloperProjectsBreakd
                   {/* Progress Bar */}
                   <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                     <div
-                      className="h-full bg-emerald-500/50 rounded-full transition-all"
+                      className="h-full bg-blue-500/50 rounded-full transition-all"
                       style={{ width: `${progressWidth}%` }}
                     />
                   </div>
