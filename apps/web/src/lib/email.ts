@@ -276,7 +276,8 @@ export async function sendWelcomeEmail(email: string, displayName: string): Prom
 export async function sendNewUserNotification(
   userEmail: string,
   userName: string | null,
-  signupMethod: "email" | "github"
+  signupMethod: "email" | "github",
+  totalUsers: number
 ): Promise<{ success: boolean; error?: string }> {
   const timestamp = new Date().toISOString();
 
@@ -287,6 +288,7 @@ export async function sendNewUserNotification(
     console.log(`   Name: ${userName || "Not provided"}`);
     console.log(`   Method: ${signupMethod}`);
     console.log(`   Time: ${timestamp}`);
+    console.log(`   Total Users: ${totalUsers}`);
     console.log("========================================\n");
     return { success: true };
   }
@@ -295,7 +297,7 @@ export async function sendNewUserNotification(
     const { error } = await resend.emails.send({
       from: FROM_EMAIL,
       to: ADMIN_EMAIL,
-      subject: `New Codeusage signup: ${userEmail}`,
+      subject: `New Codeusage signup (#${totalUsers}): ${userEmail}`,
       html: `
         <!DOCTYPE html>
         <html>
@@ -322,11 +324,15 @@ export async function sendNewUserNotification(
                 <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-weight: 600;">Time</td>
                 <td style="padding: 8px 12px; border: 1px solid #e5e7eb;">${timestamp}</td>
               </tr>
+              <tr style="background-color: #f3f4f6;">
+                <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-weight: 600;">Total Users</td>
+                <td style="padding: 8px 12px; border: 1px solid #e5e7eb; font-weight: 600; color: #D97757;">${totalUsers}</td>
+              </tr>
             </table>
           </body>
         </html>
       `,
-      text: `New Codeusage User Registered\n\nEmail: ${userEmail}\nName: ${userName || "Not provided"}\nSignup Method: ${signupMethod}\nTime: ${timestamp}`,
+      text: `New Codeusage User Registered\n\nEmail: ${userEmail}\nName: ${userName || "Not provided"}\nSignup Method: ${signupMethod}\nTime: ${timestamp}\nTotal Users: ${totalUsers}`,
     });
 
     if (error) {

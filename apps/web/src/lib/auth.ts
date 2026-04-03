@@ -1,7 +1,7 @@
 import NextAuth from "next-auth";
 import GitHub from "next-auth/providers/github";
 import { db, users, workspaces, workspaceMembers } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, count } from "drizzle-orm";
 import type { MemberRole } from "./db/schema";
 import { sendNewUserNotification } from "./email";
 
@@ -86,8 +86,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             .returning();
           userId = newUser.id;
 
+          // Get total user count for admin notification
+          const [userCount] = await db
+            .select({ count: count() })
+            .from(users);
+          const totalUsers = Number(userCount?.count) || 1;
+
           // Notify admin of new signup (non-blocking)
-          sendNewUserNotification(email, user.name || null, "github").catch((err) => {
+          sendNewUserNotification(email, user.name || null, "github", totalUsers).catch((err) => {
             console.error("Failed to send admin notification:", err);
           });
         } else {

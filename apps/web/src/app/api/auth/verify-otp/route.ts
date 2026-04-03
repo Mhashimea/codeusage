@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db, verificationTokens, users, workspaceMembers } from "@/lib/db";
-import { eq, and, gt } from "drizzle-orm";
+import { eq, and, gt, count } from "drizzle-orm";
 import { verifyOTP, sendWelcomeEmail, sendNewUserNotification } from "@/lib/email";
 import { rateLimiters, getClientIp } from "@/lib/rate-limit";
 import { cookies } from "next/headers";
@@ -138,7 +138,6 @@ export async function POST(request: Request) {
 
     let userId: string;
     let userName: string;
-    let isNewUser = false;
 
     if (existingUser.length === 0) {
       // Create new user
@@ -152,15 +151,20 @@ export async function POST(request: Request) {
 
       userId = newUser.id;
       userName = newUser.name || normalizedEmail.split("@")[0];
-      isNewUser = true;
 
       // Send welcome email (non-blocking — don't delay login)
       sendWelcomeEmail(normalizedEmail, userName).catch((err) => {
         console.error("Failed to send welcome email:", err);
       });
 
+      // Get total user count for admin notification
+      const [userCount] = await db
+        .select({ count: count() })
+        .from(users);
+      const totalUsers = Number(userCount?.count) || 1;
+
       // Notify admin of new signup (non-blocking)
-      sendNewUserNotification(normalizedEmail, userName, "email").catch((err) => {
+      sendNewUserNotification(normalizedEmail, userName, "email", totalUsers).catch((err) => {
         console.error("Failed to send admin notification:", err);
       });
     } else {
