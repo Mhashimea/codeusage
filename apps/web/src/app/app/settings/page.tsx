@@ -45,7 +45,7 @@ async function SettingsContent() {
       />
 
       {/* API Key */}
-      <ApiKeySection workspaceId={workspace.id} hasExistingKey={!!workspace.api_key_hash} />
+      <ApiKeySection hasExistingKey={!!workspace.api_key_hash} />
 
       {/* Developer Roster */}
       <DeveloperRoster workspaceId={workspace.id} />

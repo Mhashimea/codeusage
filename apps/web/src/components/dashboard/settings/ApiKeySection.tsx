@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Copy, RefreshCw, Check, Key } from "lucide-react";
@@ -17,25 +17,16 @@ import {
 } from "@/components/ui/alert-dialog";
 
 interface ApiKeySectionProps {
-  workspaceId: string;
   hasExistingKey?: boolean; // Whether an API key already exists in DB
 }
 
-const STORAGE_KEY = "codeusage_api_key";
-
-export function ApiKeySection({ workspaceId, hasExistingKey = false }: ApiKeySectionProps) {
+export function ApiKeySection({ hasExistingKey = false }: ApiKeySectionProps) {
+  // API key is only shown after rotation (never stored)
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [keyExistsInDb, setKeyExistsInDb] = useState(hasExistingKey);
   const [isRotating, setIsRotating] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  // Load key from localStorage on mount
-  useEffect(() => {
-    const storedKey = localStorage.getItem(`${STORAGE_KEY}_${workspaceId}`);
-    if (storedKey) {
-      setApiKey(storedKey);
-    }
-  }, [workspaceId]);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleRotate = async () => {
     setIsRotating(true);
@@ -48,8 +39,7 @@ export function ApiKeySection({ workspaceId, hasExistingKey = false }: ApiKeySec
         const data = await response.json();
         setApiKey(data.api_key);
         setKeyExistsInDb(true);
-        // Store in localStorage for future access
-        localStorage.setItem(`${STORAGE_KEY}_${workspaceId}`, data.api_key);
+        setDialogOpen(false); // Close dialog on success
       }
     } catch (error) {
       console.error("Failed to rotate API key:", error);
@@ -76,36 +66,37 @@ export function ApiKeySection({ workspaceId, hasExistingKey = false }: ApiKeySec
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-4 py-2.5 flex-1">
-            <Key className="h-4 w-4 text-muted-foreground" />
-            <span className="font-mono text-sm text-muted-foreground">
-              {apiKey ? "cu-ws-••••••••••••" : (keyExistsInDb ? "cu-ws-•••••••••••• (rotate to reveal)" : "No key generated")}
+          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-4 py-2.5 flex-1 overflow-hidden">
+            <Key className="h-4 w-4 text-muted-foreground shrink-0" />
+            <span className="font-mono text-sm text-muted-foreground truncate">
+              {apiKey ? apiKey : (keyExistsInDb ? "cu-ws-•••••••••••• (rotate to reveal)" : "No key generated")}
             </span>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleCopy}
-            disabled={!apiKey}
-            className="gap-2"
-          >
-            {copied ? (
-              <>
-                <Check className="h-4 w-4 text-green-500" />
-                Copied
-              </>
-            ) : (
-              <>
-                <Copy className="h-4 w-4" />
-                Copy
-              </>
-            )}
-          </Button>
+          {apiKey && (
+            <Button
+              variant="outline"
+              onClick={handleCopy}
+              className="gap-2"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4 text-green-500" />
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4" />
+                  Copy
+                </>
+              )}
+            </Button>
+          )}
         </div>
 
 
         {/* Show confirmation dialog only when rotating an existing key */}
         {keyExistsInDb ? (
-          <AlertDialog>
+          <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <AlertDialogTrigger
               disabled={isRotating}
               className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"

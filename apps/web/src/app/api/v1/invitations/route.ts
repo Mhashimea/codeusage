@@ -37,7 +37,10 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch role from database
-    const userRole = await getUserWorkspaceRole(session.user.id, session.user.workspaceId);
+    const userRole = await getUserWorkspaceRole(
+      session.user.id,
+      session.user.workspaceId,
+    );
 
     // Only admins and owners can view invitations
     if (userRole !== "admin" && userRole !== "owner") {
@@ -59,14 +62,17 @@ export async function GET(request: NextRequest) {
       .where(
         and(
           eq(invitations.workspace_id, session.user.workspaceId),
-          eq(invitations.status, "pending")
-        )
+          eq(invitations.status, "pending"),
+        ),
       );
 
     return NextResponse.json({ invitations: pendingInvitations });
   } catch (error) {
     console.error("[GET /api/v1/invitations] Error:", error);
-    return NextResponse.json({ error: "Failed to fetch invitations" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch invitations" },
+      { status: 500 },
+    );
   }
 }
 
@@ -83,7 +89,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch role from database
-    const userRole = await getUserWorkspaceRole(session.user.id, session.user.workspaceId);
+    const userRole = await getUserWorkspaceRole(
+      session.user.id,
+      session.user.workspaceId,
+    );
 
     // Only admins and owners can invite members
     if (userRole !== "admin" && userRole !== "owner") {
@@ -95,13 +104,19 @@ export async function POST(request: NextRequest) {
 
     // Validate email
     if (!email || typeof email !== "string" || !email.includes("@")) {
-      return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Valid email is required" },
+        { status: 400 },
+      );
     }
 
     // Validate role
     const validRoles: MemberRole[] = ["admin", "member"];
     if (!role || !validRoles.includes(role)) {
-      return NextResponse.json({ error: "Role must be 'admin' or 'member'" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Role must be 'admin' or 'member'" },
+        { status: 400 },
+      );
     }
 
     const normalizedEmail = email.toLowerCase().trim();
@@ -122,15 +137,15 @@ export async function POST(request: NextRequest) {
         .where(
           and(
             eq(workspaceMembers.workspace_id, session.user.workspaceId),
-            eq(workspaceMembers.user_id, existingUser[0].id)
-          )
+            eq(workspaceMembers.user_id, existingUser[0].id),
+          ),
         )
         .limit(1);
 
       if (existingMember.length > 0) {
         return NextResponse.json(
           { error: "This user is already a member of the workspace" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -143,15 +158,15 @@ export async function POST(request: NextRequest) {
         and(
           eq(invitations.workspace_id, session.user.workspaceId),
           eq(invitations.email, normalizedEmail),
-          eq(invitations.status, "pending")
-        )
+          eq(invitations.status, "pending"),
+        ),
       )
       .limit(1);
 
     if (existingInvitation.length > 0) {
       return NextResponse.json(
         { error: "An invitation has already been sent to this email" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -192,10 +207,7 @@ export async function POST(request: NextRequest) {
 
     // Send invitation email
     // Use APP_URL for production, fallback to NEXTAUTH_URL, then VERCEL_URL, then localhost
-    const baseUrl = process.env.APP_URL
-      || process.env.NEXTAUTH_URL
-      || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
-      || "http://localhost:3003";
+    const baseUrl = process.env.APP_URL || "http://localhost:3003";
     const inviteUrl = `${baseUrl}/invite/${token}`;
 
     await sendInvitationEmail(
@@ -203,20 +215,26 @@ export async function POST(request: NextRequest) {
       workspace?.name || "Workspace",
       inviter?.name || null,
       role,
-      inviteUrl
+      inviteUrl,
     );
 
-    return NextResponse.json({
-      invitation: {
-        id: invitation.id,
-        email: invitation.email,
-        role: invitation.role,
-        expires_at: invitation.expires_at,
+    return NextResponse.json(
+      {
+        invitation: {
+          id: invitation.id,
+          email: invitation.email,
+          role: invitation.role,
+          expires_at: invitation.expires_at,
+        },
+        inviteUrl: `/invite/${token}`,
       },
-      inviteUrl: `/invite/${token}`,
-    }, { status: 201 });
+      { status: 201 },
+    );
   } catch (error) {
     console.error("[POST /api/v1/invitations] Error:", error);
-    return NextResponse.json({ error: "Failed to create invitation" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to create invitation" },
+      { status: 500 },
+    );
   }
 }
