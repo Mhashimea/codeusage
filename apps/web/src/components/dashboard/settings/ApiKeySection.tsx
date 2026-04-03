@@ -95,7 +95,7 @@ export function ApiKeySection({ hasExistingKey = false }: ApiKeySectionProps) {
 
         {keyExistsInDb && !apiKey && (
           <p className="text-xs text-muted-foreground">
-            Rotating will generate a new API key and invalidate the current one. All team members will need to run <code className="rounded bg-muted px-1">codeusage init</code> with the new key.
+            Rotating will generate a new API key and invalidate the current one. All team members will need to run <code className="rounded bg-muted px-1">codeusage config set-key &lt;new-key&gt;</code> to update.
           </p>
         )}
 
@@ -114,9 +114,7 @@ export function ApiKeySection({ hasExistingKey = false }: ApiKeySectionProps) {
               <AlertDialogHeader>
                 <AlertDialogTitle>Rotate API Key?</AlertDialogTitle>
                 <AlertDialogDescription>
-                  This will invalidate the current API key. All developers will need to
-                  re-run <code className="rounded bg-muted px-1">codeusage init</code> with
-                  the new key.
+                  This will generate a new API key and invalidate the current one. All team members will need to run <code className="rounded bg-muted px-1">codeusage config set-key &lt;new-key&gt;</code> to update.
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter>
