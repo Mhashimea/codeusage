@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { signIn, useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Loader2, ArrowLeft } from "lucide-react";
+import { Loader2, ArrowLeft, Lock } from "lucide-react";
 import { CodeusageLogoBrand } from "@/components/shared/CodeusageLogo";
 
 function GitHubIcon({ className }: { className?: string }) {
@@ -29,9 +29,16 @@ type Step = "email" | "otp";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
+
+  // Get invitation params from URL
+  const inviteEmail = searchParams.get("email");
+  const inviteToken = searchParams.get("inviteToken");
+  const isInviteFlow = !!inviteToken;
+
   const [step, setStep] = useState<Step>("email");
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(inviteEmail || "");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -41,12 +48,23 @@ export default function LoginPage() {
 
   const otpInputsRef = useRef<(HTMLInputElement | null)[]>([]);
 
-  // Redirect to app if already logged in
+  // Redirect to app or invite page if already logged in
   useEffect(() => {
     if (status === "authenticated" && session) {
-      router.push("/app");
+      if (inviteToken) {
+        router.push(`/invite/${inviteToken}`);
+      } else {
+        router.push("/app");
+      }
     }
-  }, [status, session, router]);
+  }, [status, session, router, inviteToken]);
+
+  // Pre-fill email from URL params
+  useEffect(() => {
+    if (inviteEmail && !email) {
+      setEmail(inviteEmail);
+    }
+  }, [inviteEmail, email]);
 
   useEffect(() => {
     if (countdown > 0) {
@@ -151,7 +169,12 @@ export default function LoginPage() {
         return;
       }
 
-      router.push("/app");
+      // Redirect to invite page if coming from invitation flow
+      if (inviteToken) {
+        router.push(`/invite/${inviteToken}`);
+      } else {
+        router.push("/app");
+      }
       router.refresh();
     } catch {
       setError("Something went wrong. Please try again.");
@@ -206,7 +229,9 @@ export default function LoginPage() {
     setIsOAuthLoading(provider);
     setError("");
     try {
-      await signIn(provider, { callbackUrl: "/app" });
+      // If coming from invite flow, redirect back to invite after OAuth
+      const callbackUrl = inviteToken ? `/invite/${inviteToken}` : "/app";
+      await signIn(provider, { callbackUrl });
     } catch {
       setError("Something went wrong. Please try again.");
       setIsOAuthLoading(null);
@@ -214,6 +239,11 @@ export default function LoginPage() {
   };
 
   const handleBack = () => {
+    // If in invite flow, go back to invite page
+    if (isInviteFlow) {
+      router.push(`/invite/${inviteToken}`);
+      return;
+    }
     setStep("email");
     setOtp(["", "", "", "", "", ""]);
     setError("");
@@ -239,11 +269,11 @@ export default function LoginPage() {
             </Link>
             <div>
               <CardTitle className="text-2xl">
-                {step === "email" ? "Welcome back" : "Check your email"}
+                {step === "email" ? (isInviteFlow ? "Sign in to continue" : "Welcome back") : "Check your email"}
               </CardTitle>
               <CardDescription>
                 {step === "email"
-                  ? "Sign in to your account"
+                  ? (isInviteFlow ? "Sign in to accept your invitation" : "Sign in to your account")
                   : `We sent a code to ${email}`}
               </CardDescription>
             </div>
@@ -257,47 +287,62 @@ export default function LoginPage() {
 
             {step === "email" ? (
               <>
-                {/* OAuth Buttons */}
-                <div className="grid gap-2">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => handleOAuthSignIn("github")}
-                    disabled={isOAuthLoading !== null || isLoading}
-                  >
-                    {isOAuthLoading === "github" ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <GitHubIcon className="mr-2 h-4 w-4" />
-                    )}
-                    Continue with GitHub
-                  </Button>
-                </div>
+                {/* OAuth Buttons - hide if in invite flow with specific email */}
+                {!isInviteFlow && (
+                  <>
+                    <div className="grid gap-2">
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => handleOAuthSignIn("github")}
+                        disabled={isOAuthLoading !== null || isLoading}
+                      >
+                        {isOAuthLoading === "github" ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <GitHubIcon className="mr-2 h-4 w-4" />
+                        )}
+                        Continue with GitHub
+                      </Button>
+                    </div>
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">
-                      Or continue with email
-                    </span>
-                  </div>
-                </div>
+                    <div className="relative">
+                      <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                      </div>
+                      <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">
+                          Or continue with email
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                )}
 
                 {/* Email Form */}
                 <form onSubmit={handleSendOTP} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="you@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                      disabled={isLoading || isOAuthLoading !== null}
-                    />
+                    <div className="relative">
+                      <Input
+                        id="email"
+                        type="email"
+                        placeholder="you@example.com"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        disabled={isLoading || isOAuthLoading !== null || isInviteFlow}
+                        className={isInviteFlow ? "pr-10 bg-muted" : ""}
+                      />
+                      {isInviteFlow && (
+                        <Lock className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      )}
+                    </div>
+                    {isInviteFlow && (
+                      <p className="text-xs text-muted-foreground">
+                        This email is linked to your invitation
+                      </p>
+                    )}
                   </div>
                   <Button
                     type="submit"
@@ -314,6 +359,17 @@ export default function LoginPage() {
                     )}
                   </Button>
                 </form>
+
+                {isInviteFlow && (
+                  <Button
+                    variant="ghost"
+                    className="w-full"
+                    onClick={() => router.push(`/invite/${inviteToken}`)}
+                  >
+                    <ArrowLeft className="mr-2 h-4 w-4" />
+                    Back to invitation
+                  </Button>
+                )}
               </>
             ) : (
               <>
@@ -379,7 +435,7 @@ export default function LoginPage() {
                       disabled={isLoading}
                     >
                       <ArrowLeft className="mr-2 h-4 w-4" />
-                      Back to sign in
+                      {isInviteFlow ? "Back to invitation" : "Back to sign in"}
                     </Button>
                   </div>
                 )}
@@ -390,9 +446,11 @@ export default function LoginPage() {
       </div>
 
       {/* Footer */}
-      <footer className="p-4 text-center text-sm text-muted-foreground">
-        New here? Just enter your email above — we&apos;ll create your account automatically.
-      </footer>
+      {!isInviteFlow && (
+        <footer className="p-4 text-center text-sm text-muted-foreground">
+          New here? Just enter your email above — we&apos;ll create your account automatically.
+        </footer>
+      )}
     </div>
   );
 }
