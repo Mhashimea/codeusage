@@ -7,9 +7,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Copy, Check, ArrowRight, Building2, Loader2 } from "lucide-react";
 
+const API_KEY_STORAGE_PREFIX = "codeusage_api_key";
+
 export default function CreateWorkspacePage() {
   const [step, setStep] = useState<"name" | "apikey">("name");
   const [workspaceName, setWorkspaceName] = useState("");
+  const [workspaceId, setWorkspaceId] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isContinuing, setIsContinuing] = useState(false);
@@ -41,8 +44,13 @@ export default function CreateWorkspacePage() {
         return;
       }
 
-      // Show the API key
+      // Store workspace ID and API key
+      setWorkspaceId(data.workspace.id);
       setApiKey(data.apiKey);
+
+      // Store API key in localStorage so settings page can access it
+      localStorage.setItem(`${API_KEY_STORAGE_PREFIX}_${data.workspace.id}`, data.apiKey);
+
       setStep("apikey");
     } catch {
       setError("Something went wrong. Please try again.");
