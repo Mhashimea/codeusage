@@ -101,11 +101,6 @@ export function WorkspaceConfig({ workspace, userRole }: WorkspaceConfigProps) {
         </div>
 
         <div className="space-y-2">
-          <Label>Plan</Label>
-          <p className="text-sm text-muted-foreground capitalize">{workspace.plan}</p>
-        </div>
-
-        <div className="space-y-2">
           <Label>Created</Label>
           <p className="text-sm text-muted-foreground">
             {new Date(workspace.created_at).toLocaleDateString()}
