@@ -44,8 +44,10 @@ async function SettingsContent() {
         currentUserId={session.user.id}
       />
 
-      {/* API Key */}
-      <ApiKeySection hasExistingKey={!!workspace.api_key_hash} />
+      {/* API Key - Only visible to admins and owners */}
+      {(userRole === "admin" || userRole === "owner") && (
+        <ApiKeySection hasExistingKey={!!workspace.api_key_hash} />
+      )}
 
       {/* Developer Roster */}
       <DeveloperRoster workspaceId={workspace.id} />
