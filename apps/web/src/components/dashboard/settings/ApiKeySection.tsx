@@ -69,7 +69,7 @@ export function ApiKeySection({ hasExistingKey = false }: ApiKeySectionProps) {
           <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-4 py-2.5 flex-1 overflow-hidden">
             <Key className="h-4 w-4 text-muted-foreground shrink-0" />
             <span className="font-mono text-sm text-muted-foreground truncate">
-              {apiKey ? apiKey : (keyExistsInDb ? "cu-ws-•••••••••••• (rotate to reveal)" : "No key generated")}
+              {apiKey ? apiKey : (keyExistsInDb ? "cu-ws-••••••••••••••••••••" : "No key generated")}
             </span>
           </div>
           {apiKey && (
@@ -92,6 +92,12 @@ export function ApiKeySection({ hasExistingKey = false }: ApiKeySectionProps) {
             </Button>
           )}
         </div>
+
+        {keyExistsInDb && !apiKey && (
+          <p className="text-xs text-muted-foreground">
+            Rotating will generate a new API key and invalidate the current one. All team members will need to run <code className="rounded bg-muted px-1">codeusage init</code> with the new key.
+          </p>
+        )}
 
 
         {/* Show confirmation dialog only when rotating an existing key */}
