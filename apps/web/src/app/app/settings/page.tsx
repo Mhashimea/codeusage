@@ -6,7 +6,6 @@ import { ApiKeySection } from "@/components/dashboard/settings/ApiKeySection";
 import { WorkspaceConfig } from "@/components/dashboard/settings/WorkspaceConfig";
 import { DeveloperRoster } from "@/components/dashboard/settings/DeveloperRoster";
 import { MembersSection } from "@/components/dashboard/settings/MembersSection";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 async function SettingsContent() {
   const session = await auth();
@@ -44,32 +43,11 @@ async function SettingsContent() {
         currentUserId={session.user.id}
       />
 
-      {/* API Key - Only visible to admins and owners */}
-      {(userRole === "admin" || userRole === "owner") && (
-        <ApiKeySection hasExistingKey={!!workspace.api_key_hash} />
-      )}
+      {/* API Key - Only visible to owners */}
+      {userRole === "owner" && <ApiKeySection />}
 
       {/* Developer Roster */}
       <DeveloperRoster workspaceId={workspace.id} />
-
-      {/* CLI Installation */}
-      <Card>
-        <CardHeader>
-          <CardTitle>CLI Installation</CardTitle>
-          <CardDescription>
-            Install the Codeusage CLI to start tracking Claude Code usage
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="rounded-lg bg-muted p-4 font-mono text-sm">
-            bun add -g codeusage-cli
-          </div>
-          <div className="text-sm text-muted-foreground">
-            After installation, run <code className="rounded bg-muted px-1">codeusage init</code> and
-            enter your API key when prompted.
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 }

@@ -33,6 +33,7 @@ interface ClaudeSettings {
     Stop?: ClaudeHookEntry[];
     PostToolUse?: ClaudeHookEntry[];
     Notification?: ClaudeHookEntry[];
+    UserPromptSubmit?: ClaudeHookEntry[];
   };
   [key: string]: unknown;
 }
@@ -167,6 +168,18 @@ const claudeCodeConfig: ProviderHookConfig = {
       ];
     }
 
+    // UserPromptSubmit hook (Prompt Guard)
+    const userPromptHooks = s.hooks.UserPromptSubmit || [];
+    const hasUserPromptCodeusage = userPromptHooks.some((entry) =>
+      entry.hooks?.some((h) => h.command.startsWith("codeusage"))
+    );
+    if (!hasUserPromptCodeusage) {
+      s.hooks.UserPromptSubmit = [
+        ...userPromptHooks,
+        createClaudeHookEntry("codeusage hook user-prompt-submit"),
+      ];
+    }
+
     return s;
   },
   unregisterHooks: (settings: unknown) => {
@@ -185,6 +198,11 @@ const claudeCodeConfig: ProviderHookConfig = {
     }
     if (s.hooks.Notification) {
       s.hooks.Notification = s.hooks.Notification.filter(
+        (entry) => !entry.hooks?.some((h) => h.command.startsWith("codeusage"))
+      );
+    }
+    if (s.hooks.UserPromptSubmit) {
+      s.hooks.UserPromptSubmit = s.hooks.UserPromptSubmit.filter(
         (entry) => !entry.hooks?.some((h) => h.command.startsWith("codeusage"))
       );
     }

@@ -8,6 +8,7 @@ import {
   Settings,
   AlertCircle,
   ArrowRight,
+  ShieldCheck,
 } from "lucide-react";
 import { CodeusageLogoBrand } from "@/components/shared/CodeusageLogo";
 import { CopyButton } from "@/components/shared/CopyButton";
@@ -18,6 +19,7 @@ import { cn } from "@/lib/utils";
 const sections = [
   { id: "getting-started", label: "Getting Started", icon: BookOpen },
   { id: "commands", label: "Commands", icon: Terminal },
+  { id: "prompt-guard", label: "Prompt Guard", icon: ShieldCheck },
   { id: "configuration", label: "Configuration", icon: Settings },
   { id: "troubleshooting", label: "Troubleshooting", icon: AlertCircle },
 ];
@@ -31,11 +33,11 @@ function CodeBlock({
   showPrompt?: boolean;
 }) {
   return (
-    <div className="group relative bg-muted/50 border border-border rounded-lg p-4 font-mono text-sm">
+    <div className="group relative bg-muted/30 border border-border/50 rounded-lg p-3 font-mono text-sm mb-5">
       <div className="absolute right-2 top-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <CopyButton text={children} />
       </div>
-      <code className="text-foreground">
+      <code className="text-foreground text-[13px]">
         {showPrompt && <span className="text-[#D97757]">$ </span>}
         {children}
       </code>
@@ -46,16 +48,16 @@ function CodeBlock({
 // Terminal block with multiple commands
 function TerminalBlock({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-card border border-border rounded-xl overflow-hidden">
-      <div className="flex items-center gap-2 px-4 py-3 bg-muted/50 border-b border-border">
+    <div className="bg-card border border-border/50 rounded-xl overflow-hidden mb-5">
+      <div className="flex items-center gap-2 px-4 py-2.5 bg-muted/30 border-b border-border/50">
         <div className="flex gap-1.5">
-          <div className="w-3 h-3 rounded-full bg-red-500" />
-          <div className="w-3 h-3 rounded-full bg-yellow-500" />
-          <div className="w-3 h-3 rounded-full bg-green-500" />
+          <div className="w-2.5 h-2.5 rounded-full bg-red-500/80" />
+          <div className="w-2.5 h-2.5 rounded-full bg-yellow-500/80" />
+          <div className="w-2.5 h-2.5 rounded-full bg-green-500/80" />
         </div>
-        <span className="text-sm text-muted-foreground ml-2">Terminal</span>
+        <span className="text-xs text-muted-foreground ml-2">Terminal</span>
       </div>
-      <div className="p-4 font-mono text-sm space-y-3">{children}</div>
+      <div className="p-4 font-mono text-[13px] space-y-2.5">{children}</div>
     </div>
   );
 }
@@ -78,8 +80,8 @@ function CommandRow({
         <span className="text-foreground">{command}</span>
       </div>
       {description && (
-        <p className="text-muted-foreground text-xs mt-1 ml-4">
-          # {description}
+        <p className="text-muted-foreground/70 text-xs mt-0.5 ml-4">
+          {description}
         </p>
       )}
     </div>
@@ -97,7 +99,7 @@ function SectionHeading({
   return (
     <h2
       id={id}
-      className="text-2xl font-bold mb-6 pt-8 scroll-mt-24 border-t border-border/50 first:border-t-0 first:pt-0"
+      className="text-2xl font-bold mb-4 pt-12 scroll-mt-24 border-t border-border/30 first:border-t-0 first:pt-0"
     >
       {children}
     </h2>
@@ -105,11 +107,11 @@ function SectionHeading({
 }
 
 function SubHeading({ children }: { children: React.ReactNode }) {
-  return <h3 className="text-lg font-semibold mb-4 mt-8">{children}</h3>;
+  return <h3 className="text-base font-semibold mb-3 mt-10 text-foreground">{children}</h3>;
 }
 
 function Paragraph({ children }: { children: React.ReactNode }) {
-  return <p className="text-muted-foreground mb-4">{children}</p>;
+  return <p className="text-muted-foreground leading-relaxed mb-5">{children}</p>;
 }
 
 export default function DocsPage() {
@@ -125,7 +127,7 @@ export default function DocsPage() {
           }
         });
       },
-      { rootMargin: "-20% 0px -70% 0px" }
+      { rootMargin: "-20% 0px -70% 0px" },
     );
 
     sections.forEach(({ id }) => {
@@ -147,10 +149,7 @@ export default function DocsPage() {
               <span className="text-lg font-semibold">Codeusage</span>
             </Link>
             <div className="flex items-center gap-4">
-              <Link
-                href="/docs"
-                className="text-sm text-[#D97757] font-medium"
-              >
+              <Link href="/docs" className="text-sm text-[#D97757] font-medium">
                 Docs
               </Link>
               <Link href="/login">
@@ -177,7 +176,7 @@ export default function DocsPage() {
                     "flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors",
                     activeSection === id
                       ? "bg-[#D97757]/10 text-[#D97757]"
-                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50",
                   )}
                 >
                   <Icon className="h-4 w-4" />
@@ -188,7 +187,7 @@ export default function DocsPage() {
           </aside>
 
           {/* Main Content */}
-          <main className="flex-1 min-w-0">
+          <main className="flex-1 min-w-0 max-w-3xl">
             {/* Getting Started */}
             <section id="getting-started">
               <SectionHeading id="getting-started">
@@ -212,7 +211,10 @@ export default function DocsPage() {
               <Paragraph>Or using other package managers:</Paragraph>
 
               <TerminalBlock>
-                <CommandRow command="bun add -g codeusage-cli" description="bun" />
+                <CommandRow
+                  command="bun add -g codeusage-cli"
+                  description="bun"
+                />
                 <CommandRow
                   command="npm install -g codeusage-cli"
                   description="npm"
@@ -240,10 +242,12 @@ export default function DocsPage() {
                 The init command will guide you through the setup process:
               </Paragraph>
 
-              <ol className="list-decimal list-inside space-y-2 text-muted-foreground mb-6 ml-4">
-                <li>Enter your workspace API key (get it from your dashboard)</li>
+              <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground mb-5 ml-4 leading-relaxed">
+                <li>
+                  Enter your workspace API key (get it from your dashboard)
+                </li>
                 <li>Enter your developer name/alias</li>
-                <li>Choose hook scope (global or project-specific)</li>
+                <li>Choose tracking scope (global or project-specific)</li>
               </ol>
 
               <Paragraph>
@@ -260,10 +264,10 @@ export default function DocsPage() {
 
               <Paragraph>This shows:</Paragraph>
 
-              <ul className="list-disc list-inside space-y-1 text-muted-foreground mb-6 ml-4">
+              <ul className="list-disc list-inside space-y-1.5 text-sm text-muted-foreground mb-5 ml-4 leading-relaxed">
                 <li>Connection status and masked API key</li>
                 <li>Your developer alias</li>
-                <li>Hook registration status (global and project)</li>
+                <li>Tracking status (global or project)</li>
                 <li>Current project mapping</li>
                 <li>Number of buffered tasks (if any)</li>
               </ul>
@@ -279,8 +283,7 @@ export default function DocsPage() {
 
               <SubHeading>codeusage init</SubHeading>
               <Paragraph>
-                Initialize Codeusage and connect to your workspace. This
-                registers hooks with your AI coding tool.
+                Initialize Codeusage and connect to your workspace.
               </Paragraph>
               <TerminalBlock>
                 <CommandRow
@@ -328,9 +331,7 @@ export default function DocsPage() {
               </TerminalBlock>
 
               <SubHeading>codeusage config</SubHeading>
-              <Paragraph>
-                View and modify CLI configuration settings.
-              </Paragraph>
+              <Paragraph>View and modify CLI configuration settings.</Paragraph>
               <TerminalBlock>
                 <CommandRow
                   command="codeusage config"
@@ -342,11 +343,11 @@ export default function DocsPage() {
                 />
                 <CommandRow
                   command="codeusage config scope global"
-                  description="Change hook scope to global"
+                  description="Track all projects on your machine"
                 />
                 <CommandRow
                   command="codeusage config scope project"
-                  description="Change hook scope to project-only"
+                  description="Track only the current project"
                 />
                 <CommandRow
                   command="codeusage config alias john"
@@ -369,7 +370,6 @@ export default function DocsPage() {
               <SubHeading>codeusage logout</SubHeading>
               <Paragraph>
                 Disconnect from Codeusage and remove all local configuration.
-                This unregisters hooks and clears buffered tasks.
               </Paragraph>
               <TerminalBlock>
                 <CommandRow
@@ -381,6 +381,149 @@ export default function DocsPage() {
                   description="Disconnect without confirmation"
                 />
               </TerminalBlock>
+            </section>
+
+            {/* Prompt Guard */}
+            <section id="prompt-guard">
+              <SectionHeading id="prompt-guard">Prompt Guard</SectionHeading>
+
+              <Paragraph>
+                Prompt Guard is a security feature that scans your prompts
+                locally before they&apos;re sent to the AI model, detecting and
+                blocking potential credential leaks like API keys, database
+                passwords, and private keys.
+              </Paragraph>
+
+              <SubHeading>How It Works</SubHeading>
+              <Paragraph>
+                When enabled, Prompt Guard scans your prompts locally before
+                they&apos;re sent to the AI. It checks for 44 built-in patterns
+                covering common credential types:
+              </Paragraph>
+
+              <ul className="list-disc list-inside space-y-1.5 text-sm text-muted-foreground mb-5 ml-4 leading-relaxed">
+                <li>AWS access keys and secret keys</li>
+                <li>Database URLs (PostgreSQL, MySQL, MongoDB, Redis)</li>
+                <li>Private keys (RSA, EC, generic PEM blocks)</li>
+                <li>
+                  API tokens (GitHub, Slack, Stripe, OpenAI, Anthropic, etc.)
+                </li>
+                <li>Environment variables with sensitive key names</li>
+              </ul>
+
+              <Paragraph>
+                If a credential is detected, the prompt is blocked and
+                you&apos;ll see a warning message explaining what was found.
+              </Paragraph>
+
+              <SubHeading>Setup</SubHeading>
+              <Paragraph>
+                Prompt Guard requires linking your CLI to your Codeusage
+                workspace. After running{" "}
+                <code className="bg-muted px-1.5 py-0.5 rounded text-sm">
+                  codeusage init
+                </code>
+                , enable Prompt Guard:
+              </Paragraph>
+
+              <TerminalBlock>
+                <CommandRow
+                  command="codeusage guard enable"
+                  description="Enable Prompt Guard"
+                />
+                <CommandRow
+                  command="codeusage guard status"
+                  description="Check Prompt Guard status"
+                />
+              </TerminalBlock>
+
+              <Paragraph>
+                The CLI will sync patterns from your workspace settings.
+                Patterns are cached locally at{" "}
+                <code className="bg-muted px-1.5 py-0.5 rounded text-sm">
+                  ~/.codeusage/patterns.json
+                </code>{" "}
+                and refreshed every 24 hours.
+              </Paragraph>
+
+              <SubHeading>Managing Patterns</SubHeading>
+              <Paragraph>
+                You can enable or disable individual patterns or entire
+                categories from the Guard settings page in your Codeusage
+                dashboard. Changes sync automatically to all connected CLI
+                instances.
+              </Paragraph>
+
+              <div className="grid sm:grid-cols-2 gap-4 mb-5">
+                <div className="p-4 rounded-lg border border-border/50 bg-card/50">
+                  <h4 className="text-sm font-semibold mb-2">Pattern Categories</h4>
+                  <ul className="text-sm text-muted-foreground space-y-1">
+                    <li>• AWS Credentials</li>
+                    <li>• Database Connection Strings</li>
+                    <li>• Private Keys</li>
+                    <li>• API Keys & Tokens</li>
+                    <li>• Environment Variables</li>
+                  </ul>
+                </div>
+                <div className="p-4 rounded-lg border border-border/50 bg-card/50">
+                  <h4 className="text-sm font-semibold mb-2">Granular Control</h4>
+                  <p className="text-sm text-muted-foreground">
+                    Enable/disable entire categories at once, or toggle
+                    individual patterns. For example, block Stripe keys but
+                    allow MongoDB URLs.
+                  </p>
+                </div>
+              </div>
+
+              <SubHeading>CLI Commands</SubHeading>
+              <TerminalBlock>
+                <CommandRow
+                  command="codeusage guard enable"
+                  description="Enable Prompt Guard protection"
+                />
+                <CommandRow
+                  command="codeusage guard disable"
+                  description="Disable Prompt Guard"
+                />
+                <CommandRow
+                  command="codeusage guard status"
+                  description="Show current status and pattern count"
+                />
+                <CommandRow
+                  command="codeusage guard sync"
+                  description="Force refresh patterns from server"
+                />
+                <CommandRow
+                  command="codeusage guard test"
+                  description="Test with a sample prompt (dry run)"
+                />
+              </TerminalBlock>
+
+              <SubHeading>Privacy</SubHeading>
+              <Paragraph>
+                Prompt Guard runs entirely on your local machine. Your prompts
+                are never sent to Codeusage servers — only pattern configuration
+                is synced. When a credential is detected, we log the pattern
+                match (e.g., &quot;AWS Access Key detected&quot;) but never the
+                actual credential value.
+              </Paragraph>
+
+              <SubHeading>Bypassing for Specific Prompts</SubHeading>
+              <Paragraph>
+                If you need to intentionally include a credential (e.g.,
+                discussing credential formats), you can temporarily disable
+                Prompt Guard:
+              </Paragraph>
+
+              <CodeBlock>codeusage guard disable</CodeBlock>
+
+              <Paragraph>
+                Remember to re-enable it afterward with{" "}
+                <code className="bg-muted px-1.5 py-0.5 rounded text-sm">
+                  codeusage guard enable
+                </code>
+                .
+              </Paragraph>
             </section>
 
             {/* Configuration */}
@@ -400,7 +543,7 @@ export default function DocsPage() {
               <SubHeading>Configuration Options</SubHeading>
 
               <div className="overflow-x-auto">
-                <table className="w-full text-sm border border-border rounded-lg overflow-hidden">
+                <table className="w-full text-sm border border-border/50 rounded-lg overflow-hidden">
                   <thead className="bg-muted/50">
                     <tr>
                       <th className="text-left px-4 py-3 border-b border-border font-medium">
@@ -439,11 +582,11 @@ export default function DocsPage() {
                     </tr>
                     <tr>
                       <td className="px-4 py-3 border-b border-border font-mono text-xs">
-                        hook_scope
+                        tracking_scope
                       </td>
                       <td className="px-4 py-3 border-b border-border text-muted-foreground">
-                        &quot;global&quot; or &quot;project&quot; — where hooks
-                        are registered
+                        &quot;global&quot; or &quot;project&quot; — what gets
+                        tracked
                       </td>
                       <td className="px-4 py-3 border-b border-border font-mono text-xs">
                         config scope
@@ -464,31 +607,25 @@ export default function DocsPage() {
                 </table>
               </div>
 
-              <SubHeading>Hook Scopes</SubHeading>
-              <Paragraph>Codeusage supports two hook scopes:</Paragraph>
+              <SubHeading>Tracking Scope</SubHeading>
+              <Paragraph>Codeusage supports two tracking scopes:</Paragraph>
 
-              <div className="grid sm:grid-cols-2 gap-4 mb-6">
-                <div className="p-4 rounded-lg border border-border bg-card">
-                  <h4 className="font-semibold mb-2">Global Scope</h4>
+              <div className="grid sm:grid-cols-2 gap-4 mb-5">
+                <div className="p-4 rounded-lg border border-border/50 bg-card/50">
+                  <h4 className="text-sm font-semibold mb-2">Global Scope</h4>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Hooks are registered in{" "}
-                    <code className="bg-muted px-1 rounded">
-                      ~/.claude/settings.json
-                    </code>
-                    . Tracks all projects on your machine.
+                    Tracks all AI coding activity across all projects on your
+                    machine.
                   </p>
                   <CodeBlock showPrompt={false}>
                     codeusage config scope global
                   </CodeBlock>
                 </div>
-                <div className="p-4 rounded-lg border border-border bg-card">
-                  <h4 className="font-semibold mb-2">Project Scope</h4>
+                <div className="p-4 rounded-lg border border-border/50 bg-card/50">
+                  <h4 className="text-sm font-semibold mb-2">Project Scope</h4>
                   <p className="text-sm text-muted-foreground mb-3">
-                    Hooks are registered in{" "}
-                    <code className="bg-muted px-1 rounded">
-                      .claude/settings.json
-                    </code>
-                    . Tracks only the current project.
+                    Tracks only the current project. Useful when you want
+                    selective tracking.
                   </p>
                   <CodeBlock showPrompt={false}>
                     codeusage config scope project
@@ -500,7 +637,7 @@ export default function DocsPage() {
               <Paragraph>
                 Codeusage detects projects in the following priority order:
               </Paragraph>
-              <ol className="list-decimal list-inside space-y-2 text-muted-foreground mb-6 ml-4">
+              <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground mb-5 ml-4 leading-relaxed">
                 <li>
                   <strong className="text-foreground">Manual override</strong> —
                   set via{" "}
@@ -549,11 +686,13 @@ export default function DocsPage() {
               </SectionHeading>
 
               <SubHeading>Tasks not appearing on dashboard</SubHeading>
-              <ol className="list-decimal list-inside space-y-2 text-muted-foreground mb-6 ml-4">
+              <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground mb-5 ml-4 leading-relaxed">
                 <li>
                   Run{" "}
-                  <code className="bg-muted px-1 rounded">codeusage status</code>{" "}
-                  to verify hooks are registered
+                  <code className="bg-muted px-1 rounded">
+                    codeusage status
+                  </code>{" "}
+                  to verify you&apos;re connected
                 </li>
                 <li>
                   Check if the directory is ignored:{" "}
@@ -574,15 +713,15 @@ export default function DocsPage() {
                 </li>
               </ol>
 
-              <SubHeading>Hooks not registered</SubHeading>
+              <SubHeading>Tracking not active</SubHeading>
               <Paragraph>
                 If{" "}
                 <code className="bg-muted px-1 rounded">codeusage status</code>{" "}
-                shows hooks are not registered:
+                shows tracking is not active:
               </Paragraph>
               <CodeBlock>codeusage init --force</CodeBlock>
               <Paragraph>
-                This re-runs the setup wizard and re-registers hooks.
+                This re-runs the setup wizard and re-enables tracking.
               </Paragraph>
 
               <SubHeading>Buffered tasks not syncing</SubHeading>
@@ -620,7 +759,7 @@ export default function DocsPage() {
               <TerminalBlock>
                 <CommandRow
                   command="codeusage logout --force"
-                  description="Remove all config and hooks"
+                  description="Remove all config and disconnect"
                 />
                 <CommandRow
                   command="codeusage init"
@@ -630,7 +769,7 @@ export default function DocsPage() {
 
               <SubHeading>File Locations Reference</SubHeading>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm border border-border rounded-lg overflow-hidden">
+                <table className="w-full text-sm border border-border/50 rounded-lg overflow-hidden">
                   <thead className="bg-muted/50">
                     <tr>
                       <th className="text-left px-4 py-3 border-b border-border font-medium">
@@ -668,18 +807,16 @@ export default function DocsPage() {
                     </tr>
                     <tr>
                       <td className="px-4 py-3 border-b border-border">
-                        Claude Code Hooks (global)
+                        Patterns Cache
                       </td>
                       <td className="px-4 py-3 border-b border-border text-muted-foreground">
-                        ~/.claude/settings.json
+                        ~/.codeusage/patterns.json
                       </td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3">
-                        Claude Code Hooks (project)
-                      </td>
+                      <td className="px-4 py-3">Guard State</td>
                       <td className="px-4 py-3 text-muted-foreground">
-                        .claude/settings.json
+                        ~/.codeusage/guard.json
                       </td>
                     </tr>
                   </tbody>
@@ -690,10 +827,10 @@ export default function DocsPage() {
               <Paragraph>
                 If you&apos;re still experiencing issues, contact us at{" "}
                 <a
-                  href="mailto:info@codeusage.dev"
+                  href="mailto:hashim@codeusage.dev"
                   className="text-[#D97757] hover:underline"
                 >
-                  info@codeusage.dev
+                  hashim@codeusage.dev
                 </a>
               </Paragraph>
             </section>
@@ -712,7 +849,7 @@ export default function DocsPage() {
                 "flex items-center gap-2 px-3 py-2 rounded-lg text-sm whitespace-nowrap transition-colors",
                 activeSection === id
                   ? "bg-[#D97757]/10 text-[#D97757]"
-                  : "text-muted-foreground"
+                  : "text-muted-foreground",
               )}
             >
               <Icon className="h-4 w-4" />

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Copy, RefreshCw, Check, Key } from "lucide-react";
+import { RefreshCw, Check } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,16 +16,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
-interface ApiKeySectionProps {
-  hasExistingKey?: boolean; // Whether an API key already exists in DB
-}
-
-export function ApiKeySection({ hasExistingKey = false }: ApiKeySectionProps) {
-  // API key is only shown after rotation (never stored)
-  const [apiKey, setApiKey] = useState<string | null>(null);
-  const [keyExistsInDb, setKeyExistsInDb] = useState(hasExistingKey);
+export function ApiKeySection() {
   const [isRotating, setIsRotating] = useState(false);
-  const [copied, setCopied] = useState(false);
+  const [rotated, setRotated] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleRotate = async () => {
@@ -36,10 +29,9 @@ export function ApiKeySection({ hasExistingKey = false }: ApiKeySectionProps) {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setApiKey(data.api_key);
-        setKeyExistsInDb(true);
-        setDialogOpen(false); // Close dialog on success
+        setRotated(true);
+        setDialogOpen(false);
+        setTimeout(() => setRotated(false), 3000);
       }
     } catch (error) {
       console.error("Failed to rotate API key:", error);
@@ -48,94 +40,50 @@ export function ApiKeySection({ hasExistingKey = false }: ApiKeySectionProps) {
     }
   };
 
-  const handleCopy = async () => {
-    if (apiKey) {
-      await navigator.clipboard.writeText(apiKey);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    }
-  };
-
   return (
     <Card>
       <CardHeader>
         <CardTitle>API Key</CardTitle>
         <CardDescription>
-          Use this key to authenticate the CLI with your workspace.
+          Rotate the workspace API key if it has been compromised. All team members will need to reconnect their CLI.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/50 px-4 py-2.5 flex-1 overflow-hidden">
-            <Key className="h-4 w-4 text-muted-foreground shrink-0" />
-            <span className="font-mono text-sm text-muted-foreground truncate">
-              {apiKey ? apiKey : (keyExistsInDb ? "cu-ws-••••••••••••••••••••" : "No key generated")}
-            </span>
-          </div>
-          {apiKey && (
+      <CardContent>
+        <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
+          <AlertDialogTrigger asChild>
             <Button
               variant="outline"
-              onClick={handleCopy}
+              disabled={isRotating}
               className="gap-2"
             >
-              {copied ? (
+              {rotated ? (
                 <>
                   <Check className="h-4 w-4 text-green-500" />
-                  Copied
+                  Key Rotated
                 </>
               ) : (
                 <>
-                  <Copy className="h-4 w-4" />
-                  Copy
+                  <RefreshCw className={`h-4 w-4 ${isRotating ? "animate-spin" : ""}`} />
+                  Rotate API Key
                 </>
               )}
             </Button>
-          )}
-        </div>
-
-        {keyExistsInDb && !apiKey && (
-          <p className="text-xs text-muted-foreground">
-            Rotating will generate a new API key and invalidate the current one. All team members will need to run <code className="rounded bg-muted px-1">codeusage config set-key &lt;new-key&gt;</code> to update.
-          </p>
-        )}
-
-
-        {/* Show confirmation dialog only when rotating an existing key */}
-        {keyExistsInDb ? (
-          <AlertDialog open={dialogOpen} onOpenChange={setDialogOpen}>
-            <AlertDialogTrigger
-              disabled={isRotating}
-              className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground h-9 px-4 py-2"
-            >
-              <RefreshCw className={`h-4 w-4 ${isRotating ? "animate-spin" : ""}`} />
-              Rotate Key
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Rotate API Key?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will generate a new API key and invalidate the current one. All team members will need to run <code className="rounded bg-muted px-1">codeusage config set-key &lt;new-key&gt;</code> to update.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={handleRotate}>
-                  Rotate Key
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        ) : (
-          <Button
-            variant="outline"
-            onClick={handleRotate}
-            disabled={isRotating}
-            className="gap-2"
-          >
-            <RefreshCw className={`h-4 w-4 ${isRotating ? "animate-spin" : ""}`} />
-            Generate Key
-          </Button>
-        )}
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Rotate API Key?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will generate a new API key and invalidate the current one. All team members will need to run <code className="rounded bg-muted px-1">codeusage init --force</code> to reconnect.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleRotate}>
+                Rotate Key
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </CardContent>
     </Card>
   );

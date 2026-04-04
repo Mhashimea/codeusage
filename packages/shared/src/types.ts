@@ -184,3 +184,74 @@ export interface ParsedSessionData {
   sessionId?: string;
   toolsUsed: ToolUsage[];
 }
+
+// ============================================
+// Prompt Guard Types
+// ============================================
+
+/**
+ * Pattern category for grouping credential detection patterns
+ */
+export type PatternCategory = "aws" | "database" | "keys" | "tokens" | "env";
+
+/**
+ * A single credential detection pattern
+ */
+export interface Pattern {
+  id: string;
+  name: string;
+  category: PatternCategory;
+  regex: string;
+  description: string;
+}
+
+/**
+ * Pattern match result when a credential is detected
+ */
+export interface PatternMatch {
+  pattern: Pattern;
+  position: number; // Character position in prompt where match starts
+}
+
+/**
+ * Local pattern cache stored on developer machine
+ * Location: ~/.afterburn/patterns.json
+ */
+export interface PatternCache {
+  enabled: boolean;
+  synced_at: string; // ISO 8601 timestamp
+  workspace_id: string;
+  patterns: Pattern[];
+  version: string; // CLI version that synced
+}
+
+/**
+ * Prompt Guard settings stored in database (workspace-level)
+ */
+export interface PromptGuardSettings {
+  enabled: boolean;
+  disabled_patterns: string[]; // Pattern IDs that are disabled
+  disabled_categories: string[]; // Category IDs that are fully disabled
+  updated_at: string; // ISO 8601 timestamp
+}
+
+/**
+ * API response for GET /api/v1/prompt-guard/settings
+ * Returns only enabled patterns (filtered by disabled_patterns/disabled_categories)
+ */
+export interface PromptGuardSettingsResponse {
+  enabled: boolean;
+  patterns: Pattern[]; // Only enabled patterns
+  disabled_patterns: string[]; // For UI to know what's disabled
+  disabled_categories: string[]; // For UI to know what categories are disabled
+  synced_at: string; // ISO 8601 timestamp
+}
+
+/**
+ * Request body for updating pattern/category toggles
+ */
+export interface UpdatePatternToggleRequest {
+  pattern_id?: string; // Toggle a specific pattern
+  category?: string; // Toggle an entire category
+  enabled: boolean; // true = enable, false = disable
+}

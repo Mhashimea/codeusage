@@ -4,9 +4,10 @@ import ora from "ora";
 import select from "@inquirer/select";
 import input from "@inquirer/input";
 import { setFullConfig, getConfig, isConfigured } from "../lib/config.js";
-import { validateApiKey } from "../lib/api.js";
 import { detectProjectSlug } from "../lib/git.js";
 import { registerHooks, unregisterHooks } from "../lib/hooks-file.js";
+import { syncPatternCache } from "../lib/patterns.js";
+import { browserAuth } from "../lib/browser-auth.js";
 import {
   getAllProviders,
   getProviderById,
@@ -57,36 +58,22 @@ export const initCommand = new Command("init")
 
     console.log(chalk.dim(`\nUsing ${providerInfo.displayName}\n`));
 
-    // Step 2: Get workspace key (renumbered after provider selection)
-    console.log(
-      chalk.dim("\nGet your workspace key from the Codeusage dashboard Settings page.\n")
-    );
+    // Step 2: Browser authentication
+    console.log(chalk.dim("Opening browser to connect to your workspace...\n"));
 
-    const workspaceKey = await input({
-      message: "Workspace API key:",
-      validate: (value) => {
-        if (!value.trim()) {
-          return "Workspace key is required";
-        }
-        if (!value.startsWith("cu-ws-")) {
-          return "Invalid key format. Keys start with 'cu-ws-'";
-        }
-        return true;
-      },
-    });
+    const authSpinner = ora("Waiting for browser authentication...").start();
 
-    // Step 2: Validate key with API
-    const spinner = ora("Validating workspace key...").start();
+    const authResult = await browserAuth();
 
-    const validation = await validateApiKey(workspaceKey);
-
-    if (!validation.valid) {
-      spinner.fail("Invalid workspace key");
-      console.log(chalk.red(`\n${validation.error}\n`));
+    if (!authResult.success) {
+      authSpinner.fail("Browser authentication failed");
+      console.log(chalk.red(`\n${authResult.error}\n`));
       process.exit(1);
     }
 
-    spinner.succeed(`Connected to workspace: ${chalk.bold(validation.workspace?.name)}`);
+    authSpinner.succeed(`Connected to workspace: ${chalk.bold(authResult.workspaceName)}`);
+
+    const workspaceKey = authResult.workspaceKey!;
 
     // Step 3: Get developer alias
     const defaultAlias =
@@ -151,6 +138,24 @@ export const initCommand = new Command("init")
       default_project: detectedProject,
       project_overrides: {},
     });
+
+    // Step 9: Sync Prompt Guard patterns
+    const patternSpinner = ora("Syncing Prompt Guard patterns...").start();
+
+    try {
+      const patternResult = await syncPatternCache();
+      if (patternResult.success) {
+        if (patternResult.enabled) {
+          patternSpinner.succeed(`Prompt Guard active (${patternResult.patternCount} patterns)`);
+        } else {
+          patternSpinner.succeed(chalk.dim("Prompt Guard disabled by workspace admin"));
+        }
+      } else {
+        patternSpinner.warn(chalk.dim(`Prompt Guard sync skipped: ${patternResult.error}`));
+      }
+    } catch {
+      patternSpinner.warn(chalk.dim("Prompt Guard sync skipped"));
+    }
 
     // Success!
     console.log(chalk.green("\n✅ Codeusage is ready!\n"));

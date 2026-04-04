@@ -17,25 +17,21 @@ const firaMono = Fira_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Codeusage - AI Coding Tool Analytics for Engineering Teams",
+  title: "Know How Your Team Uses AI Coding Tools | Codeusage",
   description:
-    "Track Claude Code and Codex usage, monitor AI coding costs, and measure developer productivity across your engineering team. Get real-time insights into AI tool adoption and ROI.",
+    "Codeusage tracks AI coding activity across your engineering team — who's active, which projects are moving, and what tasks are getting done. Automatic credential protection included.",
   keywords: [
-    "AI coding analytics",
-    "Claude Code monitoring",
-    "AI developer productivity",
-    "AI coding tool tracking",
-    "engineering team AI usage",
-    "AI coding assistant ROI",
-    "developer productivity analytics",
-    "AI code generation metrics",
-    "Claude Code cost tracking",
-    "Codex usage monitoring",
-    "AI pair programming analytics",
-    "engineering productivity tools",
-    "AI coding cost management",
-    "developer team analytics",
-    "AI tool adoption metrics",
+    "AI coding tool tracker",
+    "team AI dashboard",
+    "AI coding activity",
+    "developer productivity tracking",
+    "AI tool usage analytics",
+    "AI coding tool tracker for teams",
+    "team AI coding dashboard",
+    "AI coding tool usage tracking",
+    "engineering team AI productivity",
+    "Claude Code team analytics",
+    "AI developer tool monitoring",
   ],
   authors: [{ name: "Codeusage" }],
   creator: "Codeusage",
@@ -49,23 +45,24 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://codeusage.dev",
     siteName: "Codeusage",
-    title: "Codeusage - AI Coding Tool Analytics for Engineering Teams",
+    title: "Know How Your Team Uses AI Coding Tools | Codeusage",
     description:
-      "Track Claude Code and Codex usage, monitor AI coding costs, and measure developer productivity. Real-time insights into AI tool adoption and ROI for engineering leaders.",
+      "Codeusage tracks AI coding activity across your engineering team — who's active, which projects are moving, and what tasks are getting done.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Codeusage - AI Coding Tool Analytics Dashboard",
+        alt: "Codeusage — AI Coding Intelligence for Teams",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Codeusage - AI Coding Tool Analytics for Engineering Teams",
+    site: "@hashim_ea",
+    title: "Know How Your Team Uses AI Coding Tools | Codeusage",
     description:
-      "Track Claude Code and Codex usage, monitor AI coding costs, and measure developer productivity across your engineering team.",
+      "Track AI coding activity across your team — developers, projects, and tasks. Automatic credential protection included.",
     images: ["/og-image.png"],
   },
   robots: {
@@ -94,43 +91,22 @@ const jsonLd = {
   "@context": "https://schema.org",
   "@type": "SoftwareApplication",
   name: "Codeusage",
-  applicationCategory: "DeveloperApplication",
-  operatingSystem: "Cross-platform",
-  description:
-    "AI coding tool analytics platform for engineering teams. Track Claude Code and Codex usage, monitor costs, and measure developer productivity with real-time insights.",
   url: "https://codeusage.dev",
+  description:
+    "Codeusage tracks AI coding activity across engineering teams — who's active, which projects are moving, and what tasks are getting done. Built-in credential protection blocks sensitive data before it reaches any AI model.",
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "macOS, Linux, Windows",
   offers: {
     "@type": "Offer",
     price: "0",
     priceCurrency: "USD",
-    description: "Free during beta",
+    description: "Free plan available",
   },
-  aggregateRating: {
-    "@type": "AggregateRating",
-    ratingValue: "5",
-    ratingCount: "1",
+  publisher: {
+    "@type": "Organization",
+    name: "Codeusage",
+    url: "https://codeusage.dev",
   },
-  featureList: [
-    "AI coding tool usage tracking",
-    "Claude Code integration",
-    "Codex integration",
-    "Real-time cost monitoring",
-    "Developer productivity metrics",
-    "Project-level analytics",
-    "Team usage insights",
-    "Privacy-first design",
-  ],
-};
-
-const organizationJsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  name: "Codeusage",
-  url: "https://codeusage.dev",
-  logo: "https://codeusage.dev/logo.png",
-  description:
-    "AI coding tool intelligence platform for engineering teams",
-  sameAs: [],
 };
 
 export default function RootLayout({
@@ -144,10 +120,6 @@ export default function RootLayout({
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationJsonLd) }}
         />
       </head>
       <body

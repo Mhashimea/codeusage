@@ -10,12 +10,12 @@ import {
   ListTodo,
   Users,
   FolderKanban,
+  Shield,
   Settings,
   LogOut,
   ChevronsUpDown,
 } from "lucide-react";
 import { CodeusageLogoBrand } from "@/components/shared/CodeusageLogo";
-import { WorkspaceSwitcher } from "@/components/dashboard/WorkspaceSwitcher";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
@@ -40,6 +40,7 @@ const navigation = [
   { name: "Tasks", href: "/app/tasks", icon: ListTodo },
   { name: "Developers", href: "/app/developers", icon: Users },
   { name: "Projects", href: "/app/projects", icon: FolderKanban },
+  { name: "Prompt Guard", href: "/app/guard", icon: Shield },
 ];
 
 export function Sidebar() {
@@ -64,15 +65,12 @@ export function Sidebar() {
     <>
       <aside className="flex h-screen w-60 flex-col bg-background border-r border-border">
         {/* Logo */}
-        <div className="flex h-14 items-center gap-2 px-4">
+        <div className="flex h-14 items-center gap-2 px-4 border-b border-border">
           <CodeusageLogoBrand size={32} />
           <span className="text-base font-semibold text-foreground">
             Codeusage
           </span>
         </div>
-
-        {/* Workspace Switcher */}
-        <WorkspaceSwitcher />
 
         {/* Navigation */}
         <nav className="flex-1 px-3 py-2">

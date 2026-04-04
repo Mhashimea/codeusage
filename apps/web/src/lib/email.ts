@@ -1,6 +1,13 @@
 import { Resend } from "resend";
-import { randomInt } from "crypto";
 import bcrypt from "bcryptjs";
+
+// Use Web Crypto API for Edge Runtime compatibility
+function generateSecureRandomInt(min: number, max: number): number {
+  const range = max - min;
+  const randomBuffer = new Uint32Array(1);
+  crypto.getRandomValues(randomBuffer);
+  return min + (randomBuffer[0] % range);
+}
 
 // Only initialize Resend if API key is provided
 const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
@@ -16,8 +23,8 @@ const DEV_MODE = !process.env.RESEND_API_KEY;
  * Uses crypto.randomInt which is suitable for security-critical operations
  */
 export function generateOTP(): string {
-  // randomInt is cryptographically secure, unlike Math.random()
-  return randomInt(100000, 1000000).toString();
+  // Uses Web Crypto API which is available in Edge Runtime
+  return generateSecureRandomInt(100000, 1000000).toString();
 }
 
 /**

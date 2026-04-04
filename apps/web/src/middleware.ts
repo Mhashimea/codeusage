@@ -11,6 +11,7 @@ export default auth((req) => {
     pathname === "/login" ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/invite") ||
+    pathname.startsWith("/cli/connect") || // CLI browser auth - handles its own redirects
     pathname === "/docs" ||
     pathname === "/privacy" ||
     pathname === "/terms";

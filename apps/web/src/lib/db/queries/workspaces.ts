@@ -1,6 +1,7 @@
 import { db, workspaces, users, workspaceMembers, invitations } from "..";
 import { eq, and } from "drizzle-orm";
 import { generateApiKey, hashApiKey, verifyApiKey } from "@/lib/api-key";
+import { encrypt, decrypt } from "@/lib/encryption";
 import type { MemberRole } from "../schema";
 
 /**
@@ -139,6 +140,7 @@ export async function createWorkspace(name: string, ownerId: string) {
   const apiKey = generateApiKey();
   const apiKeyHash = await hashApiKey(apiKey);
   const apiKeyPrefix = apiKey.slice(0, 12); // Store prefix for O(1) lookup
+  const apiKeyEncrypted = encrypt(apiKey); // Store encrypted for CLI browser auth retrieval
 
   // Create workspace
   const [workspace] = await db
@@ -148,6 +150,7 @@ export async function createWorkspace(name: string, ownerId: string) {
       owner_id: ownerId,
       api_key_hash: apiKeyHash,
       api_key_prefix: apiKeyPrefix,
+      api_key_encrypted: apiKeyEncrypted,
       plan: "free",
     })
     .returning();
@@ -180,12 +183,14 @@ export async function rotateApiKey(workspaceId: string) {
   const apiKey = generateApiKey();
   const apiKeyHash = await hashApiKey(apiKey);
   const apiKeyPrefix = apiKey.slice(0, 12); // Store prefix for O(1) lookup
+  const apiKeyEncrypted = encrypt(apiKey); // Store encrypted for CLI browser auth retrieval
 
   await db
     .update(workspaces)
     .set({
       api_key_hash: apiKeyHash,
       api_key_prefix: apiKeyPrefix,
+      api_key_encrypted: apiKeyEncrypted,
     })
     .where(eq(workspaces.id, workspaceId));
 
@@ -302,4 +307,22 @@ export async function removeWorkspaceMember(workspaceId: string, userId: string)
  */
 export async function deleteWorkspace(workspaceId: string) {
   await db.delete(workspaces).where(eq(workspaces.id, workspaceId));
+}
+
+/**
+ * Get decrypted API key for CLI browser authentication
+ * Returns null if workspace has no encrypted key (needs rotation)
+ */
+export async function getWorkspaceApiKey(workspaceId: string): Promise<string | null> {
+  const workspace = await getWorkspaceById(workspaceId);
+
+  if (!workspace?.api_key_encrypted) {
+    return null; // Workspace needs to rotate API key to get encrypted version
+  }
+
+  try {
+    return decrypt(workspace.api_key_encrypted);
+  } catch {
+    return null; // Decryption failed (key changed or corrupted)
+  }
 }

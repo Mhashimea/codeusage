@@ -1,14 +1,14 @@
 {
   "name": "codeusage-cli",
-  "version": "0.1.21",
+  "version": "0.1.24",
   "description": "CLI for Codeusage - AI coding tool intelligence platform",
   "author": "Hashim",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "codeusage": "./dist/index.cjs"
+    "codeusage": "./dist/index.js"
   },
-  "main": "./dist/index.cjs",
+  "main": "./dist/index.js",
   "files": [
     "dist",
     "README.md"
@@ -17,6 +17,8 @@
     "dev": "tsx watch src/index.ts",
     "build": "node scripts/build.js",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "clean": "rm -rf dist",
     "pack:tarball": "bun run build && npm pack"
   },
@@ -28,6 +30,7 @@
     "conf": "^13.1.0",
     "diff": "^8.0.4",
     "execa": "^9.5.2",
+    "open": "^11.0.0",
     "ora": "^8.2.0",
     "zod": "^3.25.76"
   },
@@ -37,7 +40,8 @@
     "@types/node": "^20.19.0",
     "tsup": "^8.5.0",
     "tsx": "^4.19.0",
-    "typescript": "^5.8.0"
+    "typescript": "^5.8.0",
+    "vitest": "^4.1.2"
   },
   "engines": {
     "node": ">=18.0.0"

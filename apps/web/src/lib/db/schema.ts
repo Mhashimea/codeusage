@@ -49,6 +49,7 @@ export const workspaces = pgTable(
     owner_id: uuid("owner_id").references(() => users.id, { onDelete: "restrict" }), // Owner cannot be deleted while workspace exists
     api_key_hash: text("api_key_hash").unique(), // bcrypt hash for CLI API key
     api_key_prefix: text("api_key_prefix"), // First 12 chars for O(1) lookup (e.g. "ab-ws-4f9a2c")
+    api_key_encrypted: text("api_key_encrypted"), // AES-256-GCM encrypted API key (for CLI browser auth retrieval)
     plan: text("plan").notNull().default("free"), // free | team | enterprise
     created_at: timestamp("created_at").defaultNow().notNull(),
     updated_at: timestamp("updated_at").defaultNow().notNull(),
@@ -178,6 +179,35 @@ export const verificationTokens = pgTable(
 );
 
 /**
+ * Prompt Guard settings table
+ * Stores workspace-level Prompt Guard configuration
+ * One row per workspace
+ *
+ * Pattern control strategy:
+ * - By default, all patterns are enabled when Prompt Guard is on
+ * - We store only disabled_patterns and disabled_categories (inverse logic)
+ * - This is more efficient since most patterns will be enabled
+ */
+export const promptGuardSettings = pgTable(
+  "prompt_guard_settings",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    workspace_id: uuid("workspace_id")
+      .notNull()
+      .references(() => workspaces.id, { onDelete: "cascade" })
+      .unique(), // One settings row per workspace
+    enabled: integer("enabled").notNull().default(0), // 0 = disabled, 1 = enabled (master toggle)
+    disabled_patterns: jsonb("disabled_patterns").$type<string[]>().notNull().default([]), // Array of pattern IDs that are disabled
+    disabled_categories: jsonb("disabled_categories").$type<string[]>().notNull().default([]), // Array of category IDs that are fully disabled
+    updated_at: timestamp("updated_at").defaultNow().notNull(),
+    updated_by: uuid("updated_by").references(() => users.id, { onDelete: "set null" }),
+  },
+  (table) => [
+    index("idx_prompt_guard_workspace").on(table.workspace_id),
+  ]
+);
+
+/**
  * Rate limiting table for distributed rate limiting across serverless instances
  * Used for IP-based and email-based rate limiting
  */
@@ -211,6 +241,8 @@ export type VerificationToken = typeof verificationTokens.$inferSelect;
 export type NewVerificationToken = typeof verificationTokens.$inferInsert;
 export type RateLimit = typeof rateLimits.$inferSelect;
 export type NewRateLimit = typeof rateLimits.$inferInsert;
+export type PromptGuardSettings = typeof promptGuardSettings.$inferSelect;
+export type NewPromptGuardSettings = typeof promptGuardSettings.$inferInsert;
 
 // Role type for use in authorization
 export type MemberRole = "owner" | "admin" | "member";

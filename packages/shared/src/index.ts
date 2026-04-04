@@ -17,6 +17,14 @@ export type {
   CodexTurnContext,
   CodexSessionEvent,
   ParsedSessionData,
+  // Prompt Guard types
+  PatternCategory,
+  Pattern,
+  PatternMatch,
+  PatternCache,
+  PromptGuardSettings,
+  PromptGuardSettingsResponse,
+  UpdatePatternToggleRequest,
 } from "./types.js";
 
 // Provider registry
@@ -49,6 +57,15 @@ export {
   codexTurnContextSchema,
   codexSessionEventSchema,
   parsedSessionDataSchema,
+  // Prompt Guard schemas
+  patternCategorySchema,
+  patternSchema,
+  patternMatchSchema,
+  patternCacheSchema,
+  promptGuardSettingsSchema,
+  promptGuardSettingsResponseSchema,
+  updatePromptGuardSettingsSchema,
+  updatePatternToggleSchema,
 } from "./schemas.js";
 
 // Schema input types
@@ -60,6 +77,12 @@ export type {
   WorkspaceInfoInput,
   CodexSessionEventInput,
   ParsedSessionDataInput,
+  // Prompt Guard schema types
+  PatternInput,
+  PatternCacheInput,
+  PromptGuardSettingsInput,
+  UpdatePromptGuardSettingsInput,
+  UpdatePatternToggleInput,
 } from "./schemas.js";
 
 // Cost utilities
@@ -75,3 +98,11 @@ export {
   isModelSupported,
   getProviderForModel,
 } from "./cost.js";
+
+// Prompt Guard patterns
+export {
+  BUILT_IN_PATTERNS,
+  getPatternsByCategory,
+  CATEGORY_NAMES,
+  getPatternCount,
+} from "./patterns.js";

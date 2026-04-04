@@ -162,6 +162,91 @@ export const parsedSessionDataSchema = z.object({
   toolsUsed: z.array(toolUsageSchema),
 });
 
+// ============================================
+// Prompt Guard Schemas
+// ============================================
+
+/**
+ * Pattern category enum
+ */
+export const patternCategorySchema = z.enum([
+  "aws",
+  "database",
+  "keys",
+  "tokens",
+  "env",
+]);
+
+/**
+ * Single pattern schema
+ */
+export const patternSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1),
+  category: patternCategorySchema,
+  regex: z.string().min(1),
+  description: z.string(),
+});
+
+/**
+ * Pattern match result schema
+ */
+export const patternMatchSchema = z.object({
+  pattern: patternSchema,
+  position: z.number().int().min(0),
+});
+
+/**
+ * Local pattern cache schema
+ */
+export const patternCacheSchema = z.object({
+  enabled: z.boolean(),
+  synced_at: z.string().datetime(),
+  workspace_id: z.string().uuid(),
+  patterns: z.array(patternSchema),
+  version: z.string(),
+});
+
+/**
+ * Prompt Guard settings schema (from database)
+ */
+export const promptGuardSettingsSchema = z.object({
+  enabled: z.boolean(),
+  disabled_patterns: z.array(z.string()),
+  disabled_categories: z.array(z.string()),
+  updated_at: z.string().datetime(),
+});
+
+/**
+ * Prompt Guard settings API response schema
+ */
+export const promptGuardSettingsResponseSchema = z.object({
+  enabled: z.boolean(),
+  patterns: z.array(patternSchema), // Only enabled patterns
+  disabled_patterns: z.array(z.string()),
+  disabled_categories: z.array(z.string()),
+  synced_at: z.string().datetime(),
+});
+
+/**
+ * Update Prompt Guard settings request schema (master toggle)
+ */
+export const updatePromptGuardSettingsSchema = z.object({
+  enabled: z.boolean(),
+});
+
+/**
+ * Update pattern toggle request schema
+ */
+export const updatePatternToggleSchema = z.object({
+  pattern_id: z.string().optional(),
+  category: z.string().optional(),
+  enabled: z.boolean(),
+}).refine(
+  (data) => data.pattern_id !== undefined || data.category !== undefined,
+  { message: "Either pattern_id or category must be provided" }
+);
+
 // Type exports inferred from schemas
 export type ToolUsageInput = z.infer<typeof toolUsageSchema>;
 export type TelemetryPayloadInput = z.infer<typeof telemetryPayloadSchema>;
@@ -170,3 +255,8 @@ export type CodeusageConfigInput = z.infer<typeof codeUsageConfigSchema>;
 export type WorkspaceInfoInput = z.infer<typeof workspaceInfoSchema>;
 export type CodexSessionEventInput = z.infer<typeof codexSessionEventSchema>;
 export type ParsedSessionDataInput = z.infer<typeof parsedSessionDataSchema>;
+export type PatternInput = z.infer<typeof patternSchema>;
+export type PatternCacheInput = z.infer<typeof patternCacheSchema>;
+export type PromptGuardSettingsInput = z.infer<typeof promptGuardSettingsSchema>;
+export type UpdatePromptGuardSettingsInput = z.infer<typeof updatePromptGuardSettingsSchema>;
+export type UpdatePatternToggleInput = z.infer<typeof updatePatternToggleSchema>;
