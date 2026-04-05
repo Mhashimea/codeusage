@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,7 +23,7 @@ interface Workspace {
 
 type PageState = "loading" | "expired" | "no-workspace" | "select" | "connecting" | "success" | "error";
 
-export default function CliConnectPage() {
+function CliConnectContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { data: session, status } = useSession();
@@ -310,5 +310,21 @@ export default function CliConnectPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-background">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  );
+}
+
+export default function CliConnectPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <CliConnectContent />
+    </Suspense>
   );
 }
