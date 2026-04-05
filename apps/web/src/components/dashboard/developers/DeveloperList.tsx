@@ -14,6 +14,7 @@ interface Developer {
   totalTokens: number;
   totalCost: number;
   providers: string[];
+  projectCount: number;
 }
 
 interface DeveloperListProps {
@@ -56,19 +57,6 @@ function ActivityBar({ activity, days = 14 }: { activity: Record<string, number>
   }
 
   return <div className="flex gap-0.5 w-32">{bars}</div>;
-}
-
-function formatLastActive(dateStr: string): string {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
-  if (diffDays < 7) return `${diffDays} days ago`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
-  return `${Math.floor(diffDays / 30)} months ago`;
 }
 
 export function DeveloperList({ developers, activity }: DeveloperListProps) {
@@ -129,7 +117,7 @@ export function DeveloperList({ developers, activity }: DeveloperListProps) {
                         ))}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {formatLastActive(dev.lastActive)}
+                        {dev.projectCount} {dev.projectCount === 1 ? "project" : "projects"}
                       </p>
                     </div>
                   </div>
@@ -176,12 +164,7 @@ export function DeveloperList({ developers, activity }: DeveloperListProps) {
                     <div className="flex h-10 w-10 items-center justify-center rounded-full bg-muted text-muted-foreground font-semibold">
                       {dev.alias.charAt(0).toUpperCase()}
                     </div>
-                    <div>
-                      <p className="font-medium group-hover:text-foreground transition-colors">{dev.alias}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatLastActive(dev.lastActive)}
-                      </p>
-                    </div>
+                    <p className="font-medium group-hover:text-foreground transition-colors">{dev.alias}</p>
                   </div>
 
                   <div className="flex items-center gap-8">

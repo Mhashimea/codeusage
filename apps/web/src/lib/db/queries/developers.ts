@@ -25,6 +25,7 @@ export async function getDevelopersByWorkspace(
       totalTokens: sql<number>`sum(${tasks.input_tokens} + ${tasks.output_tokens})::int`,
       totalCost: sql<string>`sum(${tasks.cost_usd})::numeric(10,6)`,
       providers: sql<string>`array_agg(distinct ${tasks.tool_source})::text`,
+      projectCount: sql<number>`count(distinct ${tasks.project_slug})::int`,
     })
     .from(tasks)
     .where(and(...conditions))
@@ -41,6 +42,7 @@ export async function getDevelopersByWorkspace(
     providers: row.providers
       ? row.providers.replace(/[{}]/g, "").split(",").filter(Boolean)
       : [],
+    projectCount: row.projectCount,
   }));
 }
 
