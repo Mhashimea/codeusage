@@ -98,9 +98,21 @@ export function getSessionParser(
 // === Claude Code Session Parser ===
 
 function getClaudeProjectHash(cwd: string): string {
-  // Claude Code replaces non-alphanumeric/hyphen characters with "-" in the project path
-  // On Windows, cwd is like "C:\Users\foo.bar\project" — backslashes, colons, dots all become "-"
-  return cwd.replace(/[^\w-]/g, "-");
+  // Claude Code encodes project paths by replacing path separators with "-"
+  // The exact algorithm may vary by platform:
+  // - Unix: /Users/foo/project -> -Users-foo-project
+  // - Windows: C:\Users\foo\project -> various possible encodings
+  //
+  // We try to match Claude Code's behavior by:
+  // 1. Normalizing path separators to forward slashes
+  // 2. Replacing all non-alphanumeric characters (except hyphen and underscore) with "-"
+
+  // Normalize to forward slashes first (for Windows compatibility)
+  const normalized = cwd.replace(/\\/g, "/");
+
+  // Replace non-alphanumeric/hyphen/underscore with "-"
+  // This handles: slashes, colons (drive letter), dots, spaces, etc.
+  return normalized.replace(/[^\w-]/g, "-");
 }
 
 async function findLatestClaudeSession(
@@ -135,6 +147,65 @@ async function findLatestClaudeSession(
 }
 
 /**
+ * Find Claude Code project directory using multiple strategies
+ * This handles cases where our hash algorithm doesn't match Claude's exactly
+ */
+async function findClaudeProjectDirectory(projectDir: string): Promise<string | null> {
+  const claudeProjectsDir = path.join(os.homedir(), ".claude", "projects");
+
+  // Strategy 1: Try our computed hash
+  const computedHash = getClaudeProjectHash(projectDir);
+  const computedPath = path.join(claudeProjectsDir, computedHash);
+
+  try {
+    await fs.access(computedPath);
+    return computedPath;
+  } catch {
+    // Directory doesn't exist with computed hash, try fallback strategies
+  }
+
+  // Strategy 2: Search for a directory ending with the project name
+  // This helps when the path encoding differs (e.g., Windows drive letter handling)
+  try {
+    const projectName = path.basename(projectDir);
+    const allDirs = await fs.readdir(claudeProjectsDir);
+
+    // Find directories that end with the project name (case-insensitive on Windows)
+    const isWindows = process.platform === "win32";
+    const matchingDirs = allDirs.filter((dir) => {
+      const dirLower = isWindows ? dir.toLowerCase() : dir;
+      const nameLower = isWindows ? projectName.toLowerCase() : projectName;
+      return dirLower.endsWith(nameLower) || dirLower.endsWith(`-${nameLower}`);
+    });
+
+    if (matchingDirs.length === 0) {
+      return null;
+    }
+
+    // If multiple matches, prefer the most recently modified one
+    let bestMatch = matchingDirs[0];
+    let bestMtime = 0;
+
+    for (const dir of matchingDirs) {
+      try {
+        const dirPath = path.join(claudeProjectsDir, dir);
+        const stat = await fs.stat(dirPath);
+        if (stat.mtimeMs > bestMtime) {
+          bestMtime = stat.mtimeMs;
+          bestMatch = dir;
+        }
+      } catch {
+        // Skip dirs we can't stat
+      }
+    }
+
+    return path.join(claudeProjectsDir, bestMatch);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Parse Claude Code session log
  */
 async function parseClaudeCodeSession(
@@ -144,13 +215,10 @@ async function parseClaudeCodeSession(
   const gitRoot = await getGitRoot(cwd);
   const projectDir = gitRoot || cwd;
 
-  const projectHash = getClaudeProjectHash(projectDir);
-  const projectPath = path.join(
-    os.homedir(),
-    ".claude",
-    "projects",
-    projectHash
-  );
+  // Find the project directory using multiple strategies
+  // This handles cases where our hash doesn't match Claude's exactly (e.g., Windows paths)
+  const projectPath = await findClaudeProjectDirectory(projectDir);
+  if (!projectPath) return null;
 
   const sessionFile = await findLatestClaudeSession(projectPath);
   if (!sessionFile) return null;
@@ -654,9 +722,8 @@ export async function getSessionsDirectory(
       // Claude Code uses the git root directory for session storage
       const gitRoot = await getGitRoot(cwd);
       const projectDir = gitRoot || cwd;
-      const projectHash = getClaudeProjectHash(projectDir);
-      // Session files are directly in the project folder
-      return path.join(os.homedir(), ".claude", "projects", projectHash);
+      // Use the smart directory finder that handles Windows path differences
+      return findClaudeProjectDirectory(projectDir);
     }
     case "codex": {
       // Codex uses a global sessions directory organized by date

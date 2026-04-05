@@ -30,10 +30,14 @@ const CLI_VERSION = "0.1.24";
 export const hookStopCommand = new Command("stop")
   .description("Handle AI coding tool stop hook (internal)")
   .option("--dry-run", "Parse session but don't send to API")
+  .option("--debug", "Show debug information for troubleshooting")
   .option("--provider <provider>", "Provider ID (claude_code or codex)")
   .action(async (options) => {
     // Silent exit if not configured
     if (!isConfigured()) {
+      if (options.debug) {
+        console.log(chalk.yellow("CLI not configured. Run: codeusage init"));
+      }
       return;
     }
 
@@ -49,11 +53,24 @@ export const hookStopCommand = new Command("stop")
     }
     const providerInfo = getProviderById(providerId);
 
+    if (options.debug) {
+      console.log(chalk.bold("\n🔍 Debug Info\n"));
+      console.log(`Platform: ${chalk.cyan(process.platform)}`);
+      console.log(`CWD: ${chalk.cyan(cwd)}`);
+      console.log(`Provider: ${chalk.cyan(providerId)}`);
+      console.log(`Home: ${chalk.cyan(require("os").homedir())}`);
+    }
+
     // Parse session log for the configured provider
     const session = await parseSessionLog(cwd, providerId);
     if (!session) {
-      if (options.dryRun) {
+      if (options.dryRun || options.debug) {
         console.log(chalk.yellow("Could not parse session log"));
+        if (options.debug) {
+          const { getSessionsDirectory } = await import("../lib/session-log.js");
+          const sessionsDir = await getSessionsDirectory(cwd, providerId);
+          console.log(`Sessions directory: ${chalk.cyan(sessionsDir || "not found")}`);
+        }
       }
       return;
     }
