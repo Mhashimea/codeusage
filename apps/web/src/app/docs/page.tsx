@@ -367,6 +367,62 @@ export default function DocsPage() {
               </Paragraph>
               <CodeBlock>codeusage sync</CodeBlock>
 
+              <SubHeading>codeusage provider</SubHeading>
+              <Paragraph>
+                Manage AI coding tool providers. Codeusage supports multiple
+                providers simultaneously.
+              </Paragraph>
+              <TerminalBlock>
+                <CommandRow
+                  command="codeusage provider list"
+                  description="List all available providers"
+                />
+                <CommandRow
+                  command="codeusage provider current"
+                  description="Show the currently active provider"
+                />
+                <CommandRow
+                  command="codeusage provider add codex"
+                  description="Add hooks for an additional provider"
+                />
+                <CommandRow
+                  command="codeusage provider switch codex"
+                  description="Switch to a different provider"
+                />
+              </TerminalBlock>
+
+              <SubHeading>codeusage logs</SubHeading>
+              <Paragraph>
+                View CLI error and diagnostic logs. Useful for debugging when
+                tasks aren&apos;t syncing or hooks aren&apos;t firing.
+              </Paragraph>
+              <TerminalBlock>
+                <CommandRow
+                  command="codeusage logs"
+                  description="Show recent error logs"
+                />
+                <CommandRow
+                  command="codeusage logs --all"
+                  description="Show all log levels (error, warn, info, debug)"
+                />
+                <CommandRow
+                  command="codeusage logs --level warn"
+                  description="Filter by log level"
+                />
+                <CommandRow
+                  command="codeusage logs -n 100"
+                  description="Show last 100 log entries"
+                />
+                <CommandRow
+                  command="codeusage logs --path"
+                  description="Print log file location"
+                />
+                <CommandRow
+                  command="codeusage logs --clear"
+                  description="Clear all logs"
+                />
+              </TerminalBlock>
+
               <SubHeading>codeusage logout</SubHeading>
               <Paragraph>
                 Disconnect from Codeusage and remove all local configuration.
@@ -429,21 +485,21 @@ export default function DocsPage() {
               <TerminalBlock>
                 <CommandRow
                   command="codeusage guard enable"
-                  description="Enable Prompt Guard"
+                  description="Enable Prompt Guard and sync patterns"
                 />
                 <CommandRow
                   command="codeusage guard status"
-                  description="Check Prompt Guard status"
+                  description="Check Prompt Guard status and cache info"
                 />
               </TerminalBlock>
 
               <Paragraph>
-                The CLI will sync patterns from your workspace settings.
                 Patterns are cached locally at{" "}
                 <code className="bg-muted px-1.5 py-0.5 rounded text-sm">
                   ~/.codeusage/patterns.json
                 </code>{" "}
-                and refreshed every 24 hours.
+                and refreshed every 7 days. You can also manage patterns
+                from the Guard settings page in your dashboard.
               </Paragraph>
 
               <SubHeading>Managing Patterns</SubHeading>
@@ -494,8 +550,12 @@ export default function DocsPage() {
                   description="Force refresh patterns from server"
                 />
                 <CommandRow
-                  command="codeusage guard test"
-                  description="Test with a sample prompt (dry run)"
+                  command="codeusage guard list"
+                  description="List all active patterns by category"
+                />
+                <CommandRow
+                  command='codeusage guard test "sk-live-abc123"'
+                  description="Test a string against patterns (dry run)"
                 />
               </TerminalBlock>
 
@@ -695,6 +755,13 @@ export default function DocsPage() {
                   to verify you&apos;re connected
                 </li>
                 <li>
+                  Check error logs:{" "}
+                  <code className="bg-muted px-1 rounded">
+                    codeusage logs
+                  </code>{" "}
+                  to see what went wrong
+                </li>
+                <li>
                   Check if the directory is ignored:{" "}
                   <code className="bg-muted px-1 rounded">
                     codeusage project current
@@ -814,9 +881,17 @@ export default function DocsPage() {
                       </td>
                     </tr>
                     <tr>
-                      <td className="px-4 py-3">Guard State</td>
-                      <td className="px-4 py-3 text-muted-foreground">
+                      <td className="px-4 py-3 border-b border-border">
+                        Guard State
+                      </td>
+                      <td className="px-4 py-3 border-b border-border text-muted-foreground">
                         ~/.codeusage/guard.json
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="px-4 py-3">Logs</td>
+                      <td className="px-4 py-3 text-muted-foreground">
+                        ~/.codeusage/logs/error.log
                       </td>
                     </tr>
                   </tbody>

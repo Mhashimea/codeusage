@@ -14,6 +14,7 @@ import {
   Settings,
   LogOut,
   ChevronsUpDown,
+  BookOpen,
 } from "lucide-react";
 import { CodeusageLogoBrand } from "@/components/shared/CodeusageLogo";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -95,6 +96,19 @@ export function Sidebar() {
             })}
           </div>
         </nav>
+
+        {/* Docs link */}
+        <div className="px-3 pb-2">
+          <a
+            href="https://codeusage.dev/docs"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-3 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+          >
+            <BookOpen className="h-4 w-4" />
+            Docs
+          </a>
+        </div>
 
         {/* User menu */}
         <div className="border-t border-border p-3">

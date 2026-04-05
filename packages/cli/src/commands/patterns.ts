@@ -10,6 +10,9 @@ import {
   isCacheStale,
   getPatternsByCategory,
   getPatternCachePath,
+  saveGuardState,
+  loadGuardState,
+  isGuardEnabled,
 } from "../lib/patterns.js";
 import { isConfigured } from "../lib/config.js";
 
@@ -17,7 +20,50 @@ import { isConfigured } from "../lib/config.js";
  * codeusage patterns - Prompt Guard pattern management commands
  */
 export const patternsCommand = new Command("patterns")
+  .alias("guard")
   .description("Manage Prompt Guard pattern cache");
+
+/**
+ * codeusage guard enable
+ */
+patternsCommand
+  .command("enable")
+  .description("Enable Prompt Guard protection")
+  .action(async () => {
+    if (!isConfigured()) {
+      console.log(chalk.yellow("Not configured. Run: codeusage init"));
+      process.exit(1);
+    }
+
+    const cache = loadPatternCache();
+    if (!cache) {
+      console.log(chalk.yellow("No patterns synced yet. Syncing now...\n"));
+      const spinner = ora("Fetching Prompt Guard settings...").start();
+      const result = await syncPatternCache();
+      if (!result.success) {
+        spinner.fail(chalk.red(result.error));
+        process.exit(1);
+      }
+      spinner.succeed(`Synced ${result.patternCount} patterns`);
+      console.log();
+    }
+
+    saveGuardState(true);
+    console.log(chalk.green("●"), "Prompt Guard is now", chalk.green("enabled"));
+    console.log(chalk.dim("  Prompts will be scanned for credentials before sending."));
+  });
+
+/**
+ * codeusage guard disable
+ */
+patternsCommand
+  .command("disable")
+  .description("Disable Prompt Guard protection")
+  .action(async () => {
+    saveGuardState(false);
+    console.log(chalk.gray("●"), "Prompt Guard is now", chalk.gray("disabled"));
+    console.log(chalk.dim("  Prompts will not be scanned. Run: codeusage guard enable to re-enable."));
+  });
 
 /**
  * codeusage patterns status
@@ -45,8 +91,12 @@ patternsCommand
       return;
     }
 
-    // Status indicator
-    if (cache.enabled) {
+    // Status indicator — local state overrides server
+    const guardEnabled = isGuardEnabled();
+    const localState = loadGuardState();
+    const isLocalOverride = localState !== null;
+
+    if (guardEnabled) {
       if (isCacheStale(cache)) {
         console.log(
           chalk.yellow("●"),
@@ -58,14 +108,16 @@ patternsCommand
         console.log(
           chalk.green("●"),
           "Prompt Guard is",
-          chalk.green("enabled")
+          chalk.green("enabled"),
+          isLocalOverride ? chalk.dim("(local)") : ""
         );
       }
     } else {
       console.log(
         chalk.gray("●"),
         "Prompt Guard is",
-        chalk.gray("disabled")
+        chalk.gray("disabled"),
+        isLocalOverride ? chalk.dim("(local)") : chalk.dim("(by workspace admin)")
       );
     }
 

@@ -7,6 +7,7 @@ import { patternsCommand } from "./commands/patterns.js";
 import { syncCommand } from "./commands/sync.js";
 import { configCommand } from "./commands/config.js";
 import { logoutCommand } from "./commands/logout.js";
+import { logsCommand } from "./commands/logs.js";
 import { hookStopCommand } from "./hooks/stop.js";
 import { hookPostToolUseCommand } from "./hooks/post-tool-use.js";
 import { hookNotificationCommand } from "./hooks/notification.js";
@@ -17,7 +18,7 @@ const program = new Command();
 program
   .name("codeusage")
   .description("CLI for Codeusage - AI coding tool intelligence platform")
-  .version("0.1.27");
+  .version("0.1.29");
 
 // Main commands
 program.addCommand(initCommand);
@@ -28,6 +29,7 @@ program.addCommand(patternsCommand);
 program.addCommand(syncCommand);
 program.addCommand(configCommand);
 program.addCommand(logoutCommand);
+program.addCommand(logsCommand);
 
 // Hook commands (called by AI coding tools)
 const hookCommand = new Command("hook")

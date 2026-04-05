@@ -167,4 +167,6 @@ export const initCommand = new Command("init")
     console.log(chalk.dim("  codeusage project    Manage project mappings"));
     console.log(chalk.dim("  codeusage sync       Flush buffered tasks"));
     console.log(chalk.dim("  codeusage logout     Disconnect and cleanup\n"));
+
+    process.exit(0);
   });

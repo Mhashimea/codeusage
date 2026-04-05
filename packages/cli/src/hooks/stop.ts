@@ -24,8 +24,9 @@ import {
   cleanupOldSessionStates,
   type SessionState,
 } from "../lib/session-state.js";
+import { logError, logInfo, logDebug } from "../lib/logger.js";
 
-const CLI_VERSION = "0.1.27";
+const CLI_VERSION = "0.1.29";
 
 export const hookStopCommand = new Command("stop")
   .description("Handle AI coding tool stop hook (internal)")
@@ -38,6 +39,7 @@ export const hookStopCommand = new Command("stop")
       if (options.debug) {
         console.log(chalk.yellow("CLI not configured. Run: codeusage init"));
       }
+      await logDebug("hook:stop", "Skipped: CLI not configured");
       return;
     }
 
@@ -72,6 +74,7 @@ export const hookStopCommand = new Command("stop")
           console.log(`Sessions directory: ${chalk.cyan(sessionsDir || "not found")}`);
         }
       }
+      await logError("hook:stop", "Could not parse session log", `cwd=${cwd} provider=${providerId} platform=${process.platform} home=${require("os").homedir()}`);
       return;
     }
 
@@ -206,6 +209,7 @@ export const hookStopCommand = new Command("stop")
 
     if (result.success) {
       console.log(chalk.green("✓ Task synced"));
+      await logInfo("hook:stop", `Task synced: ${payload.project_slug}`, `model=${payload.model_name} tokens=${payload.input_tokens}+${payload.output_tokens} cost=$${payload.cost_usd.toFixed(4)}`);
 
       // Save current cumulative state for next delta calculation
       // Convert files_changed_details to file_stats record
@@ -241,6 +245,7 @@ export const hookStopCommand = new Command("stop")
       }
     } else {
       console.log(chalk.yellow(`Buffered: ${result.error}`));
+      await logError("hook:stop", `Task send failed, buffered`, `error=${result.error} project=${payload.project_slug}`);
       await bufferTask(payload);
 
       // Still save state even when buffering to avoid double-counting

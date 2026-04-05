@@ -7,6 +7,62 @@ import { getConfig } from "./config.js";
 
 const CODEUSAGE_DIR = path.join(os.homedir(), ".codeusage");
 const PATTERNS_FILE = path.join(CODEUSAGE_DIR, "patterns.json");
+const GUARD_STATE_FILE = path.join(CODEUSAGE_DIR, "guard.json");
+
+interface GuardState {
+  enabled: boolean;
+  updated_at: string;
+}
+
+/**
+ * Load local guard state override
+ * Returns null if no local override exists
+ */
+export function loadGuardState(): GuardState | null {
+  try {
+    if (!fs.existsSync(GUARD_STATE_FILE)) {
+      return null;
+    }
+    const raw = fs.readFileSync(GUARD_STATE_FILE, "utf-8");
+    return JSON.parse(raw) as GuardState;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Save local guard state (enable/disable override)
+ */
+export function saveGuardState(enabled: boolean): void {
+  ensureDir();
+  const state: GuardState = {
+    enabled,
+    updated_at: new Date().toISOString(),
+  };
+  fs.writeFileSync(GUARD_STATE_FILE, JSON.stringify(state, null, 2), "utf-8");
+}
+
+/**
+ * Delete local guard state (revert to server setting)
+ */
+export function deleteGuardState(): void {
+  if (fs.existsSync(GUARD_STATE_FILE)) {
+    fs.unlinkSync(GUARD_STATE_FILE);
+  }
+}
+
+/**
+ * Check if Prompt Guard is enabled
+ * Local state takes priority over server cache
+ */
+export function isGuardEnabled(): boolean {
+  const localState = loadGuardState();
+  if (localState !== null) {
+    return localState.enabled;
+  }
+  const cache = loadPatternCache();
+  return cache?.enabled ?? false;
+}
 
 // Cache is stale if older than 7 days
 const STALE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
@@ -254,8 +310,8 @@ export function checkPrompt(prompt: string): {
     };
   }
 
-  // Fail open: Prompt Guard disabled
-  if (!cache.enabled) {
+  // Fail open: Prompt Guard disabled (local override takes priority)
+  if (!isGuardEnabled()) {
     return {
       blocked: false,
       match: null,

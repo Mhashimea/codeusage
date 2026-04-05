@@ -1,5 +1,6 @@
 import type { TelemetryPayload } from "@codeusage/shared";
 import { getConfig } from "./config.js";
+import { logError } from "./logger.js";
 
 const DEFAULT_API_URL = "https://codeusage.dev";
 
@@ -67,14 +68,18 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
     const errorData = (await response.json().catch(() => ({}))) as {
       error?: string;
     };
+    const errorMsg = errorData.error || `API error: ${response.status}`;
+    await logError("api", `sendTask failed: ${errorMsg}`, `status=${response.status}`).catch(() => {});
     return {
       success: false,
-      error: errorData.error || `API error: ${response.status}`,
+      error: errorMsg,
     };
   } catch (err) {
+    const errorMsg = `Network error: ${(err as Error).message}`;
+    await logError("api", errorMsg).catch(() => {});
     return {
       success: false,
-      error: `Network error: ${(err as Error).message}`,
+      error: errorMsg,
     };
   }
 }

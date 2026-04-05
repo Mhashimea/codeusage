@@ -11,6 +11,7 @@ import {
   isProviderActive,
   DEFAULT_PROVIDER,
 } from "@codeusage/shared";
+import { logError, logDebug } from "./logger.js";
 
 /**
  * Calculate accurate line additions and deletions using diff algorithm
@@ -162,6 +163,7 @@ async function findClaudeProjectDirectory(projectDir: string): Promise<string | 
     return computedPath;
   } catch {
     // Directory doesn't exist with computed hash, try fallback strategies
+    await logDebug("session-log", `Computed hash miss: ${computedHash}`, `projectDir=${projectDir}`).catch(() => {});
   }
 
   // Strategy 2: Search for a directory ending with the project name
@@ -179,6 +181,7 @@ async function findClaudeProjectDirectory(projectDir: string): Promise<string | 
     });
 
     if (matchingDirs.length === 0) {
+      await logError("session-log", `No matching project directory found`, `projectDir=${projectDir} projectName=${projectName} availableDirs=[${allDirs.slice(0, 10).join(",")}]`).catch(() => {});
       return null;
     }
 
@@ -200,7 +203,8 @@ async function findClaudeProjectDirectory(projectDir: string): Promise<string | 
     }
 
     return path.join(claudeProjectsDir, bestMatch);
-  } catch {
+  } catch (err) {
+    await logError("session-log", `Failed to read projects directory`, `dir=${claudeProjectsDir} error=${(err as Error).message}`).catch(() => {});
     return null;
   }
 }
