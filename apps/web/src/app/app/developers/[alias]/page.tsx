@@ -62,23 +62,22 @@ async function DeveloperProfileContent({ params }: DeveloperProfilePageProps) {
       {/* Metrics */}
       <DeveloperMetrics stats={stats} />
 
-      {/* Two Column Layout: Heatmap + Projects */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Activity Heatmap */}
-        <DeveloperHeatmap
-          alias={decodedAlias}
-          initialData={activity}
-          initialYear={currentYear}
-        />
-        <DeveloperProjectsBreakdown projects={projects} />
-      </div>
-
-      {/* Tasks Section - Full Width */}
-      <DeveloperTasksSection
-        tasks={tasks}
-        projects={projectSlugs}
+      {/* Activity Heatmap - Full Width */}
+      <DeveloperHeatmap
         alias={decodedAlias}
+        initialData={activity}
+        initialYear={currentYear}
       />
+
+      {/* Two Column Layout: Projects + Tasks */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <DeveloperProjectsBreakdown projects={projects} />
+        <DeveloperTasksSection
+          tasks={tasks}
+          projects={projectSlugs}
+          alias={decodedAlias}
+        />
+      </div>
     </div>
   );
 }

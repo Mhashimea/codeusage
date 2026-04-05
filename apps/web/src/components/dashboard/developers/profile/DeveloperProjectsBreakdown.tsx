@@ -57,13 +57,20 @@ export function DeveloperProjectsBreakdown({ projects }: DeveloperProjectsBreakd
   // Calculate max tokens for progress bar
   const maxTokens = Math.max(...projects.map((p) => p.total_tokens));
 
+  const totalTokens = projects.reduce((sum, p) => sum + p.total_tokens, 0);
+
   return (
     <Card>
-      <CardHeader>
+      <CardHeader className="pb-4">
         <CardTitle className="text-base font-medium">Projects</CardTitle>
+        <p className="text-sm text-muted-foreground mt-1">
+          {projects.length} project{projects.length !== 1 ? "s" : ""}
+          {" · "}
+          <span className="text-blue-400">{formatTokens(totalTokens)}</span> tokens
+        </p>
       </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
+      <CardContent className="pt-0">
+        <div className="h-[400px] overflow-y-auto pr-2 -mr-2 space-y-3">
           {projects.map((project) => {
             const progressWidth = maxTokens > 0 ? (project.total_tokens / maxTokens) * 100 : 0;
 
