@@ -202,7 +202,7 @@ export const patternMatchSchema = z.object({
 export const patternCacheSchema = z.object({
   enabled: z.boolean(),
   synced_at: z.string().datetime(),
-  workspace_id: z.string().uuid(),
+  workspace_id: z.string().optional(), // Optional - not used in pattern matching
   patterns: z.array(patternSchema),
   version: z.string(),
 });

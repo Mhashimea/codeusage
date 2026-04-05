@@ -5,8 +5,8 @@ import type { PatternCache, Pattern, PatternMatch } from "@codeusage/shared";
 import { patternCacheSchema, BUILT_IN_PATTERNS } from "@codeusage/shared";
 import { getConfig } from "./config.js";
 
-const AFTERBURN_DIR = path.join(os.homedir(), ".afterburn");
-const PATTERNS_FILE = path.join(AFTERBURN_DIR, "patterns.json");
+const CODEUSAGE_DIR = path.join(os.homedir(), ".codeusage");
+const PATTERNS_FILE = path.join(CODEUSAGE_DIR, "patterns.json");
 
 // Cache is stale if older than 7 days
 const STALE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
@@ -15,11 +15,11 @@ const STALE_THRESHOLD_MS = 7 * 24 * 60 * 60 * 1000;
 const REFRESH_THRESHOLD_MS = 24 * 60 * 60 * 1000;
 
 /**
- * Ensure ~/.afterburn directory exists
+ * Ensure ~/.codeusage directory exists
  */
 function ensureDir(): void {
-  if (!fs.existsSync(AFTERBURN_DIR)) {
-    fs.mkdirSync(AFTERBURN_DIR, { recursive: true });
+  if (!fs.existsSync(CODEUSAGE_DIR)) {
+    fs.mkdirSync(CODEUSAGE_DIR, { recursive: true });
   }
 }
 
@@ -130,7 +130,7 @@ export async function syncPatternCache(): Promise<{
   if (!config.workspace_key) {
     return {
       success: false,
-      error: "No workspace key configured. Run: afterburn init",
+      error: "No workspace key configured. Run: codeusage init",
     };
   }
 
@@ -147,7 +147,7 @@ export async function syncPatternCache(): Promise<{
     if (response.status === 401) {
       return {
         success: false,
-        error: "Invalid workspace key. Run: afterburn init",
+        error: "Invalid workspace key. Run: codeusage init",
       };
     }
 
@@ -250,7 +250,7 @@ export function checkPrompt(prompt: string): {
     return {
       blocked: false,
       match: null,
-      warning: "Pattern cache not found. Run: afterburn patterns sync",
+      warning: "Pattern cache not found. Run: codeusage patterns sync",
     };
   }
 
@@ -267,7 +267,7 @@ export function checkPrompt(prompt: string): {
     return {
       blocked: false,
       match: null,
-      warning: "Pattern cache is outdated. Run: afterburn patterns sync",
+      warning: "Pattern cache is outdated. Run: codeusage patterns sync",
     };
   }
 

@@ -14,20 +14,20 @@ import {
 import { isConfigured } from "../lib/config.js";
 
 /**
- * afterburn patterns - Prompt Guard pattern management commands
+ * codeusage patterns - Prompt Guard pattern management commands
  */
 export const patternsCommand = new Command("patterns")
   .description("Manage Prompt Guard pattern cache");
 
 /**
- * afterburn patterns status
+ * codeusage patterns status
  */
 patternsCommand
   .command("status")
   .description("Show Prompt Guard status and cache info")
   .action(async () => {
     if (!isConfigured()) {
-      console.log(chalk.yellow("Not configured. Run: afterburn init"));
+      console.log(chalk.yellow("Not configured. Run: codeusage init"));
       process.exit(1);
     }
 
@@ -41,7 +41,7 @@ patternsCommand
       );
       console.log();
       console.log(chalk.gray("  Pattern cache not found."));
-      console.log(chalk.gray("  Run: afterburn patterns sync"));
+      console.log(chalk.gray("  Run: codeusage patterns sync"));
       return;
     }
 
@@ -82,12 +82,12 @@ patternsCommand
     if (isCacheStale(cache)) {
       console.log();
       console.log(chalk.yellow("  Your pattern cache is more than 7 days old."));
-      console.log(chalk.yellow("  Run: afterburn patterns sync"));
+      console.log(chalk.yellow("  Run: codeusage patterns sync"));
     }
   });
 
 /**
- * afterburn patterns list
+ * codeusage patterns list
  */
 patternsCommand
   .command("list")
@@ -116,14 +116,14 @@ patternsCommand
   });
 
 /**
- * afterburn patterns sync
+ * codeusage patterns sync
  */
 patternsCommand
   .command("sync")
   .description("Sync patterns from workspace settings")
   .action(async () => {
     if (!isConfigured()) {
-      console.log(chalk.yellow("Not configured. Run: afterburn init"));
+      console.log(chalk.yellow("Not configured. Run: codeusage init"));
       process.exit(1);
     }
 
@@ -147,7 +147,7 @@ patternsCommand
   });
 
 /**
- * afterburn patterns test <text>
+ * codeusage patterns test <text>
  */
 patternsCommand
   .command("test <text>")

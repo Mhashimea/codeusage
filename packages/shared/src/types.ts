@@ -220,7 +220,7 @@ export interface PatternMatch {
 export interface PatternCache {
   enabled: boolean;
   synced_at: string; // ISO 8601 timestamp
-  workspace_id: string;
+  workspace_id?: string; // Optional - not used in pattern matching
   patterns: Pattern[];
   version: string; // CLI version that synced
 }

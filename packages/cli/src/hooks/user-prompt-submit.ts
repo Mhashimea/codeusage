@@ -36,7 +36,7 @@ export const hookUserPromptSubmitCommand = new Command("user-prompt-submit")
     // Handle warning (stale cache, missing cache, etc.)
     if (result.warning && !result.blocked) {
       // Print warning to stderr so it doesn't interfere with stdout
-      console.error(chalk.dim(`afterburn: ${result.warning}`));
+      console.error(chalk.dim(`codeusage: ${result.warning}`));
     }
 
     // If not blocked, allow through
@@ -100,7 +100,7 @@ function printBlockMessage(patternName: string, description: string): void {
   console.log();
   console.log(
     chalk.yellow("⚠"),
-    chalk.yellow.bold(" afterburn · prompt blocked")
+    chalk.yellow.bold(" codeusage · prompt blocked")
   );
   console.log();
   console.log(divider);
