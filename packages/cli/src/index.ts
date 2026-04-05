@@ -17,7 +17,7 @@ const program = new Command();
 program
   .name("codeusage")
   .description("CLI for Codeusage - AI coding tool intelligence platform")
-  .version("0.1.24");
+  .version("0.1.25");
 
 // Main commands
 program.addCommand(initCommand);
