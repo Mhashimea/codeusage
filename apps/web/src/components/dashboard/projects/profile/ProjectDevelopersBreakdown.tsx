@@ -18,13 +18,15 @@ interface ProjectDevelopersBreakdownProps {
 }
 
 function formatLastActivity(dateStr: string): string {
-  const date = new Date(dateStr);
+  // Parse the date - PostgreSQL returns UTC timestamps
+  // Ensure we treat the date string as UTC if it doesn't have timezone info
+  const date = new Date(dateStr.endsWith("Z") ? dateStr : dateStr + "Z");
   const now = new Date();
 
-  // Compare by calendar date, not by 24-hour periods
-  const dateOnly = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const todayOnly = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const diffDays = Math.round((todayOnly.getTime() - dateOnly.getTime()) / (1000 * 60 * 60 * 24));
+  // Compare by UTC calendar date to avoid timezone issues
+  const dateUTC = Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate());
+  const nowUTC = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  const diffDays = Math.round((nowUTC - dateUTC) / (1000 * 60 * 60 * 24));
 
   if (diffDays === 0) return "Active today";
   if (diffDays === 1) return "Active yesterday";
