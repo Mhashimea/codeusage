@@ -93,25 +93,19 @@ async function readStdin(): Promise<string> {
  * Print the blocked prompt warning message
  */
 function printBlockMessage(patternName: string, description: string): void {
-  const divider = chalk.gray("─".repeat(60));
+  // Claude Code displays stderr to the user when a hook blocks.
+  // All output must go to stderr, not stdout.
+  const lines = [
+    "",
+    `⚠  Prompt Guard blocked your message`,
+    "",
+    `  Reason:  ${description}`,
+    `  Pattern: ${patternName}`,
+    "",
+    `  Your prompt was not sent. Remove the sensitive value and try again.`,
+    `  To disable: codeusage guard disable`,
+    "",
+  ];
 
-  console.log();
-  console.log(divider);
-  console.log();
-  console.log(
-    chalk.yellow("⚠"),
-    chalk.yellow.bold(" codeusage · prompt blocked")
-  );
-  console.log();
-  console.log(divider);
-  console.log();
-  console.log(`  ${chalk.gray("Reason:")}  ${chalk.yellow(description)}`);
-  console.log(`  ${chalk.gray("Pattern:")} ${patternName}`);
-  console.log();
-  console.log(
-    `  Your prompt was ${chalk.yellow("not sent")} to Claude Code.`
-  );
-  console.log("  Remove the sensitive value and try again.");
-  console.log();
-  console.log(divider);
+  console.error(lines.join("\n"));
 }
