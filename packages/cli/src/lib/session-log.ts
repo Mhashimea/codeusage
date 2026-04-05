@@ -99,21 +99,21 @@ export function getSessionParser(
 // === Claude Code Session Parser ===
 
 function getClaudeProjectHash(cwd: string): string {
-  // Claude Code encodes project paths by replacing path separators with "-"
-  // The exact algorithm may vary by platform:
+  // Claude Code encodes project paths by replacing ALL non-alphanumeric
+  // characters (including underscores) with hyphens, then lowercasing.
+  // Examples:
   // - Unix: /Users/foo/project -> -Users-foo-project
-  // - Windows: C:\Users\foo\project -> various possible encodings
-  //
-  // We try to match Claude Code's behavior by:
-  // 1. Normalizing path separators to forward slashes
-  // 2. Replacing all non-alphanumeric characters (except hyphen and underscore) with "-"
+  // - Windows: C:\agents\powertek_new -> c--agents-powertek-new
 
   // Normalize to forward slashes first (for Windows compatibility)
   const normalized = cwd.replace(/\\/g, "/");
 
-  // Replace non-alphanumeric/hyphen/underscore with "-"
-  // This handles: slashes, colons (drive letter), dots, spaces, etc.
-  return normalized.replace(/[^\w-]/g, "-");
+  // Replace all non-alphanumeric characters (except hyphen) with "-"
+  // This includes underscores, slashes, colons, dots, spaces, etc.
+  const hash = normalized.replace(/[^a-zA-Z0-9-]/g, "-");
+
+  // Claude Code lowercases on Windows
+  return process.platform === "win32" ? hash.toLowerCase() : hash;
 }
 
 async function findLatestClaudeSession(
@@ -172,12 +172,14 @@ async function findClaudeProjectDirectory(projectDir: string): Promise<string | 
     const projectName = path.basename(projectDir);
     const allDirs = await fs.readdir(claudeProjectsDir);
 
-    // Find directories that end with the project name (case-insensitive on Windows)
-    const isWindows = process.platform === "win32";
+    // Find directories that end with the project name
+    // Normalize both sides: lowercase + replace underscores with hyphens
+    // to handle encoding differences between our hash and Claude's
+    const normalize = (s: string) => s.toLowerCase().replace(/_/g, "-");
+    const normalizedName = normalize(projectName);
     const matchingDirs = allDirs.filter((dir) => {
-      const dirLower = isWindows ? dir.toLowerCase() : dir;
-      const nameLower = isWindows ? projectName.toLowerCase() : projectName;
-      return dirLower.endsWith(nameLower) || dirLower.endsWith(`-${nameLower}`);
+      const normalizedDir = normalize(dir);
+      return normalizedDir.endsWith(normalizedName) || normalizedDir.endsWith(`-${normalizedName}`);
     });
 
     if (matchingDirs.length === 0) {

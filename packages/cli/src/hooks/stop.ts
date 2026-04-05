@@ -26,7 +26,7 @@ import {
 } from "../lib/session-state.js";
 import { logError, logInfo, logDebug } from "../lib/logger.js";
 
-const CLI_VERSION = "0.1.30";
+const CLI_VERSION = "0.1.31";
 
 export const hookStopCommand = new Command("stop")
   .description("Handle AI coding tool stop hook (internal)")
