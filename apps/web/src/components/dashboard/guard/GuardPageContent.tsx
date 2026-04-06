@@ -558,14 +558,7 @@ export function GuardPageContent({
         </AlertDescription>
       </Alert>
 
-      <Alert className="border-yellow-500/30 bg-yellow-500/5">
-        <AlertTriangle className="h-4 w-4 text-yellow-500" />
-        <AlertTitle className="text-yellow-500">Coming in v0.4</AlertTitle>
-        <AlertDescription>
-          Custom patterns — define your own regex patterns for
-          organization-specific credentials.
-        </AlertDescription>
-      </Alert>
+
 
       {!canEdit && (
         <Alert variant="destructive" className="border-muted bg-muted/50">

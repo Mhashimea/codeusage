@@ -17,7 +17,7 @@ const firaMono = Fira_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Know How Your Team Uses AI Coding Tools | Codeusage",
+  title: "See How Your Team Uses AI Coding Tools | Codeusage",
   description:
     "Codeusage tracks AI coding activity across your engineering team — who's active, which projects are moving, and what tasks are getting done. Automatic credential protection included.",
   keywords: [
@@ -45,7 +45,7 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://codeusage.dev",
     siteName: "Codeusage",
-    title: "Know How Your Team Uses AI Coding Tools | Codeusage",
+    title: "See How Your Team Uses AI Coding Tools | Codeusage",
     description:
       "Codeusage tracks AI coding activity across your engineering team — who's active, which projects are moving, and what tasks are getting done.",
     images: [
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     site: "@hashim_ea",
-    title: "Know How Your Team Uses AI Coding Tools | Codeusage",
+    title: "See How Your Team Uses AI Coding Tools | Codeusage",
     description:
       "Track AI coding activity across your team — developers, projects, and tasks. Automatic credential protection included.",
     images: ["/og-image.png"],

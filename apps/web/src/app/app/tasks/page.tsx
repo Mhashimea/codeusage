@@ -7,7 +7,10 @@ import {
   getUniqueDevelopers,
   getUniqueProjects,
   getUniqueProviders,
+  getTodayStats,
 } from "@/lib/db/queries/tasks";
+import { formatTokens } from "@codeusage/shared";
+import { Activity, ListTodo, Users, Zap } from "lucide-react";
 import { TaskList } from "@/components/dashboard/tasks/TaskList";
 import { TaskFilters } from "@/components/dashboard/tasks/TaskFilters";
 
@@ -72,7 +75,7 @@ async function TasksContent({ searchParams }: TasksPageProps) {
 
   const { startDate, endDate } = parseDateRange(params.startDate, params.endDate);
 
-  const [groupedData, developers, projects, providers] = await Promise.all([
+  const [groupedData, developers, projects, providers, todayStats] = await Promise.all([
     getTasksGroupedBySession(workspaceId, {
       limit: pageSize,
       offset: (page - 1) * pageSize,
@@ -85,6 +88,7 @@ async function TasksContent({ searchParams }: TasksPageProps) {
     getUniqueDevelopers(workspaceId),
     getUniqueProjects(workspaceId),
     getUniqueProviders(workspaceId),
+    getTodayStats(workspaceId),
   ]);
 
   const { groups: sessionGroups, totalTasks, totalSessions } = groupedData;
@@ -100,6 +104,46 @@ async function TasksContent({ searchParams }: TasksPageProps) {
           </p>
         </div>
         <TaskFilters developers={developers} projects={projects} providers={providers} />
+      </div>
+
+      {/* Today's Activity */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="rounded-lg border border-border bg-card p-4 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-[#D97757]/10 flex items-center justify-center shrink-0">
+            <Activity className="h-5 w-5 text-[#D97757]" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-foreground leading-none">{todayStats.totalSessions}</p>
+            <p className="text-xs text-muted-foreground mt-1">Sessions today</p>
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+            <ListTodo className="h-5 w-5 text-blue-400" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-foreground leading-none">{todayStats.totalTasks}</p>
+            <p className="text-xs text-muted-foreground mt-1">Tasks today</p>
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+            <Users className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-foreground leading-none">{todayStats.activeDevelopers}</p>
+            <p className="text-xs text-muted-foreground mt-1">Active devs</p>
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+            <Zap className="h-5 w-5 text-purple-400" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-foreground leading-none">{formatTokens(todayStats.totalTokens)}</p>
+            <p className="text-xs text-muted-foreground mt-1">Tokens today</p>
+          </div>
+        </div>
       </div>
 
       {/* Task List */}

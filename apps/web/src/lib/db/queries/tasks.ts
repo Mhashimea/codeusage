@@ -127,6 +127,41 @@ export async function getTaskStats(
 }
 
 /**
+ * Get today's activity stats for a workspace
+ * CRITICAL: Always filter by workspace_id
+ */
+export async function getTodayStats(workspaceId: string) {
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+
+  const [stats] = await db
+    .select({
+      totalTasks: sql<number>`count(*)::int`,
+      totalSessions: sql<number>`count(distinct ${tasks.session_id})::int`,
+      activeDevelopers: sql<number>`count(distinct ${tasks.developer_alias})::int`,
+      totalTokens: sql<number>`coalesce(sum(${tasks.input_tokens} + ${tasks.output_tokens}), 0)::int`,
+    })
+    .from(tasks)
+    .where(
+      and(
+        eq(tasks.workspace_id, workspaceId),
+        gte(tasks.created_at, todayStart),
+        lte(tasks.created_at, todayEnd)
+      )
+    );
+
+  return {
+    totalTasks: stats.totalTasks,
+    totalSessions: stats.totalSessions,
+    activeDevelopers: stats.activeDevelopers,
+    totalTokens: stats.totalTokens,
+  };
+}
+
+/**
  * Count tasks in workspace
  */
 export async function countTasks(workspaceId: string) {
@@ -252,29 +287,48 @@ export async function getTasksGroupedBySession(
 ): Promise<{ groups: SessionGroup[]; totalTasks: number; totalSessions: number }> {
   const { limit = 50, offset = 0, startDate, endDate, developer, project, provider } = options;
 
-  const conditions = [eq(tasks.workspace_id, workspaceId)];
+  // Step 1: Find session IDs that have any activity in the date/filter range
+  const filterConditions = [eq(tasks.workspace_id, workspaceId)];
 
   if (startDate) {
-    conditions.push(gte(tasks.created_at, startDate));
+    filterConditions.push(gte(tasks.created_at, startDate));
   }
   if (endDate) {
-    conditions.push(lte(tasks.created_at, endDate));
+    filterConditions.push(lte(tasks.created_at, endDate));
   }
   if (developer) {
-    conditions.push(eq(tasks.developer_alias, developer));
+    filterConditions.push(eq(tasks.developer_alias, developer));
   }
   if (project) {
-    conditions.push(eq(tasks.project_slug, project));
+    filterConditions.push(eq(tasks.project_slug, project));
   }
   if (provider) {
-    conditions.push(eq(tasks.tool_source, provider));
+    filterConditions.push(eq(tasks.tool_source, provider));
   }
 
-  // Fetch all matching tasks ordered by session and time
+  const matchingSessions = await db
+    .selectDistinct({ session_id: tasks.session_id })
+    .from(tasks)
+    .where(and(...filterConditions));
+
+  const sessionIds = matchingSessions
+    .map((r) => r.session_id)
+    .filter(Boolean) as string[];
+
+  if (sessionIds.length === 0) {
+    return { groups: [], totalTasks: 0, totalSessions: 0 };
+  }
+
+  // Step 2: Fetch ALL tasks for those sessions (regardless of date)
   const allTasks = await db
     .select()
     .from(tasks)
-    .where(and(...conditions))
+    .where(
+      and(
+        eq(tasks.workspace_id, workspaceId),
+        sql`${tasks.session_id} IN (${sql.join(sessionIds.map(id => sql`${id}`), sql`, `)})`
+      )
+    )
     .orderBy(desc(tasks.created_at));
 
   // Group tasks by session_id

@@ -66,59 +66,43 @@ export function ProjectList({ projects, hasUntagged }: ProjectListProps) {
       )}
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-muted p-2">
-                <FolderGit2 className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{projects.length}</p>
-                <p className="text-xs text-muted-foreground">Projects</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-muted p-2">
-                <Users className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{uniqueContributors}</p>
-                <p className="text-xs text-muted-foreground">Contributors</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-muted p-2">
-                <Zap className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{totalTasks}</p>
-                <p className="text-xs text-muted-foreground">Total Tasks</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-muted p-2">
-                <FileCode className="h-4 w-4 text-muted-foreground" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-blue-400">{formatTokens(totalTokens)}</p>
-                <p className="text-xs text-muted-foreground">Total Tokens</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="rounded-lg border border-border bg-card p-4 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-[#D97757]/10 flex items-center justify-center shrink-0">
+            <FolderGit2 className="h-5 w-5 text-[#D97757]" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-foreground leading-none">{projects.length}</p>
+            <p className="text-xs text-muted-foreground mt-1">Projects</p>
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-green-500/10 flex items-center justify-center shrink-0">
+            <Users className="h-5 w-5 text-green-400" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-foreground leading-none">{uniqueContributors}</p>
+            <p className="text-xs text-muted-foreground mt-1">Contributors</p>
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+            <Zap className="h-5 w-5 text-blue-400" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-foreground leading-none">{totalTasks}</p>
+            <p className="text-xs text-muted-foreground mt-1">Total Tasks</p>
+          </div>
+        </div>
+        <div className="rounded-lg border border-border bg-card p-4 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-lg bg-purple-500/10 flex items-center justify-center shrink-0">
+            <FileCode className="h-5 w-5 text-purple-400" />
+          </div>
+          <div>
+            <p className="text-2xl font-bold text-foreground leading-none">{formatTokens(totalTokens)}</p>
+            <p className="text-xs text-muted-foreground mt-1">Total Tokens</p>
+          </div>
+        </div>
       </div>
 
       {/* Project Cards */}

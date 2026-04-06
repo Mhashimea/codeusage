@@ -11,6 +11,7 @@ import { logsCommand } from "./commands/logs.js";
 import { hookStopCommand } from "./hooks/stop.js";
 import { hookPostToolUseCommand } from "./hooks/post-tool-use.js";
 import { hookNotificationCommand } from "./hooks/notification.js";
+import { hookSessionStartCommand } from "./hooks/session-start.js";
 import { hookUserPromptSubmitCommand } from "./hooks/user-prompt-submit.js";
 
 const program = new Command();
@@ -18,7 +19,7 @@ const program = new Command();
 program
   .name("codeusage")
   .description("CLI for Codeusage - AI coding tool intelligence platform")
-  .version("0.1.33");
+  .version("0.1.34");
 
 // Main commands
 program.addCommand(initCommand);
@@ -38,6 +39,7 @@ const hookCommand = new Command("hook")
 hookCommand.addCommand(hookStopCommand);
 hookCommand.addCommand(hookPostToolUseCommand);
 hookCommand.addCommand(hookNotificationCommand);
+hookCommand.addCommand(hookSessionStartCommand);
 hookCommand.addCommand(hookUserPromptSubmitCommand);
 
 program.addCommand(hookCommand);

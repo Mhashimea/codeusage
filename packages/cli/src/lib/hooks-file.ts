@@ -33,6 +33,7 @@ interface ClaudeSettings {
     Stop?: ClaudeHookEntry[];
     PostToolUse?: ClaudeHookEntry[];
     Notification?: ClaudeHookEntry[];
+    SessionStart?: ClaudeHookEntry[];
     UserPromptSubmit?: ClaudeHookEntry[];
   };
   [key: string]: unknown;
@@ -156,15 +157,15 @@ const claudeCodeConfig: ProviderHookConfig = {
       ];
     }
 
-    // Notification hook
-    const notifHooks = s.hooks.Notification || [];
-    const hasNotifCodeusage = notifHooks.some((entry) =>
+    // SessionStart hook — saves session_id and transcript path
+    const sessionStartHooks = s.hooks.SessionStart || [];
+    const hasSessionStartCodeusage = sessionStartHooks.some((entry) =>
       entry.hooks?.some((h) => h.command.startsWith("codeusage"))
     );
-    if (!hasNotifCodeusage) {
-      s.hooks.Notification = [
-        ...notifHooks,
-        createClaudeHookEntry("codeusage hook notification --provider claude_code"),
+    if (!hasSessionStartCodeusage) {
+      s.hooks.SessionStart = [
+        ...sessionStartHooks,
+        createClaudeHookEntry("codeusage hook session-start --provider claude_code"),
       ];
     }
 
@@ -196,8 +197,14 @@ const claudeCodeConfig: ProviderHookConfig = {
         (entry) => !entry.hooks?.some((h) => h.command.startsWith("codeusage"))
       );
     }
+    // Clean up old Notification hook and new SessionStart hook
     if (s.hooks.Notification) {
       s.hooks.Notification = s.hooks.Notification.filter(
+        (entry) => !entry.hooks?.some((h) => h.command.startsWith("codeusage"))
+      );
+    }
+    if (s.hooks.SessionStart) {
+      s.hooks.SessionStart = s.hooks.SessionStart.filter(
         (entry) => !entry.hooks?.some((h) => h.command.startsWith("codeusage"))
       );
     }

@@ -132,7 +132,7 @@ export function TaskList({ sessionGroups, pagination }: TaskListProps) {
         <div className="flex items-center gap-6 text-sm">
           <div>
             <span className="text-muted-foreground">Sessions: </span>
-            <span className="font-medium">{sessionGroups.length}</span>
+            <span className="font-medium">{pagination.totalSessions}</span>
           </div>
           <div>
             <span className="text-muted-foreground">Tasks: </span>

@@ -13,6 +13,7 @@ export default auth((req) => {
     pathname.startsWith("/invite") ||
     pathname.startsWith("/cli/connect") || // CLI browser auth - handles its own redirects
     pathname === "/docs" ||
+    pathname.startsWith("/blog") ||
     pathname === "/privacy" ||
     pathname === "/terms";
 

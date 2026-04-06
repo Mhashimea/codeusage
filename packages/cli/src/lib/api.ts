@@ -67,9 +67,11 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
 
     const errorData = (await response.json().catch(() => ({}))) as {
       error?: string;
+      details?: unknown;
     };
     const errorMsg = errorData.error || `API error: ${response.status}`;
-    await logError("api", `sendTask failed: ${errorMsg}`, `status=${response.status}`).catch(() => {});
+    const detailsStr = errorData.details ? JSON.stringify(errorData.details) : "";
+    await logError("api", `sendTask failed: ${errorMsg}`, `status=${response.status}${detailsStr ? ` details=${detailsStr}` : ""}`).catch(() => {});
     return {
       success: false,
       error: errorMsg,

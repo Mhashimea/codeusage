@@ -9,7 +9,8 @@ import {
   isValidProviderId,
 } from "@codeusage/shared";
 import { getConfig, isConfigured, getProvider } from "../lib/config.js";
-import { parseSessionLog } from "../lib/session-log.js";
+import { parseSessionLog, parseSessionLogFromPath } from "../lib/session-log.js";
+import { loadCurrentSession } from "./session-start.js";
 import { detectProjectSlug } from "../lib/git.js";
 import { sendTask } from "../lib/api.js";
 import {
@@ -26,7 +27,7 @@ import {
 } from "../lib/session-state.js";
 import { logError, logInfo, logDebug } from "../lib/logger.js";
 
-const CLI_VERSION = "0.1.33";
+const CLI_VERSION = "0.1.34";
 
 export const hookStopCommand = new Command("stop")
   .description("Handle AI coding tool stop hook (internal)")
@@ -63,8 +64,26 @@ export const hookStopCommand = new Command("stop")
       console.log(`Home: ${chalk.cyan(require("os").homedir())}`);
     }
 
-    // Parse session log for the configured provider
-    const session = await parseSessionLog(cwd, providerId);
+    // Try to use saved session info from SessionStart hook first
+    // Falls back to path-guessing approach if not available
+    let session = null;
+    const currentSession = await loadCurrentSession();
+
+    if (currentSession?.transcript_path && providerId === "claude_code") {
+      session = await parseSessionLogFromPath(
+        currentSession.transcript_path,
+        currentSession.session_id
+      );
+      if (session && options.debug) {
+        console.log(chalk.green("Using SessionStart transcript path"));
+      }
+    }
+
+    // Fallback: guess the session log path
+    if (!session) {
+      session = await parseSessionLog(cwd, providerId);
+    }
+
     if (!session) {
       if (options.dryRun || options.debug) {
         console.log(chalk.yellow("Could not parse session log"));

@@ -701,6 +701,134 @@ async function parseCodexSession(_cwd: string): Promise<SessionData | null> {
 // === Main API ===
 
 /**
+ * Parse session log directly from a known transcript path
+ * Used when SessionStart hook provides the path — skips directory guessing
+ */
+export async function parseSessionLogFromPath(
+  transcriptPath: string,
+  sessionId: string
+): Promise<SessionData | null> {
+  try {
+    await fs.access(transcriptPath);
+  } catch {
+    return null;
+  }
+
+  try {
+    const content = await fs.readFile(transcriptPath, "utf-8");
+    const lines = content.trim().split("\n").filter(Boolean);
+
+    let inputTokens = 0;
+    let outputTokens = 0;
+    let cacheTokens = 0;
+    let model = "claude-sonnet-4-5";
+    const toolCounts: Record<string, number> = {};
+    const fileChanges: Map<string, { additions: number; deletions: number; change_type: FileChangeType }> = new Map();
+    let startTime: number | null = null;
+    let endTime: number | null = null;
+
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.timestamp) {
+          const ts = new Date(entry.timestamp).getTime();
+          if (!startTime || ts < startTime) startTime = ts;
+          if (!endTime || ts > endTime) endTime = ts;
+        }
+
+        const message = entry.message;
+        if (message) {
+          if (message.usage) {
+            inputTokens += message.usage.input_tokens || 0;
+            outputTokens += message.usage.output_tokens || 0;
+            cacheTokens += message.usage.cache_read_input_tokens || 0;
+          }
+          if (message.model) {
+            model = message.model;
+          }
+          if (Array.isArray(message.content)) {
+            for (const block of message.content) {
+              if (block.type === "tool_use" && block.name) {
+                toolCounts[block.name] = (toolCounts[block.name] || 0) + 1;
+
+                if (block.name === "Edit") {
+                  const filePath = block.input?.file_path;
+                  if (filePath && typeof filePath === "string") {
+                    const oldString = block.input?.old_string || "";
+                    const newString = block.input?.new_string || "";
+                    const { additions, deletions } = calculateLineDiff(oldString, newString);
+                    const existing = fileChanges.get(filePath) || { additions: 0, deletions: 0, change_type: "modified" as FileChangeType };
+                    fileChanges.set(filePath, {
+                      additions: existing.additions + additions,
+                      deletions: existing.deletions + deletions,
+                      change_type: existing.change_type,
+                    });
+                  }
+                } else if (block.name === "Write") {
+                  const filePath = block.input?.file_path;
+                  if (filePath && typeof filePath === "string") {
+                    const content = block.input?.content || "";
+                    const additions = content.split("\n").length;
+                    const existing = fileChanges.get(filePath);
+                    if (existing) {
+                      fileChanges.set(filePath, {
+                        additions: existing.additions + additions,
+                        deletions: existing.deletions,
+                        change_type: existing.change_type,
+                      });
+                    } else {
+                      fileChanges.set(filePath, { additions, deletions: 0, change_type: "created" });
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      } catch {
+        // Skip malformed lines
+      }
+    }
+
+    const tools_used = Object.entries(toolCounts).map(([name, count]) => ({ name, count }));
+    const duration_sec = startTime && endTime ? Math.round((endTime - startTime) / 1000) : 0;
+
+    const files_changed_details: FileChangeDetail[] = Array.from(fileChanges.entries()).map(
+      ([filePath, stats]) => ({
+        path: filePath,
+        additions: stats.additions,
+        deletions: stats.deletions,
+        change_type: stats.change_type,
+      })
+    );
+
+    const files_created = files_changed_details.filter(f => f.change_type === "created").length;
+    const files_modified = files_changed_details.filter(f => f.change_type === "modified").length;
+    const files_deleted = files_changed_details.filter(f => f.change_type === "deleted").length;
+
+    return {
+      session_id: sessionId,
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      cache_tokens: cacheTokens,
+      model,
+      tools_used,
+      tool_counts: toolCounts,
+      files_changed: fileChanges.size,
+      files_created,
+      files_modified,
+      files_deleted,
+      files_changed_details,
+      duration_sec,
+      start_time: startTime,
+      end_time: endTime,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Parse session log for the given provider
  * Uses provider-specific parser based on the configured provider
  */

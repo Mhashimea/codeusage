@@ -53,6 +53,12 @@ export default function LandingPage() {
             </div>
             <div className="flex items-center gap-4">
               <Link
+                href="/blog"
+                className="text-sm text-muted-foreground hover:text-foreground transition-colors"
+              >
+                Blog
+              </Link>
+              <Link
                 href="/docs"
                 className="text-sm text-muted-foreground hover:text-foreground transition-colors"
               >
@@ -88,7 +94,7 @@ export default function LandingPage() {
 
               {/* Main Heading */}
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-6 animate-slide-up">
-                Know what your team sends to{" "}
+                See how your team uses{" "}
                 <span className="text-[#D97757]">AI coding tools</span>
               </h1>
 
@@ -755,6 +761,9 @@ export default function LandingPage() {
               &copy; {new Date().getFullYear()} Codeusage. All rights reserved.
             </p>
             <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <Link href="/blog" className="hover:text-foreground transition-colors">
+                Blog
+              </Link>
               <Link href="/docs" className="hover:text-foreground transition-colors">
                 Docs
               </Link>
