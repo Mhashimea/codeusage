@@ -109,9 +109,12 @@ export function TaskList({ sessionGroups, pagination }: TaskListProps) {
 
   const formatDuration = (seconds: number) => {
     if (seconds < 60) return `${seconds}s`;
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return secs > 0 ? `${mins}m ${secs}s` : `${mins}m`;
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return mins > 0 ? `${hours}h ${mins}m` : `${hours}h`;
+    }
+    return `${mins}m`;
   };
 
   // Calculate summary stats from session groups

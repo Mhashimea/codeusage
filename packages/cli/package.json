@@ -1,14 +1,14 @@
 {
   "name": "codeusage-cli",
-  "version": "0.1.31",
+  "version": "0.1.32",
   "description": "CLI for Codeusage - AI coding tool intelligence platform",
   "author": "Hashim",
   "license": "MIT",
   "type": "module",
   "bin": {
-    "codeusage": "./dist/index.js"
+    "codeusage": "./dist/index.mjs"
   },
-  "main": "./dist/index.js",
+  "main": "./dist/index.mjs",
   "files": [
     "dist",
     "README.md"
