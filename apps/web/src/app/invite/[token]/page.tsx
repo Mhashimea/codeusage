@@ -21,7 +21,7 @@ type Step = "loading" | "details" | "otp" | "login-required";
 export default function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params);
   const router = useRouter();
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
 
   const [step, setStep] = useState<Step>("loading");
   const [invitation, setInvitation] = useState<InvitationDetails | null>(null);
@@ -195,7 +195,8 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
         return;
       }
 
-      // Success - redirect to app
+      // Refresh session to pick up the new workspace
+      await update();
       router.push("/app");
       router.refresh();
     } catch {

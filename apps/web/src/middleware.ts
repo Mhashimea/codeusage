@@ -47,8 +47,13 @@ export default auth((req) => {
     return NextResponse.redirect(new URL("/app", req.url));
   }
 
-  // If logged in and on login page, redirect to app
+  // If logged in and on login page, redirect to app or invite
   if (isLoggedIn && pathname === "/login") {
+    // Preserve invite flow — redirect back to invite page if token present
+    const inviteToken = req.nextUrl.searchParams.get("inviteToken");
+    if (inviteToken) {
+      return NextResponse.redirect(new URL(`/invite/${inviteToken}`, req.url));
+    }
     if (hasWorkspace) {
       return NextResponse.redirect(new URL("/app", req.url));
     } else {

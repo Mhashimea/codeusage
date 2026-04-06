@@ -1,4 +1,4 @@
-# Afterburn — Phase 2: Codex Integration Tasks
+# Codeusage — Phase 2: Codex Integration Tasks
 
 **Created:** March 2026
 **Status:** Planning
@@ -8,7 +8,7 @@
 
 ## Overview
 
-This document outlines the tasks required to add OpenAI Codex CLI support to Afterburn. Currently, Afterburn only supports Claude Code. Phase 2 adds Codex as a second provider.
+This document outlines the tasks required to add OpenAI Codex CLI support to Codeusage. Currently, Codeusage only supports Claude Code. Phase 2 adds Codex as a second provider.
 
 ---
 
@@ -92,7 +92,7 @@ This document outlines the tasks required to add OpenAI Codex CLI support to Aft
 
 - [ ] **2.2.1** Create `hooks-file-codex.ts` in `src/lib/`
   - Read/write `~/.codex/hooks.json`
-  - Register Afterburn hooks for `Stop` event
+  - Register Codeusage hooks for `Stop` event
   - Merge with existing hooks (never overwrite)
   - Handle hook removal on logout
 
@@ -311,8 +311,8 @@ This document outlines the tasks required to add OpenAI Codex CLI support to Aft
   "hooks": {
     "Stop": [{
       "type": "command",
-      "command": "afterburn hook stop",
-      "statusMessage": "Syncing to Afterburn...",
+      "command": "codeusage hook stop",
+      "statusMessage": "Syncing to Codeusage...",
       "timeout": 10
     }]
   }

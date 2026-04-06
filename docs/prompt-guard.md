@@ -1,10 +1,10 @@
-# Afterburn — Prompt Guard
+# Codeusage — Prompt Guard
 
 ## Feature Documentation v0.3
 
 **Status:** Planned — v0.3
 **Hook used:** `UserPromptSubmit`
-**Processing:** 100% local — nothing stored, nothing sent to Afterburn servers
+**Processing:** 100% local — nothing stored, nothing sent to Codeusage servers
 **Scope:** Claude Code (v0.3), Codex (v0.4 when hook matures)
 
 ---
@@ -13,9 +13,9 @@
 
 Prompt Guard is a client-side safety net that runs before every prompt reaches Claude Code or Codex. If the prompt contains a known sensitive pattern — an AWS key, a database connection string, a private key — it is blocked before the AI model ever sees it.
 
-Nothing is stored. Nothing is logged. Nothing is sent to Afterburn's servers. The check happens entirely on the developer's machine in milliseconds.
+Nothing is stored. Nothing is logged. Nothing is sent to Codeusage's servers. The check happens entirely on the developer's machine in milliseconds.
 
-**One sentence:** Before your prompt reaches Claude Code, Afterburn checks it — and if it finds something sensitive, it stops it.
+**One sentence:** Before your prompt reaches Claude Code, Codeusage checks it — and if it finds something sensitive, it stops it.
 
 ---
 
@@ -40,7 +40,7 @@ This is distinct from every other tool in the space:
 
 ### The hook
 
-Prompt Guard uses the `UserPromptSubmit` hook — the same hook Afterburn already registers during `afterburn init`. No new installation required. When the developer types a prompt and submits it, this hook fires before Claude Code processes it.
+Prompt Guard uses the `UserPromptSubmit` hook — the same hook Codeusage already registers during `codeusage init`. No new installation required. When the developer types a prompt and submits it, this hook fires before Claude Code processes it.
 
 ```
 Developer types prompt
@@ -56,11 +56,11 @@ Pattern matched?
 
 ### Local pattern cache
 
-Patterns are stored in `~/.afterburn/patterns.json` on the developer's machine. This file is synced from workspace settings when:
+Patterns are stored in `~/.codeusage/patterns.json` on the developer's machine. This file is synced from workspace settings when:
 
-- The developer runs `afterburn init` or `afterburn sync`
+- The developer runs `codeusage init` or `codeusage sync`
 - The local cache is older than 24 hours — refreshed automatically in the background
-- The developer runs `afterburn patterns sync` manually
+- The developer runs `codeusage patterns sync` manually
 
 The check runs against the local cache — no network call is made at prompt time. If the patterns file cannot be loaded, Prompt Guard fails open — prompt is allowed through — and a local warning is shown. It never fails in a way that blocks the developer's work.
 
@@ -68,7 +68,7 @@ The check runs against the local cache — no network call is made at prompt tim
 
 ```
 ──────────────────────────────────────────────────────
-⚠  afterburn · prompt blocked
+⚠  codeusage · prompt blocked
 ──────────────────────────────────────────────────────
    Reason:  AWS access key detected in your prompt
    Pattern: AWS Access Key (AKIA...)
@@ -133,7 +133,7 @@ Not in v0.3. Workspace admins will be able to define custom regex patterns from 
 
 From the dashboard: **Settings → Prompt Guard → Enable**
 
-This is a workspace-level setting. When an admin enables it, the setting propagates to all developer machines when their pattern cache next refreshes — within 24 hours, or immediately if the developer runs `afterburn patterns sync`.
+This is a workspace-level setting. When an admin enables it, the setting propagates to all developer machines when their pattern cache next refreshes — within 24 hours, or immediately if the developer runs `codeusage patterns sync`.
 
 Individual developers cannot override the workspace setting. The admin controls whether Prompt Guard is active for the team.
 
@@ -141,16 +141,16 @@ Individual developers cannot override the workspace setting. The admin controls 
 
 ```bash
 # Manually sync pattern cache from workspace settings
-afterburn patterns sync
+codeusage patterns sync
 
 # Show cache status — last synced, pattern count, workspace setting
-afterburn patterns status
+codeusage patterns status
 
 # List all active patterns by name
-afterburn patterns list
+codeusage patterns list
 
 # Test a string against the active pattern cache (for debugging)
-afterburn patterns test "postgresql://user:pass@host/db"
+codeusage patterns test "postgresql://user:pass@host/db"
 ```
 
 ---
@@ -159,13 +159,13 @@ afterburn patterns test "postgresql://user:pass@host/db"
 
 This section is the most important part of the feature. It must be communicated clearly.
 
-**Prompt content:** Never sent to Afterburn's servers. Never written to disk. Never logged anywhere. The hook process reads the prompt, runs the pattern check locally, and discards the text. That is all.
+**Prompt content:** Never sent to Codeusage's servers. Never written to disk. Never logged anywhere. The hook process reads the prompt, runs the pattern check locally, and discards the text. That is all.
 
 **If a prompt is blocked:** The block happens locally on the developer's machine. The dashboard does not show blocked prompt history. The admin cannot see what was blocked or what the prompt contained. This is a deliberate decision — Prompt Guard protects developers from accidental exposure, it is not a surveillance tool.
 
-**What Afterburn does store:** Only the workspace setting (on/off) and the pattern library. No prompt content under any circumstances.
+**What Codeusage does store:** Only the workspace setting (on/off) and the pattern library. No prompt content under any circumstances.
 
-**Why no logging of blocked prompts:** If blocked prompt content were logged and sent to Afterburn's servers, Afterburn would itself become a repository of the credentials it is trying to prevent from being exposed. That defeats the purpose entirely.
+**Why no logging of blocked prompts:** If blocked prompt content were logged and sent to Codeusage's servers, Codeusage would itself become a repository of the credentials it is trying to prevent from being exposed. That defeats the purpose entirely.
 
 ---
 
@@ -176,7 +176,7 @@ Prompt Guard is designed to fail safely. It must never break a developer's workf
 | Failure scenario                  | Behaviour                                                       |
 | --------------------------------- | --------------------------------------------------------------- |
 | Pattern cache file missing        | Fail open — prompt goes through, local warning shown            |
-| Pattern cache file corrupted      | Fail open — developer prompted to run `afterburn patterns sync` |
+| Pattern cache file corrupted      | Fail open — developer prompted to run `codeusage patterns sync` |
 | Pattern cache older than 7 days   | Fail open with warning — patterns may be outdated               |
 | Hook script crashes               | Fail open — Claude Code continues normally                      |
 | Network unavailable — cannot sync | Fail open using last known cache                                |
@@ -222,7 +222,7 @@ Imperceptible in normal use. The developer will not notice any delay between sub
 
 **To developers:**
 
-> "Afterburn already sees every prompt before it reaches Claude Code. Prompt Guard adds one step — if it spots something that looks like a credential, it stops the prompt before the AI ever sees it. Nothing is stored. It just blocks."
+> "Codeusage already sees every prompt before it reaches Claude Code. Prompt Guard adds one step — if it spots something that looks like a credential, it stops the prompt before the AI ever sees it. Nothing is stored. It just blocks."
 
 **To PMs and admins:**
 
@@ -250,7 +250,7 @@ Imperceptible in normal use. The developer will not notice any delay between sub
 - As a developer, my prompt is blocked before it reaches Claude Code if it contains a credential
 - As a developer, I see exactly what was detected and why my prompt was blocked
 - As a developer, I can resubmit after removing the sensitive content
-- As a developer, my prompt content is never sent to Afterburn's servers under any circumstances
+- As a developer, my prompt content is never sent to Codeusage's servers under any circumstances
 - As a developer, my workflow is never broken by a Prompt Guard failure — it always fails open
 
 **Admin / PM:**
@@ -262,4 +262,4 @@ Imperceptible in normal use. The developer will not notice any delay between sub
 
 ---
 
-_Afterburn Prompt Guard · v0.3 · Internal_
+_Codeusage Prompt Guard · v0.3 · Internal_

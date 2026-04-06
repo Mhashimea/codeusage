@@ -15,14 +15,23 @@ import {
   ChevronRight,
   Search,
 } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { BUILT_IN_PATTERNS, CATEGORY_NAMES, type Pattern } from "@codeusage/shared";
+import {
+  BUILT_IN_PATTERNS,
+  CATEGORY_NAMES,
+  type Pattern,
+} from "@codeusage/shared";
 
 interface GuardPageContentProps {
   enabled: boolean;
@@ -154,16 +163,22 @@ export function GuardPageContent({
   const router = useRouter();
   const [isEnabled, setIsEnabled] = useState(enabled);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [disabledPatterns, setDisabledPatterns] = useState<string[]>(initialDisabledPatterns);
-  const [disabledCategories, setDisabledCategories] = useState<string[]>(initialDisabledCategories);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [disabledPatterns, setDisabledPatterns] = useState<string[]>(
+    initialDisabledPatterns,
+  );
+  const [disabledCategories, setDisabledCategories] = useState<string[]>(
+    initialDisabledCategories,
+  );
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+    new Set(),
+  );
   const [searchQuery, setSearchQuery] = useState("");
 
   const patternsByCategory = getPatternsByCategory();
   const categories = Object.keys(patternsByCategory);
 
   // Count active patterns
-  const activePatternCount = BUILT_IN_PATTERNS.filter(p => {
+  const activePatternCount = BUILT_IN_PATTERNS.filter((p) => {
     if (disabledCategories.includes(p.category)) return false;
     if (disabledPatterns.includes(p.id)) return false;
     return true;
@@ -174,9 +189,9 @@ export function GuardPageContent({
     (acc, [category, patterns]) => {
       if (searchQuery) {
         const filtered = patterns.filter(
-          p =>
+          (p) =>
             p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            p.description.toLowerCase().includes(searchQuery.toLowerCase())
+            p.description.toLowerCase().includes(searchQuery.toLowerCase()),
         );
         if (filtered.length > 0) {
           acc[category] = filtered;
@@ -186,7 +201,7 @@ export function GuardPageContent({
       }
       return acc;
     },
-    {} as Record<string, Pattern[]>
+    {} as Record<string, Pattern[]>,
   );
 
   // Toggle master switch
@@ -216,8 +231,8 @@ export function GuardPageContent({
       if (!canEdit) return;
 
       // Optimistic update
-      setDisabledPatterns(prev =>
-        enabled ? prev.filter(id => id !== patternId) : [...prev, patternId]
+      setDisabledPatterns((prev) =>
+        enabled ? prev.filter((id) => id !== patternId) : [...prev, patternId],
       );
 
       try {
@@ -229,19 +244,23 @@ export function GuardPageContent({
 
         if (!response.ok) {
           // Revert on error
-          setDisabledPatterns(prev =>
-            enabled ? [...prev, patternId] : prev.filter(id => id !== patternId)
+          setDisabledPatterns((prev) =>
+            enabled
+              ? [...prev, patternId]
+              : prev.filter((id) => id !== patternId),
           );
         }
       } catch (error) {
         console.error("Failed to toggle pattern:", error);
         // Revert on error
-        setDisabledPatterns(prev =>
-          enabled ? [...prev, patternId] : prev.filter(id => id !== patternId)
+        setDisabledPatterns((prev) =>
+          enabled
+            ? [...prev, patternId]
+            : prev.filter((id) => id !== patternId),
         );
       }
     },
-    [canEdit]
+    [canEdit],
   );
 
   // Toggle entire category
@@ -249,15 +268,19 @@ export function GuardPageContent({
     async (category: string, enabled: boolean) => {
       if (!canEdit) return;
 
-      const categoryPatternIds = patternsByCategory[category].map(p => p.id);
+      const categoryPatternIds = patternsByCategory[category].map((p) => p.id);
 
       // Optimistic update
       if (enabled) {
-        setDisabledCategories(prev => prev.filter(c => c !== category));
-        setDisabledPatterns(prev => prev.filter(id => !categoryPatternIds.includes(id)));
+        setDisabledCategories((prev) => prev.filter((c) => c !== category));
+        setDisabledPatterns((prev) =>
+          prev.filter((id) => !categoryPatternIds.includes(id)),
+        );
       } else {
-        setDisabledCategories(prev => [...prev, category]);
-        setDisabledPatterns(prev => prev.filter(id => !categoryPatternIds.includes(id)));
+        setDisabledCategories((prev) => [...prev, category]);
+        setDisabledPatterns((prev) =>
+          prev.filter((id) => !categoryPatternIds.includes(id)),
+        );
       }
 
       try {
@@ -276,7 +299,7 @@ export function GuardPageContent({
         router.refresh();
       }
     },
-    [canEdit, patternsByCategory, router]
+    [canEdit, patternsByCategory, router],
   );
 
   // Check if category is fully enabled, partially enabled, or fully disabled
@@ -285,7 +308,9 @@ export function GuardPageContent({
       return "disabled";
     }
     const categoryPatterns = patternsByCategory[category];
-    const disabledCount = categoryPatterns.filter(p => disabledPatterns.includes(p.id)).length;
+    const disabledCount = categoryPatterns.filter((p) =>
+      disabledPatterns.includes(p.id),
+    ).length;
     if (disabledCount === 0) return "enabled";
     if (disabledCount === categoryPatterns.length) return "disabled";
     return "partial";
@@ -299,7 +324,7 @@ export function GuardPageContent({
 
   // Toggle category expansion
   const toggleCategoryExpansion = (category: string) => {
-    setExpandedCategories(prev => {
+    setExpandedCategories((prev) => {
       const next = new Set(prev);
       if (next.has(category)) {
         next.delete(category);
@@ -327,14 +352,19 @@ export function GuardPageContent({
             </h1>
             <Badge
               variant={isEnabled ? "default" : "secondary"}
-              className={isEnabled ? "bg-green-500/10 text-green-500 hover:bg-green-500/20" : ""}
+              className={
+                isEnabled
+                  ? "bg-green-500/10 text-green-500 hover:bg-green-500/20"
+                  : ""
+              }
             >
               {isEnabled ? "Active" : "Disabled"}
             </Badge>
           </div>
           <p className="text-muted-foreground mt-1">
-            Automatically detect and block prompts containing credentials before they reach Claude
-            Code. All checks run locally on developer machines.
+            Automatically detect and block prompts containing credentials before
+            they reach Claude Code. All checks run locally on developer
+            machines.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -343,7 +373,9 @@ export function GuardPageContent({
             onCheckedChange={handleMasterToggle}
             disabled={!canEdit || isUpdating}
           />
-          <span className="text-sm text-muted-foreground">{isEnabled ? "Enabled" : "Disabled"}</span>
+          <span className="text-sm text-muted-foreground">
+            {isEnabled ? "Enabled" : "Disabled"}
+          </span>
         </div>
       </div>
 
@@ -360,7 +392,9 @@ export function GuardPageContent({
                 /{BUILT_IN_PATTERNS.length}
               </span>
             </div>
-            <p className="text-sm text-muted-foreground">Across {categories.length} categories</p>
+            <p className="text-sm text-muted-foreground">
+              Across {categories.length} categories
+            </p>
           </CardContent>
         </Card>
 
@@ -380,7 +414,9 @@ export function GuardPageContent({
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">100%</div>
-            <p className="text-sm text-muted-foreground">Local processing only</p>
+            <p className="text-sm text-muted-foreground">
+              Local processing only
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -391,102 +427,123 @@ export function GuardPageContent({
         <Input
           placeholder="Search patterns..."
           value={searchQuery}
-          onChange={e => setSearchQuery(e.target.value)}
+          onChange={(e) => setSearchQuery(e.target.value)}
           className="pl-10"
         />
       </div>
 
       {/* Pattern Categories - Collapsible */}
       <div className="space-y-2">
-        {Object.entries(filteredPatternsByCategory).map(([category, patterns]) => {
-          const Icon = CATEGORY_ICONS[category] || Shield;
-          const colorClass = CATEGORY_COLORS[category] || "text-gray-500 bg-gray-500/10";
-          const isExpanded = effectiveExpandedCategories.has(category);
-          const categoryState = getCategoryState(category);
-          const enabledCount = patterns.filter(p => isPatternEnabled(p)).length;
+        {Object.entries(filteredPatternsByCategory).map(
+          ([category, patterns]) => {
+            const Icon = CATEGORY_ICONS[category] || Shield;
+            const colorClass =
+              CATEGORY_COLORS[category] || "text-gray-500 bg-gray-500/10";
+            const isExpanded = effectiveExpandedCategories.has(category);
+            const categoryState = getCategoryState(category);
+            const enabledCount = patterns.filter((p) =>
+              isPatternEnabled(p),
+            ).length;
 
-          return (
-            <Card key={category} className="overflow-hidden">
-              {/* Category Header - Always visible */}
-              <div
-                className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => toggleCategoryExpansion(category)}
-              >
-                <div className="flex items-center gap-3">
-                  {isExpanded ? (
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  ) : (
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  )}
-                  <div className={`p-2 rounded-lg ${colorClass}`}>
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <span className="font-medium">{CATEGORY_NAMES[category] || category}</span>
-                    <span className="text-sm text-muted-foreground ml-2">
-                      {enabledCount}/{patterns.length} active
-                    </span>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3" onClick={e => e.stopPropagation()}>
-                  <Checkbox
-                    checked={categoryState === "enabled"}
-                    ref={(el: HTMLButtonElement | null) => {
-                      if (el) {
-                        (el as HTMLButtonElement & { indeterminate: boolean }).indeterminate =
-                          categoryState === "partial";
-                      }
-                    }}
-                    onCheckedChange={(checked: boolean | "indeterminate") => handleCategoryToggle(category, !!checked)}
-                    disabled={!canEdit}
-                    className={cn(
-                      "h-5 w-5",
-                      categoryState === "partial" && "data-[state=checked]:bg-primary/50"
+            return (
+              <Card key={category} className="overflow-hidden">
+                {/* Category Header - Always visible */}
+                <div
+                  className="flex items-center justify-between p-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => toggleCategoryExpansion(category)}
+                >
+                  <div className="flex items-center gap-3">
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" />
                     )}
-                  />
+                    <div className={`p-2 rounded-lg ${colorClass}`}>
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <span className="font-medium">
+                        {CATEGORY_NAMES[category] || category}
+                      </span>
+                      <span className="text-sm text-muted-foreground ml-2">
+                        {enabledCount}/{patterns.length} active
+                      </span>
+                    </div>
+                  </div>
+                  <div
+                    className="flex items-center gap-3"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <Checkbox
+                      checked={categoryState === "enabled"}
+                      ref={(el: HTMLButtonElement | null) => {
+                        if (el) {
+                          (
+                            el as HTMLButtonElement & { indeterminate: boolean }
+                          ).indeterminate = categoryState === "partial";
+                        }
+                      }}
+                      onCheckedChange={(checked: boolean | "indeterminate") =>
+                        handleCategoryToggle(category, !!checked)
+                      }
+                      disabled={!canEdit}
+                      className={cn(
+                        "h-5 w-5",
+                        categoryState === "partial" &&
+                          "data-[state=checked]:bg-primary/50",
+                      )}
+                    />
+                  </div>
                 </div>
-              </div>
 
-              {/* Pattern List - Collapsible */}
-              {isExpanded && (
-                <div className="border-t">
-                  {patterns.map(pattern => {
-                    const patternEnabled = isPatternEnabled(pattern);
-                    return (
-                      <div
-                        key={pattern.id}
-                        className={cn(
-                          "flex items-center justify-between px-4 py-3 border-b last:border-b-0 hover:bg-muted/30 transition-colors",
-                          !patternEnabled && "opacity-50"
-                        )}
-                      >
-                        <div className="flex-1 min-w-0 pl-11">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium truncate">{pattern.name}</span>
+                {/* Pattern List - Collapsible */}
+                {isExpanded && (
+                  <div className="border-t">
+                    {patterns.map((pattern) => {
+                      const patternEnabled = isPatternEnabled(pattern);
+                      return (
+                        <div
+                          key={pattern.id}
+                          className={cn(
+                            "flex items-center justify-between px-4 py-3 border-b last:border-b-0 hover:bg-muted/30 transition-colors",
+                            !patternEnabled && "opacity-50",
+                          )}
+                        >
+                          <div className="flex-1 min-w-0 pl-11">
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium truncate">
+                                {pattern.name}
+                              </span>
+                            </div>
+                            <p className="text-sm text-muted-foreground truncate">
+                              {pattern.description}
+                            </p>
+                            <code className="text-xs bg-muted px-2 py-0.5 rounded mt-1 inline-block">
+                              {getExampleForPattern(pattern.id)}
+                            </code>
                           </div>
-                          <p className="text-sm text-muted-foreground truncate">
-                            {pattern.description}
-                          </p>
-                          <code className="text-xs bg-muted px-2 py-0.5 rounded mt-1 inline-block">
-                            {getExampleForPattern(pattern.id)}
-                          </code>
+                          <div className="flex items-center gap-3 ml-4">
+                            <Switch
+                              checked={patternEnabled}
+                              onCheckedChange={(checked) =>
+                                handlePatternToggle(pattern.id, checked)
+                              }
+                              disabled={
+                                !canEdit ||
+                                disabledCategories.includes(pattern.category)
+                              }
+                              className="data-[state=checked]:bg-green-500"
+                            />
+                          </div>
                         </div>
-                        <div className="flex items-center gap-3 ml-4">
-                          <Switch
-                            checked={patternEnabled}
-                            onCheckedChange={checked => handlePatternToggle(pattern.id, checked)}
-                            disabled={!canEdit || disabledCategories.includes(pattern.category)}
-                            className="data-[state=checked]:bg-green-500"
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </Card>
-          );
-        })}
+                      );
+                    })}
+                  </div>
+                )}
+              </Card>
+            );
+          },
+        )}
       </div>
 
       {/* Info Boxes */}
@@ -494,9 +551,10 @@ export function GuardPageContent({
         <Lock className="h-4 w-4" />
         <AlertTitle>Privacy-First Design</AlertTitle>
         <AlertDescription>
-          Prompt content never leaves developer machines. Blocked prompts are not logged or reported
-          to Afterburn. This feature protects developers from accidental credential exposure —
-          it&apos;s not a monitoring or compliance tool.
+          Prompt content never leaves developer machines. Blocked prompts are
+          not logged or reported to Codeusage. This feature protects developers
+          from accidental credential exposure — it&apos;s not a monitoring or
+          compliance tool.
         </AlertDescription>
       </Alert>
 
@@ -504,14 +562,16 @@ export function GuardPageContent({
         <AlertTriangle className="h-4 w-4 text-yellow-500" />
         <AlertTitle className="text-yellow-500">Coming in v0.4</AlertTitle>
         <AlertDescription>
-          Custom patterns — define your own regex patterns for organization-specific credentials.
+          Custom patterns — define your own regex patterns for
+          organization-specific credentials.
         </AlertDescription>
       </Alert>
 
       {!canEdit && (
         <Alert variant="destructive" className="border-muted bg-muted/50">
           <AlertDescription>
-            Only workspace admins and owners can enable or disable Prompt Guard patterns.
+            Only workspace admins and owners can enable or disable Prompt Guard
+            patterns.
           </AlertDescription>
         </Alert>
       )}

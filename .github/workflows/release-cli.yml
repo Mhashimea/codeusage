@@ -3,7 +3,7 @@ name: Release CLI
 on:
   push:
     tags:
-      - 'cli-v*'
+      - "cli-v*"
 
 jobs:
   build-and-release:
@@ -25,14 +25,14 @@ jobs:
 
       - name: Build packages
         run: |
-          bun run --filter @afterburn/shared build
-          bun run --filter afterburn build
+          bun run --filter @codeusage/shared build
+          bun run --filter codeusage build
 
       - name: Create tarball
         run: |
           cd packages/cli
           npm pack
-          mv afterburn-*.tgz afterburn-cli.tgz
+          mv codeusage-*.tgz codeusage-cli.tgz
 
       - name: Extract version
         id: version
@@ -46,13 +46,13 @@ jobs:
             ## Install
 
             ```bash
-            npm install -g ${{ github.server_url }}/${{ github.repository }}/releases/download/cli-v${{ steps.version.outputs.version }}/afterburn-cli.tgz
+            npm install -g ${{ github.server_url }}/${{ github.repository }}/releases/download/cli-v${{ steps.version.outputs.version }}/codeusage-cli.tgz
             ```
 
             Or download and install locally:
             ```bash
-            npm install -g ./afterburn-cli.tgz
+            npm install -g ./codeusage-cli.tgz
             ```
-          files: packages/cli/afterburn-cli.tgz
+          files: packages/cli/codeusage-cli.tgz
           draft: false
           prerelease: false

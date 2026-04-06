@@ -1,6 +1,6 @@
 # Provider Abstraction — Task List
 
-> **Goal:** Make Afterburn provider-agnostic to support Claude Code, Codex, and future AI coding tools.
+> **Goal:** Make Codeusage provider-agnostic to support Claude Code, Codex, and future AI coding tools.
 > **Current State:** Claude Code only (MVP)
 > **This Sprint:** Prepare architecture for multi-provider support, show Codex as "Coming Soon"
 
@@ -79,12 +79,12 @@ export function getProviderById(id: string): ProviderInfo | undefined {
 |---------|------|-------------|-------|
 | P1.2.1 | Update TelemetryPayload | Ensure `tool_source` uses Provider type | `packages/shared/src/types.ts` |
 | P1.2.2 | Update TaskRecord | Add provider display helpers | Same file |
-| P1.2.3 | Update AfterBurnConfig | Add `provider` field to config type | Same file |
+| P1.2.3 | Update CodeusageConfig | Add `provider` field to config type | Same file |
 
 **Updated config type:**
 
 ```typescript
-export interface AfterBurnConfig {
+export interface CodeusageConfig {
   workspace_key: string;
   developer_alias: string;
   provider: 'claude_code' | 'codex'; // NEW
@@ -110,7 +110,7 @@ export interface AfterBurnConfig {
 **Init flow mockup:**
 
 ```
-$ afterburn init
+$ codeusage init
 
 ? Select your AI coding tool:
   ● Claude Code          Anthropic's AI coding assistant
@@ -124,7 +124,7 @@ $ afterburn init
 ✓ Hooks registered for Claude Code
 ✓ Configuration saved
 
-You're all set! View your dashboard at https://app.afterburn.dev
+You're all set! View your dashboard at https://app.codeusage.dev
 ```
 
 ### 2.2 Provider-Aware Configuration
@@ -148,7 +148,7 @@ You're all set! View your dashboard at https://app.afterburn.dev
 
 ```typescript
 // packages/cli/src/lib/provider-hooks.ts
-import { PROVIDERS, ProviderInfo } from '@afterburn/shared';
+import { PROVIDERS, ProviderInfo } from '@codeusage/shared';
 
 interface ProviderHookConfig {
   settingsPath: (scope: 'global' | 'project', cwd: string) => string;
@@ -162,9 +162,9 @@ const PROVIDER_HOOKS: Record<string, ProviderHookConfig> = {
         ? path.join(os.homedir(), '.claude', 'settings.json')
         : path.join(cwd, '.claude', 'settings.json'),
     hooks: {
-      Stop: [{ command: 'afterburn hook stop' }],
-      PostToolUse: [{ command: 'afterburn hook post-tool-use' }],
-      Notification: [{ command: 'afterburn hook notification' }],
+      Stop: [{ command: 'codeusage hook stop' }],
+      PostToolUse: [{ command: 'codeusage hook post-tool-use' }],
+      Notification: [{ command: 'codeusage hook notification' }],
     },
   },
   // Codex will be added when implemented
@@ -224,9 +224,9 @@ export function getSessionParser(providerId: string): SessionParser | null {
 
 | Task ID | Task | Description | Files |
 |---------|------|-------------|-------|
-| P2.7.1 | Create provider command | `afterburn provider` subcommand group | `packages/cli/src/commands/provider.ts` |
+| P2.7.1 | Create provider command | `codeusage provider` subcommand group | `packages/cli/src/commands/provider.ts` |
 | P2.7.2 | Implement provider list | Show all providers with status | Same file |
-| P2.7.3 | Implement provider switch | `afterburn provider switch <id>` (only active providers) | Same file |
+| P2.7.3 | Implement provider switch | `codeusage provider switch <id>` (only active providers) | Same file |
 | P2.7.4 | Re-register hooks on switch | Unregister old, register new | Same file |
 
 ---
@@ -255,7 +255,7 @@ export function getSessionParser(providerId: string): SessionParser | null {
 
 ```tsx
 // apps/web/components/shared/ProviderBadge.tsx
-import { PROVIDERS } from '@afterburn/shared';
+import { PROVIDERS } from '@codeusage/shared';
 
 interface ProviderBadgeProps {
   providerId: string;
@@ -292,7 +292,7 @@ export function ProviderBadge({ providerId, showLabel = true }: ProviderBadgePro
 |---------|------|-------------|-------|
 | P4.1.1 | Update installation section | Mention multi-provider support | `packages/cli/README.md` |
 | P4.1.2 | Update Quick Start | Show provider selection step | Same file |
-| P4.1.3 | Add provider command docs | Document `afterburn provider` | Same file |
+| P4.1.3 | Add provider command docs | Document `codeusage provider` | Same file |
 | P4.1.4 | Update How It Works | Generic hook explanation | Same file |
 
 ### 4.2 CLAUDE.md

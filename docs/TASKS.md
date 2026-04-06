@@ -1,4 +1,4 @@
-# Afterburn — Development Task List
+# Codeusage — Development Task List
 
 > **Version:** 1.0
 > **Created:** March 2026
@@ -35,7 +35,7 @@ This document contains the complete task breakdown from zero to first version, o
 |---------|------|-------------|------------------------|
 | 1.1.1 | Initialize pnpm workspace | Create `pnpm-workspace.yaml` with workspace definitions for `apps/*` and `packages/*` | `pnpm-workspace.yaml` |
 | 1.1.2 | Create root package.json | Define workspace scripts: `dev`, `build`, `typecheck`, `lint`, `test`, `db:generate`, `db:migrate`, `db:studio` | `package.json` |
-| 1.1.3 | Configure root TypeScript | Create `tsconfig.json` with strict mode, path aliases for `@afterburn/shared` | `tsconfig.json` |
+| 1.1.3 | Configure root TypeScript | Create `tsconfig.json` with strict mode, path aliases for `@codeusage/shared` | `tsconfig.json` |
 | 1.1.4 | Create directory structure | Create folders: `apps/web/`, `packages/cli/`, `packages/shared/` with nested structure per CLAUDE.md | Multiple directories |
 | 1.1.5 | Add .gitignore | Include node_modules, dist, .env.local, .next, coverage, *.log | `.gitignore` |
 | 1.1.6 | Add .nvmrc | Specify Node.js 18+ LTS version | `.nvmrc` |
@@ -44,9 +44,9 @@ This document contains the complete task breakdown from zero to first version, o
 
 | Task ID | Task | Description | Files to Create |
 |---------|------|-------------|-----------------|
-| 1.2.1 | Create shared package.json | Name: `@afterburn/shared`, main entry, TypeScript config | `packages/shared/package.json` |
+| 1.2.1 | Create shared package.json | Name: `@codeusage/shared`, main entry, TypeScript config | `packages/shared/package.json` |
 | 1.2.2 | Create shared tsconfig | Strict mode, ES2022 target, declaration files | `packages/shared/tsconfig.json` |
-| 1.2.3 | Define TypeScript types | Create `TaskRecord`, `TelemetryPayload`, `ToolUsage`, `AfterBurnConfig` interfaces | `packages/shared/src/types.ts` |
+| 1.2.3 | Define TypeScript types | Create `TaskRecord`, `TelemetryPayload`, `ToolUsage`, `CodeusageConfig` interfaces | `packages/shared/src/types.ts` |
 | 1.2.4 | Create Zod schemas | Matching schemas for all types with validation rules | `packages/shared/src/schemas.ts` |
 | 1.2.5 | Implement cost utilities | `MODEL_PRICING` object, `estimateCost()` function, `formatCost()` function, `PRICING_LAST_UPDATED` constant | `packages/shared/src/cost.ts` |
 | 1.2.6 | Create barrel export | Export all from `src/index.ts` | `packages/shared/src/index.ts` |
@@ -94,7 +94,7 @@ export interface TelemetryPayload {
   cli_version: string;
 }
 
-export interface AfterBurnConfig {
+export interface CodeusageConfig {
   workspace_key: string;
   developer_alias: string;
   hook_scope: 'global' | 'project';
@@ -218,7 +218,7 @@ export const tasks = pgTable('tasks', {
 
 | Task ID | Task | Description | Files to Create |
 |---------|------|-------------|-----------------|
-| 2.1.1 | Create CLI package.json | Name: `afterburn`, bin entry, dependencies: commander, chalk, ora, conf, execa, zod | `packages/cli/package.json` |
+| 2.1.1 | Create CLI package.json | Name: `codeusage`, bin entry, dependencies: commander, chalk, ora, conf, execa, zod | `packages/cli/package.json` |
 | 2.1.2 | Configure tsup | Build config for single CJS bundle, no external runtime deps | `packages/cli/tsup.config.ts` |
 | 2.1.3 | Configure TypeScript | Strict mode, target ES2022 | `packages/cli/tsconfig.json` |
 | 2.1.4 | Create CLI entry point | Commander program setup with version and description | `packages/cli/src/index.ts` |
@@ -227,18 +227,18 @@ export const tasks = pgTable('tasks', {
 
 | Task ID | Task | Description | Files to Create |
 |---------|------|-------------|-----------------|
-| 2.2.1 | Create config manager | Use `conf` package to manage `~/.afterburn/config.json` | `packages/cli/src/lib/config.ts` |
-| 2.2.2 | Define config schema | Validate config shape matches `AfterBurnConfig` type | Same file |
+| 2.2.1 | Create config manager | Use `conf` package to manage `~/.codeusage/config.json` | `packages/cli/src/lib/config.ts` |
+| 2.2.2 | Define config schema | Validate config shape matches `CodeusageConfig` type | Same file |
 | 2.2.3 | Implement get/set/clear | Functions to read, write, and clear config values | Same file |
 
 **Config manager implementation:**
 
 ```typescript
 import Conf from 'conf';
-import { AfterBurnConfig } from '@afterburn/shared';
+import { CodeusageConfig } from '@codeusage/shared';
 
-const config = new Conf<AfterBurnConfig>({
-  projectName: 'afterburn',
+const config = new Conf<CodeusageConfig>({
+  projectName: 'codeusage',
   defaults: {
     workspace_key: '',
     developer_alias: '',
@@ -248,11 +248,11 @@ const config = new Conf<AfterBurnConfig>({
   },
 });
 
-export function getConfig(): AfterBurnConfig {
+export function getConfig(): CodeusageConfig {
   return config.store;
 }
 
-export function setConfig(key: keyof AfterBurnConfig, value: any): void {
+export function setConfig(key: keyof CodeusageConfig, value: any): void {
   config.set(key, value);
 }
 
@@ -327,10 +327,10 @@ interface ClaudeSettings {
   [key: string]: unknown;
 }
 
-const AFTERBURN_HOOKS = {
-  Stop: [{ command: 'afterburn hook stop' }],
-  PostToolUse: [{ command: 'afterburn hook post-tool-use' }],
-  Notification: [{ command: 'afterburn hook notification' }],
+const CODEUSAGE_HOOKS = {
+  Stop: [{ command: 'codeusage hook stop' }],
+  PostToolUse: [{ command: 'codeusage hook post-tool-use' }],
+  Notification: [{ command: 'codeusage hook notification' }],
 };
 
 export function getSettingsPath(scope: 'global' | 'project', cwd: string): string {
@@ -355,11 +355,11 @@ export async function registerHooks(scope: 'global' | 'project', cwd: string): P
   // Merge hooks (don't overwrite existing hooks from other tools)
   settings.hooks = settings.hooks || {};
 
-  for (const [hookType, hookDef] of Object.entries(AFTERBURN_HOOKS)) {
+  for (const [hookType, hookDef] of Object.entries(CODEUSAGE_HOOKS)) {
     const existingHooks = settings.hooks[hookType as keyof typeof settings.hooks] || [];
-    const hasAfterburn = existingHooks.some(h => h.command.startsWith('afterburn'));
+    const hasCodeusage = existingHooks.some(h => h.command.startsWith('codeusage'));
 
-    if (!hasAfterburn) {
+    if (!hasCodeusage) {
       settings.hooks[hookType as keyof typeof settings.hooks] = [...existingHooks, ...hookDef];
     }
   }
@@ -382,7 +382,7 @@ export async function unregisterHooks(scope: 'global' | 'project', cwd: string):
       for (const hookType of ['Stop', 'PostToolUse', 'Notification'] as const) {
         if (settings.hooks[hookType]) {
           settings.hooks[hookType] = settings.hooks[hookType]!.filter(
-            h => !h.command.startsWith('afterburn')
+            h => !h.command.startsWith('codeusage')
           );
         }
       }
@@ -539,10 +539,10 @@ export async function parseSessionLog(cwd: string): Promise<SessionData | null> 
 **API client:**
 
 ```typescript
-import { TelemetryPayload } from '@afterburn/shared';
+import { TelemetryPayload } from '@codeusage/shared';
 import { getConfig } from './config';
 
-const API_BASE = process.env.AFTERBURN_API_URL || 'https://app.afterburn.dev';
+const API_BASE = process.env.CODEUSAGE_API_URL || 'https://app.codeusage.dev';
 
 interface ApiResult {
   success: boolean;
@@ -555,7 +555,7 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
   const config = getConfig();
 
   if (!config.workspace_key) {
-    return { success: false, error: 'No workspace key configured. Run: afterburn init' };
+    return { success: false, error: 'No workspace key configured. Run: codeusage init' };
   }
 
   try {
@@ -579,7 +579,7 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
     }
 
     if (response.status === 401) {
-      return { success: false, error: 'Invalid workspace key. Run: afterburn config' };
+      return { success: false, error: 'Invalid workspace key. Run: codeusage config' };
     }
 
     const errorData = await response.json().catch(() => ({}));
@@ -594,7 +594,7 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
 
 | Task ID | Task | Description | Files to Create |
 |---------|------|-------------|-----------------|
-| 2.7.1 | Create buffer manager | Store failed tasks to `~/.afterburn/buffer/{task_id}.json` | `packages/cli/src/lib/buffer.ts` |
+| 2.7.1 | Create buffer manager | Store failed tasks to `~/.codeusage/buffer/{task_id}.json` | `packages/cli/src/lib/buffer.ts` |
 | 2.7.2 | Implement flush logic | On sync, flush buffered tasks oldest-first before sending new | Same file |
 | 2.7.3 | Enforce buffer cap | Warn at 40 records, drop oldest at 50 | Same file |
 
@@ -604,10 +604,10 @@ export async function sendTask(payload: TelemetryPayload): Promise<ApiResult> {
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
-import { TelemetryPayload } from '@afterburn/shared';
+import { TelemetryPayload } from '@codeusage/shared';
 import { randomUUID } from 'crypto';
 
-const BUFFER_DIR = path.join(os.homedir(), '.afterburn', 'buffer');
+const BUFFER_DIR = path.join(os.homedir(), '.codeusage', 'buffer');
 const MAX_BUFFER = 50;
 const WARN_THRESHOLD = 40;
 
@@ -678,7 +678,7 @@ export function getBufferCount(): Promise<number> {
 | 2.8.5 | Choose hook scope | Global (recommended) or Project-only | Same file |
 | 2.8.6 | Auto-detect project | From git remote or directory name | Same file |
 | 2.8.7 | Register hooks | Write to appropriate settings.json | Same file |
-| 2.8.8 | Save config | Persist to `~/.afterburn/config.json` | Same file |
+| 2.8.8 | Save config | Persist to `~/.codeusage/config.json` | Same file |
 | 2.8.9 | Display success | Show dashboard URL and next steps | Same file |
 
 ### 2.9 Hook Commands
@@ -688,13 +688,13 @@ export function getBufferCount(): Promise<number> {
 | 2.9.1 | Create stop hook handler | Main task capture — reads session, builds payload, syncs | `packages/cli/src/hooks/stop.ts` |
 | 2.9.2 | Create post-tool-use hook | Reserved for future tool accumulation (minimal implementation) | `packages/cli/src/hooks/post-tool-use.ts` |
 | 2.9.3 | Create notification hook | Reserved for future use (minimal implementation) | `packages/cli/src/hooks/notification.ts` |
-| 2.9.4 | Register hook commands | Add `afterburn hook stop`, `afterburn hook post-tool-use`, `afterburn hook notification` to CLI | `packages/cli/src/index.ts` |
+| 2.9.4 | Register hook commands | Add `codeusage hook stop`, `codeusage hook post-tool-use`, `codeusage hook notification` to CLI | `packages/cli/src/index.ts` |
 
 **Stop hook implementation:**
 
 ```typescript
 import chalk from 'chalk';
-import { estimateCost, TelemetryPayload } from '@afterburn/shared';
+import { estimateCost, TelemetryPayload } from '@codeusage/shared';
 import { getConfig } from '../lib/config';
 import { parseSessionLog } from '../lib/session-log';
 import { detectProjectSlug } from '../lib/git';
@@ -718,7 +718,7 @@ export async function handleStopHook(): Promise<void> {
     projectSlug = await detectProjectSlug(cwd);
     if (projectSlug === cwd.split('/').pop()) {
       // Just directory name, no git remote
-      console.log(chalk.dim(`Tip: Set a project name: afterburn project set <name>`));
+      console.log(chalk.dim(`Tip: Set a project name: codeusage project set <name>`));
     }
   }
 
@@ -924,7 +924,7 @@ export function MetricCard({ title, value, subtitle, trend }: MetricCardProps) {
 |---------|------|-------------|-----------------|
 | 4.3.1 | Create log command | Show last 10 synced tasks from local cache | `packages/cli/src/commands/log.ts` |
 | 4.3.2 | Implement `--all` flag | Show full local history | Same file |
-| 4.3.3 | Add local task cache | Store synced tasks in `~/.afterburn/history.json` | `packages/cli/src/lib/history.ts` |
+| 4.3.3 | Add local task cache | Store synced tasks in `~/.codeusage/history.json` | `packages/cli/src/lib/history.ts` |
 
 ### 4.4 Sync Command
 
@@ -1087,7 +1087,7 @@ export function MetricCard({ title, value, subtitle, trend }: MetricCardProps) {
 ## Quick Reference: File Structure to Create
 
 ```
-afterburn/
+codeusage/
 ├── apps/
 │   └── web/
 │       ├── app/

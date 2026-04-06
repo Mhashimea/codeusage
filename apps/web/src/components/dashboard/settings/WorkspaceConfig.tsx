@@ -107,8 +107,8 @@ export function WorkspaceConfig({ workspace, userRole }: WorkspaceConfigProps) {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* Workspace Switcher - only show if multiple workspaces */}
-        {workspaces.length > 1 && (
+        {/* Workspace Switcher */}
+        {workspaces.length > 0 && (
           <div className="space-y-2">
             <Label>Switch Workspace</Label>
             <DropdownMenu>
@@ -144,14 +144,7 @@ export function WorkspaceConfig({ workspace, userRole }: WorkspaceConfigProps) {
                     </span>
                   </DropdownMenuItem>
                 ))}
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={() => router.push("/workspace/create")}
-                  className="cursor-pointer"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Create workspace
-                </DropdownMenuItem>
+                {/* Create workspace - hidden for now */}
               </DropdownMenuContent>
             </DropdownMenu>
           </div>

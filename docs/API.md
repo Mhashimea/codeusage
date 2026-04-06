@@ -1,14 +1,14 @@
-# Afterburn API Documentation
+# Codeusage API Documentation
 
-This document describes the REST API endpoints for Afterburn.
+This document describes the REST API endpoints for Codeusage.
 
-**Base URL:** `https://app.afterburn.dev/api/v1` (production) or `http://localhost:3003/api/v1` (development)
+**Base URL:** `https://app.codeusage.dev/api/v1` (production) or `http://localhost:3003/api/v1` (development)
 
 ---
 
 ## Authentication
 
-Afterburn uses two authentication methods:
+Codeusage uses two authentication methods:
 
 1. **API Key (Bearer Token)** - For CLI → API communication
 2. **Session-based (NextAuth)** - For dashboard web app
@@ -37,19 +37,21 @@ Authorization: Bearer ab-ws-your-api-key-here
 
 #### `POST /api/v1/tasks`
 
-Ingest a task record from the CLI. This is the primary endpoint used by the Afterburn CLI to send telemetry data.
+Ingest a task record from the CLI. This is the primary endpoint used by the Codeusage CLI to send telemetry data.
 
 **Authentication:** API Key (Bearer Token)
 
 **Rate Limit:** 100 requests per minute per workspace
 
 **Request Headers:**
+
 ```http
 Authorization: Bearer ab-ws-your-api-key
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
   "developer_alias": "john.doe",
@@ -74,23 +76,24 @@ Content-Type: application/json
 
 **Field Descriptions:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `developer_alias` | string | Yes | Developer identifier (1-100 chars) |
-| `project_slug` | string | Yes | Project identifier (1-200 chars) |
-| `tool_source` | enum | Yes | AI tool source: `claude_code` or `codex` |
-| `model_name` | string | Yes | Model used (e.g., `claude-sonnet-4-5`) |
-| `input_tokens` | integer | Yes | Number of input tokens (≥0) |
-| `output_tokens` | integer | Yes | Number of output tokens (≥0) |
-| `cache_tokens` | integer | Yes | Number of cache tokens (≥0) |
-| `cost_usd` | number | Yes | Estimated cost in USD (0-50) |
-| `files_changed` | integer | Yes | Number of files modified (≥0) |
-| `tools_used` | array | Yes | Array of tool usage objects |
-| `task_duration_sec` | integer | Yes | Task duration in seconds (≥0) |
-| `hook_scope` | enum | Yes | Hook scope: `global` or `project` |
-| `cli_version` | string | Yes | CLI version (1-50 chars) |
+| Field               | Type    | Required | Description                              |
+| ------------------- | ------- | -------- | ---------------------------------------- |
+| `developer_alias`   | string  | Yes      | Developer identifier (1-100 chars)       |
+| `project_slug`      | string  | Yes      | Project identifier (1-200 chars)         |
+| `tool_source`       | enum    | Yes      | AI tool source: `claude_code` or `codex` |
+| `model_name`        | string  | Yes      | Model used (e.g., `claude-sonnet-4-5`)   |
+| `input_tokens`      | integer | Yes      | Number of input tokens (≥0)              |
+| `output_tokens`     | integer | Yes      | Number of output tokens (≥0)             |
+| `cache_tokens`      | integer | Yes      | Number of cache tokens (≥0)              |
+| `cost_usd`          | number  | Yes      | Estimated cost in USD (0-50)             |
+| `files_changed`     | integer | Yes      | Number of files modified (≥0)            |
+| `tools_used`        | array   | Yes      | Array of tool usage objects              |
+| `task_duration_sec` | integer | Yes      | Task duration in seconds (≥0)            |
+| `hook_scope`        | enum    | Yes      | Hook scope: `global` or `project`        |
+| `cli_version`       | string  | Yes      | CLI version (1-50 chars)                 |
 
 **Success Response (201 Created):**
+
 ```json
 {
   "task_id": "550e8400-e29b-41d4-a716-446655440000"
@@ -99,13 +102,13 @@ Content-Type: application/json
 
 **Error Responses:**
 
-| Status | Description | Response |
-|--------|-------------|----------|
-| 400 | Invalid request body | `{ "error": "Invalid request body", "details": {...} }` |
-| 400 | Cost exceeds threshold | `{ "error": "Task cost exceeds sanity threshold ($50)..." }` |
-| 401 | Invalid/missing API key | `{ "error": "Invalid API key" }` |
-| 429 | Rate limit exceeded | `{ "error": "Rate limit exceeded" }` + `Retry-After` header |
-| 500 | Server error | `{ "error": "Internal server error" }` |
+| Status | Description             | Response                                                     |
+| ------ | ----------------------- | ------------------------------------------------------------ |
+| 400    | Invalid request body    | `{ "error": "Invalid request body", "details": {...} }`      |
+| 400    | Cost exceeds threshold  | `{ "error": "Task cost exceeds sanity threshold ($50)..." }` |
+| 401    | Invalid/missing API key | `{ "error": "Invalid API key" }`                             |
+| 429    | Rate limit exceeded     | `{ "error": "Rate limit exceeded" }` + `Retry-After` header  |
+| 500    | Server error            | `{ "error": "Internal server error" }`                       |
 
 ---
 
@@ -113,16 +116,18 @@ Content-Type: application/json
 
 #### `GET /api/v1/auth/validate`
 
-Validate an API key and retrieve workspace information. Used by the CLI during `afterburn init`.
+Validate an API key and retrieve workspace information. Used by the CLI during `codeusage init`.
 
 **Authentication:** API Key (Bearer Token)
 
 **Request Headers:**
+
 ```http
 Authorization: Bearer ab-ws-your-api-key
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "workspace_id": "550e8400-e29b-41d4-a716-446655440000",
@@ -133,10 +138,10 @@ Authorization: Bearer ab-ws-your-api-key
 
 **Error Responses:**
 
-| Status | Description | Response |
-|--------|-------------|----------|
-| 401 | Invalid/missing API key | `{ "error": "Invalid API key" }` |
-| 500 | Server error | `{ "error": "Internal server error" }` |
+| Status | Description             | Response                               |
+| ------ | ----------------------- | -------------------------------------- |
+| 401    | Invalid/missing API key | `{ "error": "Invalid API key" }`       |
+| 500    | Server error            | `{ "error": "Internal server error" }` |
 
 ---
 
@@ -149,11 +154,13 @@ Rotate the workspace API key. The old key is invalidated immediately.
 **Authentication:** Session-based (Dashboard login required)
 
 **Request Headers:**
+
 ```http
 Cookie: next-auth.session-token=...
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "api_key": "ab-ws-new-key-here-abc123...",
@@ -163,10 +170,10 @@ Cookie: next-auth.session-token=...
 
 **Error Responses:**
 
-| Status | Description | Response |
-|--------|-------------|----------|
-| 401 | Not authenticated | `{ "error": "Unauthorized" }` |
-| 500 | Server error | `{ "error": "Failed to rotate API key" }` |
+| Status | Description       | Response                                  |
+| ------ | ----------------- | ----------------------------------------- |
+| 401    | Not authenticated | `{ "error": "Unauthorized" }`             |
+| 500    | Server error      | `{ "error": "Failed to rotate API key" }` |
 
 ---
 
@@ -179,12 +186,14 @@ Update workspace settings (currently supports name only).
 **Authentication:** Session-based (Dashboard login required)
 
 **Request Headers:**
+
 ```http
 Content-Type: application/json
 Cookie: next-auth.session-token=...
 ```
 
 **Request Body:**
+
 ```json
 {
   "name": "New Workspace Name"
@@ -192,6 +201,7 @@ Cookie: next-auth.session-token=...
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "workspace": {
@@ -204,11 +214,11 @@ Cookie: next-auth.session-token=...
 
 **Error Responses:**
 
-| Status | Description | Response |
-|--------|-------------|----------|
-| 400 | Invalid name | `{ "error": "Name is required" }` |
-| 401 | Not authenticated | `{ "error": "Unauthorized" }` |
-| 500 | Server error | `{ "error": "Failed to update workspace" }` |
+| Status | Description       | Response                                    |
+| ------ | ----------------- | ------------------------------------------- |
+| 400    | Invalid name      | `{ "error": "Name is required" }`           |
+| 401    | Not authenticated | `{ "error": "Unauthorized" }`               |
+| 500    | Server error      | `{ "error": "Failed to update workspace" }` |
 
 ---
 
@@ -221,11 +231,13 @@ Get all developers who have submitted tasks to the workspace.
 **Authentication:** Session-based (Dashboard login required)
 
 **Request Headers:**
+
 ```http
 Cookie: next-auth.session-token=...
 ```
 
 **Success Response (200 OK):**
+
 ```json
 {
   "developers": [
@@ -247,10 +259,10 @@ Cookie: next-auth.session-token=...
 
 **Error Responses:**
 
-| Status | Description | Response |
-|--------|-------------|----------|
-| 401 | Not authenticated | `{ "error": "Unauthorized" }` |
-| 500 | Server error | `{ "error": "Failed to fetch developers" }` |
+| Status | Description       | Response                                    |
+| ------ | ----------------- | ------------------------------------------- |
+| 401    | Not authenticated | `{ "error": "Unauthorized" }`               |
+| 500    | Server error      | `{ "error": "Failed to fetch developers" }` |
 
 ---
 
@@ -263,12 +275,14 @@ Server-Sent Events endpoint for real-time task notifications.
 **Authentication:** Session-based (Dashboard login required)
 
 **Request Headers:**
+
 ```http
 Accept: text/event-stream
 Cookie: next-auth.session-token=...
 ```
 
 **Response Headers:**
+
 ```http
 Content-Type: text/event-stream
 Cache-Control: no-cache
@@ -278,35 +292,39 @@ Connection: keep-alive
 **Event Types:**
 
 **Connection Established:**
+
 ```
 data: {"type":"connected"}
 ```
 
 **New Task:**
+
 ```
 data: {"type":"new_task","task":{"id":"...","developer_alias":"john.doe","project_slug":"my-project","cost_usd":"0.0075","input_tokens":1500,"output_tokens":500,"created_at":"2024-03-15T10:30:00.000Z"}}
 ```
 
 **Heartbeat (every 30 seconds):**
+
 ```
 : heartbeat
 ```
 
 **Usage Example (JavaScript):**
+
 ```javascript
-const eventSource = new EventSource('/api/v1/stream', {
-  withCredentials: true
+const eventSource = new EventSource("/api/v1/stream", {
+  withCredentials: true,
 });
 
 eventSource.onmessage = (event) => {
   const data = JSON.parse(event.data);
-  if (data.type === 'new_task') {
-    console.log('New task:', data.task);
+  if (data.type === "new_task") {
+    console.log("New task:", data.task);
   }
 };
 
 eventSource.onerror = () => {
-  console.error('SSE connection error');
+  console.error("SSE connection error");
 };
 ```
 
@@ -321,11 +339,13 @@ Register a new workspace and user account.
 **Authentication:** None (public endpoint)
 
 **Request Headers:**
+
 ```http
 Content-Type: application/json
 ```
 
 **Request Body:**
+
 ```json
 {
   "workspaceName": "My Team",
@@ -336,13 +356,14 @@ Content-Type: application/json
 
 **Field Descriptions:**
 
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `workspaceName` | string | Yes | Workspace display name (1-100 chars) |
-| `email` | string | Yes | Valid email address |
-| `password` | string | Yes | Password (minimum 8 characters) |
+| Field           | Type   | Required | Description                          |
+| --------------- | ------ | -------- | ------------------------------------ |
+| `workspaceName` | string | Yes      | Workspace display name (1-100 chars) |
+| `email`         | string | Yes      | Valid email address                  |
+| `password`      | string | Yes      | Password (minimum 8 characters)      |
 
 **Success Response (200 OK):**
+
 ```json
 {
   "success": true,
@@ -355,11 +376,11 @@ Content-Type: application/json
 
 **Error Responses:**
 
-| Status | Description | Response |
-|--------|-------------|----------|
-| 400 | Validation error | `{ "error": "Invalid input" }` |
-| 400 | Email exists | `{ "error": "An account with this email already exists" }` |
-| 500 | Server error | `{ "error": "Internal server error" }` |
+| Status | Description      | Response                                                   |
+| ------ | ---------------- | ---------------------------------------------------------- |
+| 400    | Validation error | `{ "error": "Invalid input" }`                             |
+| 400    | Email exists     | `{ "error": "An account with this email already exists" }` |
+| 500    | Server error     | `{ "error": "Internal server error" }`                     |
 
 ---
 
@@ -368,6 +389,7 @@ Content-Type: application/json
 The task ingestion endpoint (`POST /api/v1/tasks`) is rate limited to **100 requests per minute** per workspace.
 
 When the rate limit is exceeded:
+
 - HTTP Status: `429 Too Many Requests`
 - Response: `{ "error": "Rate limit exceeded" }`
 - Header: `Retry-After: <seconds>` indicating when to retry
@@ -403,11 +425,11 @@ For validation errors, additional details may be included:
 
 The CLI calculates task costs using the following pricing (per 1M tokens):
 
-| Model | Input | Output | Cache |
-|-------|-------|--------|-------|
-| `claude-opus-4` | $15.00 | $75.00 | $1.50 |
-| `claude-sonnet-4-5` | $3.00 | $15.00 | $0.30 |
-| `claude-haiku-4-5` | $0.80 | $4.00 | $0.08 |
+| Model               | Input  | Output | Cache |
+| ------------------- | ------ | ------ | ----- |
+| `claude-opus-4`     | $15.00 | $75.00 | $1.50 |
+| `claude-sonnet-4-5` | $3.00  | $15.00 | $0.30 |
+| `claude-haiku-4-5`  | $0.80  | $4.00  | $0.08 |
 
 The API rejects any task with `cost_usd > $50` as a sanity check against calculation errors.
 
@@ -416,12 +438,14 @@ The API rejects any task with `cost_usd > $50` as a sanity check against calcula
 ## Data Privacy
 
 The API collects **metadata only**:
+
 - Token counts and costs
 - Tool usage statistics
 - File change counts
 - Developer aliases and project slugs
 
 The API does **not** collect:
+
 - Prompt text or AI responses
 - File contents or diffs
 - Source code

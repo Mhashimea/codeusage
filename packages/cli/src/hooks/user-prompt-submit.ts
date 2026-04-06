@@ -97,7 +97,7 @@ function printBlockMessage(patternName: string, description: string): void {
   // All output must go to stderr, not stdout.
   const lines = [
     "",
-    `⚠  Prompt Guard blocked your message`,
+    `⚠  Codeusage blocked your message`,
     "",
     `  Reason:  ${description}`,
     `  Pattern: ${patternName}`,

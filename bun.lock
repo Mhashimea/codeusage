@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "afterburn",
+      "name": "codeusage",
       "devDependencies": {
         "turbo": "^2.4.0",
       },

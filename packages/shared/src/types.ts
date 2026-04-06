@@ -215,7 +215,7 @@ export interface PatternMatch {
 
 /**
  * Local pattern cache stored on developer machine
- * Location: ~/.afterburn/patterns.json
+ * Location: ~/.codeusage/patterns.json
  */
 export interface PatternCache {
   enabled: boolean;

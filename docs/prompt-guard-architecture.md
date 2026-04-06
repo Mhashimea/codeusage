@@ -8,7 +8,7 @@
 
 ## 1. Executive Summary
 
-Prompt Guard is a client-side credential detection system that intercepts prompts before they reach Claude Code. The entire check happens locally on the developer's machine — no prompt content is ever sent to Afterburn servers.
+Prompt Guard is a client-side credential detection system that intercepts prompts before they reach Claude Code. The entire check happens locally on the developer's machine — no prompt content is ever sent to Codeusage servers.
 
 ### Key Principles
 - **100% Local Processing** — Pattern matching runs on developer machine
@@ -44,7 +44,7 @@ Prompt Guard is a client-side credential detection system that intercepts prompt
 ┌─────────────────────────────────────────────────────────────────────────────┐
 │                           DEVELOPER MACHINE                                  │
 │                                                                              │
-│  ~/.afterburn/patterns.json                                                 │
+│  ~/.codeusage/patterns.json                                                 │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │ {                                                                    │   │
 │  │   "enabled": true,                                                   │   │
@@ -74,7 +74,7 @@ Prompt Guard is a client-side credential detection system that intercepts prompt
 │  │                              to developer    Claude Code             │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                              │
-│  Nothing sent to Afterburn servers. Nothing logged. Nothing stored.         │
+│  Nothing sent to Codeusage servers. Nothing logged. Nothing stored.         │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -86,9 +86,9 @@ Prompt Guard is a client-side credential detection system that intercepts prompt
 
 ```
 ┌──────────────┐     ┌─────────────────────┐     ┌──────────────────────┐
-│   CLI        │     │  Afterburn API      │     │  Database            │
+│   CLI        │     │  Codeusage API      │     │  Database            │
 │              │     │                     │     │                      │
-│ afterburn    │────▶│ GET /api/v1/        │────▶│ prompt_guard_        │
+│ codeusage    │────▶│ GET /api/v1/        │────▶│ prompt_guard_        │
 │ patterns     │     │ prompt-guard/       │     │ settings             │
 │ sync         │     │ settings            │     │ (workspace-level)    │
 │              │◀────│                     │◀────│                      │
@@ -98,7 +98,7 @@ Prompt Guard is a client-side credential detection system that intercepts prompt
        │ Write to local cache
        ▼
 ┌──────────────────────────┐
-│ ~/.afterburn/patterns.json│
+│ ~/.codeusage/patterns.json│
 └──────────────────────────┘
 ```
 
@@ -257,7 +257,7 @@ Add `UserPromptSubmit` hook to existing hook registration in `hooks-file.ts`:
         "matcher": "",
         "hooks": [{
           "type": "command",
-          "command": "afterburn hook user-prompt-submit"
+          "command": "codeusage hook user-prompt-submit"
         }]
       }
     ]
@@ -268,16 +268,16 @@ Add `UserPromptSubmit` hook to existing hook registration in `hooks-file.ts`:
 ### 6.3 New Commands
 
 ```bash
-# Subcommand group: afterburn patterns
-afterburn patterns sync      # Force sync patterns from workspace
-afterburn patterns status    # Show cache status
-afterburn patterns list      # List all active patterns
-afterburn patterns test      # Test a string against patterns
+# Subcommand group: codeusage patterns
+codeusage patterns sync      # Force sync patterns from workspace
+codeusage patterns status    # Show cache status
+codeusage patterns list      # List all active patterns
+codeusage patterns test      # Test a string against patterns
 ```
 
 ### 6.4 Pattern Cache File
 
-**Location:** `~/.afterburn/patterns.json`
+**Location:** `~/.codeusage/patterns.json`
 
 ```typescript
 interface PatternCache {
@@ -311,7 +311,7 @@ async function handleUserPromptSubmit(): Promise<void> {
 
   // 3. Check for stale cache (> 7 days)
   if (isCacheStale(cache)) {
-    printWarning("Pattern cache is outdated. Run: afterburn patterns sync");
+    printWarning("Pattern cache is outdated. Run: codeusage patterns sync");
     process.exit(0); // Fail open
   }
 
@@ -635,7 +635,7 @@ Add Prompt Guard to sidebar navigation between Projects and Settings:
 2. Implement pattern matching logic
 3. Implement pattern cache file management
 4. Update hook registration in `hooks-file.ts`
-5. Implement `afterburn patterns` subcommand group
+5. Implement `codeusage patterns` subcommand group
 
 ### Phase 3: Dashboard UI (Week 2)
 1. Create `PromptGuardSection` component
@@ -665,7 +665,7 @@ Add Prompt Guard to sidebar navigation between Projects and Settings:
 - Number of blocked prompts (NEVER)
 
 ### 11.3 What We Store Locally (Developer Machine)
-- `~/.afterburn/patterns.json` — Pattern cache (no prompts)
+- `~/.codeusage/patterns.json` — Pattern cache (no prompts)
 - Nothing else related to Prompt Guard
 
 ### 11.4 Fail-Safe Behavior
@@ -736,10 +736,10 @@ Not needed — Prompt Guard is opt-in via dashboard toggle. Disabled by default.
 
 2. **Pattern sync frequency:** 24 hours default — is this too aggressive or too conservative?
 
-3. **Cache location:** `~/.afterburn/patterns.json` — should this be in a subdirectory for organization?
+3. **Cache location:** `~/.codeusage/patterns.json` — should this be in a subdirectory for organization?
 
 4. **Error reporting:** When a developer runs into a corrupted cache, should we auto-sync or just warn?
 
 ---
 
-_Afterburn Prompt Guard Architecture — v0.3_
+_Codeusage Prompt Guard Architecture — v0.3_
