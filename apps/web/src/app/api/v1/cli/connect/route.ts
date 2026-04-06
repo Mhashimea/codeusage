@@ -47,6 +47,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       workspace_key: apiKey,
       workspace_name: workspace.name,
+      user_name: session.user.name || "",
     });
   } catch (error) {
     console.error("CLI connect error:", error);

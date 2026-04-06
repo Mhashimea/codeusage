@@ -75,9 +75,9 @@ export const initCommand = new Command("init")
 
     const workspaceKey = authResult.workspaceKey!;
 
-    // Step 3: Get developer alias
+    // Step 3: Get developer alias (use profile name from browser auth if available)
     const defaultAlias =
-      process.env.USER || process.env.USERNAME || "developer";
+      authResult.userName || process.env.USER || process.env.USERNAME || "developer";
     const finalAlias = await input({
       message: "Your name/alias:",
       default: defaultAlias,

@@ -8,12 +8,14 @@ const DEFAULT_API_URL = "https://codeusage.dev";
 interface CallbackData {
   workspace_key: string;
   workspace_name: string;
+  user_name?: string;
 }
 
 export interface BrowserAuthResult {
   success: boolean;
   workspaceKey?: string;
   workspaceName?: string;
+  userName?: string;
   error?: string;
 }
 
@@ -168,6 +170,7 @@ export async function browserAuth(): Promise<BrowserAuthResult> {
       success: true,
       workspaceKey: data.workspace_key,
       workspaceName: data.workspace_name,
+      userName: data.user_name,
     };
   } catch (error) {
     return {

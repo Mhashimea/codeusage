@@ -132,6 +132,7 @@ function CliConnectContent() {
         body: JSON.stringify({
           workspace_key: data.workspace_key,
           workspace_name: data.workspace_name,
+          user_name: data.user_name,
         }),
       });
 

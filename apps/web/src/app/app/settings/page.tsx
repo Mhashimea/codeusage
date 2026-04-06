@@ -47,7 +47,7 @@ async function SettingsContent() {
       {userRole === "owner" && <ApiKeySection />}
 
       {/* Developer Roster */}
-      <DeveloperRoster workspaceId={workspace.id} />
+      <DeveloperRoster workspaceId={workspace.id} userRole={userRole ?? undefined} />
     </div>
   );
 }

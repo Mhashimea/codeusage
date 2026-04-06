@@ -47,6 +47,30 @@ export async function getDevelopersByWorkspace(
 }
 
 /**
+ * Merge one developer alias into another
+ * Updates all tasks from fromAlias to toAlias within a workspace
+ * CRITICAL: Always filter by workspace_id
+ */
+export async function mergeDeveloperAlias(
+  workspaceId: string,
+  fromAlias: string,
+  toAlias: string
+): Promise<number> {
+  const result = await db
+    .update(tasks)
+    .set({ developer_alias: toAlias })
+    .where(
+      and(
+        eq(tasks.workspace_id, workspaceId),
+        eq(tasks.developer_alias, fromAlias)
+      )
+    )
+    .returning({ id: tasks.id });
+
+  return result.length;
+}
+
+/**
  * Get developer stats for a specific period
  */
 export async function getDeveloperStats(
