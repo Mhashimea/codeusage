@@ -1,6 +1,6 @@
 # Codeusage CLI
 
-Track your team's AI coding tool usage with zero friction. Get visibility into how Claude Code and other AI tools are used across your organization.
+Track your team's AI coding tool usage with zero friction. Get visibility into how AI coding tools like Claude Code and Codex are used across your organization.
 
 ## Requirements
 
@@ -29,7 +29,7 @@ npm install -g codeusage-cli
 codeusage init
 ```
 
-3. **Done!** Usage is now tracked automatically when you use Claude Code.
+3. **Done!** Usage is now tracked automatically when you use an AI coding tool.
 
 ## Commands
 
@@ -67,6 +67,48 @@ codeusage project ignore
 codeusage project unignore
 ```
 
+### `codeusage provider`
+
+Manage AI coding tool providers.
+
+```bash
+# List all available providers
+codeusage provider list
+
+# Show current provider
+codeusage provider current
+
+# Add hooks for an additional provider (keeps existing)
+codeusage provider add <provider>
+
+# Switch to a different provider
+codeusage provider switch <provider>
+```
+
+### `codeusage guard`
+
+Manage Prompt Guard — scans prompts for credentials before sending. Also available as `codeusage patterns`.
+
+```bash
+# Enable Prompt Guard
+codeusage guard enable
+
+# Disable Prompt Guard
+codeusage guard disable
+
+# Show status and cache info
+codeusage guard status
+
+# List all active patterns
+codeusage guard list
+
+# Sync patterns from workspace settings
+codeusage guard sync
+
+# Test a string against patterns
+codeusage guard test "my-secret-key-123"
+```
+
 ### `codeusage sync`
 
 Manually sync the last task (useful for testing).
@@ -88,6 +130,30 @@ codeusage config get developer_alias
 
 # Set a value
 codeusage config set developer_alias "john"
+```
+
+### `codeusage logs`
+
+View CLI error and diagnostic logs.
+
+```bash
+# Show recent errors (default: last 50 lines)
+codeusage logs
+
+# Show more lines
+codeusage logs -n 100
+
+# Filter by level
+codeusage logs --level warn
+
+# Show all log levels
+codeusage logs --all
+
+# Print log file path
+codeusage logs --path
+
+# Clear all logs
+codeusage logs --clear
 ```
 
 ### `codeusage logout`

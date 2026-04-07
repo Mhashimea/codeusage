@@ -19,7 +19,7 @@ const program = new Command();
 program
   .name("codeusage")
   .description("CLI for Codeusage - AI coding tool intelligence platform")
-  .version("0.1.34");
+  .version("0.1.36");
 
 // Main commands
 program.addCommand(initCommand);
@@ -33,8 +33,9 @@ program.addCommand(logoutCommand);
 program.addCommand(logsCommand);
 
 // Hook commands (called by AI coding tools)
-const hookCommand = new Command("hook")
-  .description("Hook handlers called by AI coding tools (internal use)");
+const hookCommand = new Command("hook").description(
+  "Hook handlers called by AI coding tools (internal use)",
+);
 
 hookCommand.addCommand(hookStopCommand);
 hookCommand.addCommand(hookPostToolUseCommand);

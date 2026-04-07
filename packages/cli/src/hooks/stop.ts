@@ -9,7 +9,10 @@ import {
   isValidProviderId,
 } from "@codeusage/shared";
 import { getConfig, isConfigured, getProvider } from "../lib/config.js";
-import { parseSessionLog, parseSessionLogFromPath } from "../lib/session-log.js";
+import {
+  parseSessionLog,
+  parseSessionLogFromPath,
+} from "../lib/session-log.js";
 import { loadCurrentSession } from "./session-start.js";
 import { detectProjectSlug } from "../lib/git.js";
 import { sendTask } from "../lib/api.js";
@@ -27,7 +30,7 @@ import {
 } from "../lib/session-state.js";
 import { logError, logInfo, logDebug } from "../lib/logger.js";
 
-const CLI_VERSION = "0.1.34";
+const CLI_VERSION = "0.1.36";
 
 export const hookStopCommand = new Command("stop")
   .description("Handle AI coding tool stop hook (internal)")
@@ -72,7 +75,7 @@ export const hookStopCommand = new Command("stop")
     if (currentSession?.transcript_path && providerId === "claude_code") {
       session = await parseSessionLogFromPath(
         currentSession.transcript_path,
-        currentSession.session_id
+        currentSession.session_id,
       );
       if (session && options.debug) {
         console.log(chalk.green("Using SessionStart transcript path"));
@@ -88,12 +91,19 @@ export const hookStopCommand = new Command("stop")
       if (options.dryRun || options.debug) {
         console.log(chalk.yellow("Could not parse session log"));
         if (options.debug) {
-          const { getSessionsDirectory } = await import("../lib/session-log.js");
+          const { getSessionsDirectory } =
+            await import("../lib/session-log.js");
           const sessionsDir = await getSessionsDirectory(cwd, providerId);
-          console.log(`Sessions directory: ${chalk.cyan(sessionsDir || "not found")}`);
+          console.log(
+            `Sessions directory: ${chalk.cyan(sessionsDir || "not found")}`,
+          );
         }
       }
-      await logError("hook:stop", "Could not parse session log", `cwd=${cwd} provider=${providerId} platform=${process.platform} home=${require("os").homedir()}`);
+      await logError(
+        "hook:stop",
+        "Could not parse session log",
+        `cwd=${cwd} provider=${providerId} platform=${process.platform} home=${require("os").homedir()}`,
+      );
       return;
     }
 
@@ -112,7 +122,7 @@ export const hookStopCommand = new Command("stop")
       if (projectSlug === path.basename(effectiveCwd)) {
         // Just directory name, no git remote
         console.log(
-          chalk.dim("Tip: Set a project name: codeusage project set <name>")
+          chalk.dim("Tip: Set a project name: codeusage project set <name>"),
         );
       }
     }
@@ -133,7 +143,7 @@ export const hookStopCommand = new Command("stop")
         files_changed_details: session.files_changed_details,
         tool_counts: session.tool_counts,
       },
-      previousState
+      previousState,
     );
 
     // Skip if no actual changes (avoid duplicate syncs)
@@ -152,7 +162,7 @@ export const hookStopCommand = new Command("stop")
     let taskDuration = session.duration_sec;
     if (previousState && session.end_time && previousState.last_timestamp) {
       taskDuration = Math.round(
-        (session.end_time - previousState.last_timestamp) / 1000
+        (session.end_time - previousState.last_timestamp) / 1000,
       );
     }
 
@@ -161,7 +171,7 @@ export const hookStopCommand = new Command("stop")
       session.model,
       delta.input_tokens,
       delta.output_tokens,
-      delta.cache_tokens
+      delta.cache_tokens,
     );
 
     const payload: TelemetryPayload = {
@@ -187,25 +197,27 @@ export const hookStopCommand = new Command("stop")
 
     if (options.dryRun) {
       console.log(chalk.bold("\n📊 Session Summary (dry run)\n"));
-      console.log(`Provider: ${chalk.cyan(providerInfo?.displayName || providerId)}`);
+      console.log(
+        `Provider: ${chalk.cyan(providerInfo?.displayName || providerId)}`,
+      );
       console.log(`Project: ${chalk.cyan(payload.project_slug)}`);
       console.log(`Model: ${chalk.cyan(payload.model_name)}`);
       console.log(
-        `Tokens: ${chalk.yellow(payload.input_tokens.toLocaleString())} in / ${chalk.yellow(payload.output_tokens.toLocaleString())} out`
+        `Tokens: ${chalk.yellow(payload.input_tokens.toLocaleString())} in / ${chalk.yellow(payload.output_tokens.toLocaleString())} out`,
       );
       if (payload.cache_tokens > 0) {
         console.log(
-          `Cache: ${chalk.green(payload.cache_tokens.toLocaleString())} tokens`
+          `Cache: ${chalk.green(payload.cache_tokens.toLocaleString())} tokens`,
         );
       }
       console.log(`Cost: ${chalk.green(`~$${payload.cost_usd.toFixed(4)}`)}`);
       console.log(
-        `Files: ${chalk.yellow(payload.files_changed)} changed (${chalk.green(`+${payload.files_created}`)} created, ${chalk.blue(`~${payload.files_modified}`)} modified, ${chalk.red(`-${payload.files_deleted}`)} deleted)`
+        `Files: ${chalk.yellow(payload.files_changed)} changed (${chalk.green(`+${payload.files_created}`)} created, ${chalk.blue(`~${payload.files_modified}`)} modified, ${chalk.red(`-${payload.files_deleted}`)} deleted)`,
       );
       console.log(`Duration: ${chalk.yellow(payload.task_duration_sec)}s`);
       if (payload.tools_used.length > 0) {
         console.log(
-          `Tools: ${payload.tools_used.map((t) => `${t.name}(${t.count})`).join(", ")}`
+          `Tools: ${payload.tools_used.map((t) => `${t.name}(${t.count})`).join(", ")}`,
         );
       }
       console.log();
@@ -228,7 +240,11 @@ export const hookStopCommand = new Command("stop")
 
     if (result.success) {
       console.log(chalk.green("✓ Task synced"));
-      await logInfo("hook:stop", `Task synced: ${payload.project_slug}`, `model=${payload.model_name} tokens=${payload.input_tokens}+${payload.output_tokens} cost=$${payload.cost_usd.toFixed(4)}`);
+      await logInfo(
+        "hook:stop",
+        `Task synced: ${payload.project_slug}`,
+        `model=${payload.model_name} tokens=${payload.input_tokens}+${payload.output_tokens} cost=$${payload.cost_usd.toFixed(4)}`,
+      );
 
       // Save current cumulative state for next delta calculation
       // Convert files_changed_details to file_stats record
@@ -264,7 +280,11 @@ export const hookStopCommand = new Command("stop")
       }
     } else {
       console.log(chalk.yellow(`Buffered: ${result.error}`));
-      await logError("hook:stop", `Task send failed, buffered`, `error=${result.error} project=${payload.project_slug}`);
+      await logError(
+        "hook:stop",
+        `Task send failed, buffered`,
+        `error=${result.error} project=${payload.project_slug}`,
+      );
       await bufferTask(payload);
 
       // Still save state even when buffering to avoid double-counting
