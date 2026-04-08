@@ -22,7 +22,7 @@ export async function getDevelopersByWorkspace(
       alias: tasks.developer_alias,
       taskCount: sql<number>`count(*)::int`,
       lastActive: sql<string>`max(${tasks.created_at})::text`,
-      totalTokens: sql<number>`sum(${tasks.input_tokens} + ${tasks.output_tokens})::int`,
+      totalTokens: sql<string>`sum(${tasks.input_tokens} + ${tasks.output_tokens})::bigint`,
       totalCost: sql<string>`sum(${tasks.cost_usd})::numeric(10,6)`,
       providers: sql<string>`array_agg(distinct ${tasks.tool_source})::text`,
       projectCount: sql<number>`count(distinct ${tasks.project_slug})::int`,
@@ -36,7 +36,7 @@ export async function getDevelopersByWorkspace(
     alias: row.alias,
     taskCount: row.taskCount,
     lastActive: row.lastActive,
-    totalTokens: row.totalTokens,
+    totalTokens: Number(row.totalTokens || "0"),
     totalCost: parseFloat(row.totalCost || "0"),
     // Parse the array string format {claude_code,codex} to array
     providers: row.providers
@@ -80,11 +80,11 @@ export async function getDeveloperStats(
   const [stats] = await db
     .select({
       totalTasks: sql<number>`count(*)::int`,
-      totalInputTokens: sql<number>`coalesce(sum(${tasks.input_tokens}), 0)::int`,
-      totalOutputTokens: sql<number>`coalesce(sum(${tasks.output_tokens}), 0)::int`,
-      totalCacheTokens: sql<number>`coalesce(sum(${tasks.cache_tokens}), 0)::int`,
+      totalInputTokens: sql<string>`coalesce(sum(${tasks.input_tokens}), 0)::bigint`,
+      totalOutputTokens: sql<string>`coalesce(sum(${tasks.output_tokens}), 0)::bigint`,
+      totalCacheTokens: sql<string>`coalesce(sum(${tasks.cache_tokens}), 0)::bigint`,
       totalCost: sql<string>`coalesce(sum(${tasks.cost_usd}), 0)::numeric(10,6)`,
-      totalFilesChanged: sql<number>`coalesce(sum(${tasks.files_changed}), 0)::int`,
+      totalFilesChanged: sql<string>`coalesce(sum(${tasks.files_changed}), 0)::bigint`,
       uniqueProjects: sql<number>`count(distinct ${tasks.project_slug})::int`,
       firstTask: sql<string>`min(${tasks.created_at})::text`,
       lastTask: sql<string>`max(${tasks.created_at})::text`,
@@ -96,11 +96,11 @@ export async function getDeveloperStats(
 
   return {
     totalTasks: stats.totalTasks,
-    totalInputTokens: stats.totalInputTokens,
-    totalOutputTokens: stats.totalOutputTokens,
-    totalCacheTokens: stats.totalCacheTokens,
+    totalInputTokens: Number(stats.totalInputTokens),
+    totalOutputTokens: Number(stats.totalOutputTokens),
+    totalCacheTokens: Number(stats.totalCacheTokens),
     totalCost: parseFloat(stats.totalCost),
-    totalFilesChanged: stats.totalFilesChanged,
+    totalFilesChanged: Number(stats.totalFilesChanged),
     uniqueProjects: stats.uniqueProjects,
     firstTask: stats.firstTask,
     lastTask: stats.lastTask,
@@ -196,7 +196,7 @@ export async function getDeveloperProjects(
       project_slug: tasks.project_slug,
       task_count: sql<number>`count(*)::int`,
       total_cost: sql<string>`coalesce(sum(${tasks.cost_usd}), 0)::numeric(10,6)`,
-      total_tokens: sql<number>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::int`,
+      total_tokens: sql<string>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::bigint`,
       last_activity: sql<string>`max(${tasks.created_at})::text`,
     })
     .from(tasks)
@@ -214,7 +214,7 @@ export async function getDeveloperProjects(
     project_slug: row.project_slug,
     task_count: row.task_count,
     total_cost: parseFloat(row.total_cost),
-    total_tokens: row.total_tokens,
+    total_tokens: Number(row.total_tokens || "0"),
     last_activity: row.last_activity,
   }));
 }

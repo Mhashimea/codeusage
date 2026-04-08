@@ -24,7 +24,7 @@ export async function getMonthlyCostTrend(
     .select({
       month: sql<string>`to_char(${tasks.created_at}, 'YYYY-MM')`,
       total_cost: sql<string>`coalesce(sum(${tasks.cost_usd}), 0)::numeric(10,6)`,
-      total_tokens: sql<number>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::int`,
+      total_tokens: sql<string>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::bigint`,
       task_count: sql<number>`count(*)::int`,
     })
     .from(tasks)
@@ -35,7 +35,7 @@ export async function getMonthlyCostTrend(
   return result.map((row) => ({
     month: row.month,
     total_cost: parseFloat(row.total_cost),
-    total_tokens: row.total_tokens,
+    total_tokens: Number(row.total_tokens),
     task_count: row.task_count,
   }));
 }
@@ -59,7 +59,7 @@ export async function getCostByProject(
     .select({
       project_slug: tasks.project_slug,
       total_cost: sql<string>`coalesce(sum(${tasks.cost_usd}), 0)::numeric(10,6)`,
-      total_tokens: sql<number>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::int`,
+      total_tokens: sql<string>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::bigint`,
       task_count: sql<number>`count(*)::int`,
     })
     .from(tasks)
@@ -73,7 +73,7 @@ export async function getCostByProject(
   return result.map((row) => ({
     project_slug: row.project_slug,
     total_cost: parseFloat(row.total_cost),
-    total_tokens: row.total_tokens,
+    total_tokens: Number(row.total_tokens),
     task_count: row.task_count,
     share_percentage: totalCost > 0 ? (parseFloat(row.total_cost) / totalCost) * 100 : 0,
   }));
@@ -98,7 +98,7 @@ export async function getCostByDeveloper(
     .select({
       developer_alias: tasks.developer_alias,
       total_cost: sql<string>`coalesce(sum(${tasks.cost_usd}), 0)::numeric(10,6)`,
-      total_tokens: sql<number>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::int`,
+      total_tokens: sql<string>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::bigint`,
       task_count: sql<number>`count(*)::int`,
     })
     .from(tasks)
@@ -111,7 +111,7 @@ export async function getCostByDeveloper(
   return result.map((row) => ({
     developer_alias: row.developer_alias,
     total_cost: parseFloat(row.total_cost),
-    total_tokens: row.total_tokens,
+    total_tokens: Number(row.total_tokens),
     task_count: row.task_count,
     share_percentage: totalCost > 0 ? (parseFloat(row.total_cost) / totalCost) * 100 : 0,
   }));
@@ -134,7 +134,7 @@ export async function getThisMonthStats(
   const [stats] = await db
     .select({
       total_cost: sql<string>`coalesce(sum(${tasks.cost_usd}), 0)::numeric(10,6)`,
-      total_tokens: sql<number>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::int`,
+      total_tokens: sql<string>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::bigint`,
       task_count: sql<number>`count(*)::int`,
       avg_cost_per_task: sql<string>`coalesce(avg(${tasks.cost_usd}), 0)::numeric(10,6)`,
     })
@@ -143,7 +143,7 @@ export async function getThisMonthStats(
 
   return {
     total_cost: parseFloat(stats.total_cost),
-    total_tokens: stats.total_tokens,
+    total_tokens: Number(stats.total_tokens),
     task_count: stats.task_count,
     avg_cost_per_task: parseFloat(stats.avg_cost_per_task),
   };
@@ -180,7 +180,7 @@ export async function getCostByProvider(
     .select({
       tool_source: tasks.tool_source,
       total_cost: sql<string>`coalesce(sum(${tasks.cost_usd}), 0)::numeric(10,6)`,
-      total_tokens: sql<number>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::int`,
+      total_tokens: sql<string>`(coalesce(sum(${tasks.input_tokens}), 0) + coalesce(sum(${tasks.output_tokens}), 0))::bigint`,
       task_count: sql<number>`count(*)::int`,
     })
     .from(tasks)
@@ -193,7 +193,7 @@ export async function getCostByProvider(
   return result.map((row) => ({
     tool_source: row.tool_source,
     total_cost: parseFloat(row.total_cost),
-    total_tokens: row.total_tokens,
+    total_tokens: Number(row.total_tokens),
     task_count: row.task_count,
     share_percentage: totalCost > 0 ? (parseFloat(row.total_cost) / totalCost) * 100 : 0,
   }));

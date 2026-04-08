@@ -101,12 +101,12 @@ export async function getTaskStats(
   const [stats] = await db
     .select({
       total_tasks: sql<number>`count(*)::int`,
-      total_input_tokens: sql<number>`coalesce(sum(${tasks.input_tokens}), 0)::int`,
-      total_output_tokens: sql<number>`coalesce(sum(${tasks.output_tokens}), 0)::int`,
-      total_cache_tokens: sql<number>`coalesce(sum(${tasks.cache_tokens}), 0)::int`,
+      total_input_tokens: sql<string>`coalesce(sum(${tasks.input_tokens}), 0)::bigint`,
+      total_output_tokens: sql<string>`coalesce(sum(${tasks.output_tokens}), 0)::bigint`,
+      total_cache_tokens: sql<string>`coalesce(sum(${tasks.cache_tokens}), 0)::bigint`,
       total_cost_usd: sql<string>`coalesce(sum(${tasks.cost_usd}), 0)::numeric(10,6)`,
-      total_files_changed: sql<number>`coalesce(sum(${tasks.files_changed}), 0)::int`,
-      total_duration_sec: sql<number>`coalesce(sum(${tasks.task_duration_sec}), 0)::int`,
+      total_files_changed: sql<string>`coalesce(sum(${tasks.files_changed}), 0)::bigint`,
+      total_duration_sec: sql<string>`coalesce(sum(${tasks.task_duration_sec}), 0)::bigint`,
       unique_developers: sql<number>`count(distinct ${tasks.developer_alias})::int`,
       unique_projects: sql<number>`count(distinct ${tasks.project_slug})::int`,
     })
@@ -115,12 +115,12 @@ export async function getTaskStats(
 
   return {
     total_tasks: stats.total_tasks,
-    total_input_tokens: stats.total_input_tokens,
-    total_output_tokens: stats.total_output_tokens,
-    total_cache_tokens: stats.total_cache_tokens,
+    total_input_tokens: Number(stats.total_input_tokens),
+    total_output_tokens: Number(stats.total_output_tokens),
+    total_cache_tokens: Number(stats.total_cache_tokens),
     total_cost_usd: parseFloat(stats.total_cost_usd),
-    total_files_changed: stats.total_files_changed,
-    total_duration_sec: stats.total_duration_sec,
+    total_files_changed: Number(stats.total_files_changed),
+    total_duration_sec: Number(stats.total_duration_sec),
     unique_developers: stats.unique_developers,
     unique_projects: stats.unique_projects,
   };
@@ -142,7 +142,7 @@ export async function getTodayStats(workspaceId: string) {
       totalTasks: sql<number>`count(*)::int`,
       totalSessions: sql<number>`count(distinct ${tasks.session_id})::int`,
       activeDevelopers: sql<number>`count(distinct ${tasks.developer_alias})::int`,
-      totalTokens: sql<number>`coalesce(sum(${tasks.input_tokens} + ${tasks.output_tokens}), 0)::int`,
+      totalTokens: sql<string>`coalesce(sum(${tasks.input_tokens} + ${tasks.output_tokens}), 0)::bigint`,
     })
     .from(tasks)
     .where(
@@ -157,7 +157,7 @@ export async function getTodayStats(workspaceId: string) {
     totalTasks: stats.totalTasks,
     totalSessions: stats.totalSessions,
     activeDevelopers: stats.activeDevelopers,
-    totalTokens: stats.totalTokens,
+    totalTokens: Number(stats.totalTokens),
   };
 }
 
