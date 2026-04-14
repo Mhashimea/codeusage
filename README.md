@@ -84,7 +84,7 @@ codeusage/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourorg/codeusage.git
+git clone https://github.com/flowtrail/codeusage.git
 cd codeusage
 
 # Install dependencies
@@ -264,7 +264,12 @@ Codeusage captures **metadata only**:
 
 ## License
 
-MIT
+This project uses a dual license:
+
+- **Web app & shared packages** — [AGPL-3.0](LICENSE)
+- **CLI (`packages/cli`)** — [MIT](packages/cli/LICENSE)
+
+See the respective LICENSE files for details.
 
 ---
 

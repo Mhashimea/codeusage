@@ -4,7 +4,7 @@
   "private": true,
   "description": "AI coding tool intelligence platform for engineering teams",
   "author": "Hashim",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
     "dev": "turbo dev",
