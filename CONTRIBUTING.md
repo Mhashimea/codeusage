@@ -13,12 +13,12 @@ Thanks for your interest in contributing! This guide covers the basics.
 ### Getting started
 
 ```bash
-git clone https://github.com/flowtrail/codeusage.git
-cd codeusage
+git clone https://github.com/Mhashimea/afterburn.git
+cd afterburn
 bun install
 
 cp apps/web/.env.example apps/web/.env.local
-# Edit .env.local with your database URL
+# Edit apps/web/.env.local — see the file's comments for required values
 
 bun db:migrate
 bun dev

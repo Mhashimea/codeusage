@@ -11,6 +11,11 @@ import type { MemberRole } from "@/lib/db/schema";
 const MAX_ATTEMPTS = 5;
 const SESSION_MAX_AGE_DAYS = 7; // Reduced from 30 days
 
+// Dev-only bypass: when OTP emails are not actually sent (no RESEND_API_KEY),
+// accept any 6-digit code so local login doesn't depend on the server console.
+const DEV_OTP_BYPASS =
+  process.env.NODE_ENV !== "production" && !process.env.RESEND_API_KEY;
+
 const COOKIE_NAME = process.env.NODE_ENV === "production"
   ? "__Secure-authjs.session-token"
   : "authjs.session-token";
@@ -107,7 +112,8 @@ export async function POST(request: Request) {
     }
 
     // Verify OTP using constant-time comparison (bcrypt.compare)
-    const isValid = await verifyOTP(normalizedOtp, token.token_hash);
+    const isValid =
+      DEV_OTP_BYPASS || (await verifyOTP(normalizedOtp, token.token_hash));
 
     if (!isValid) {
       // Increment attempt counter

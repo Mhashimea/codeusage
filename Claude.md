@@ -12,7 +12,7 @@ CodeUsage is a cloud-based AI coding tool intelligence platform. It gives engine
 Two deliverables:
 
 1. **`apps/web`** — Next.js application serving both the dashboard (frontend) and the API (backend via Route Handlers).
-2. **`packages/cli`** — npm package (`codeusage`) that developers install on their machines. Hooks into Claude Code's native event system and sends task-level telemetry to the API.
+2. **`packages/cli`** — npm package (`codeusage-cli`, exposing the `codeusage` command) that developers install on their machines. Hooks into Claude Code's native event system and sends task-level telemetry to the API.
 
 ---
 
@@ -479,15 +479,21 @@ node packages/cli/dist/index.js hook stop --dry-run
 ## Environment variables
 
 ```bash
-# apps/web/.env.local
-DATABASE_URL="postgresql://postgres:password@localhost:5432/codeusage"
-NEXTAUTH_SECRET="dev-secret-change-in-prod"
+# apps/web/.env.local — see apps/web/.env.example for the full list
+DATABASE_URL="postgresql://postgres:postgres@localhost:5435/afterburn"  # matches docker-compose.yml
+AUTH_SECRET="..."                 # openssl rand -base64 32
+NEXTAUTH_SECRET="..."             # openssl rand -base64 32
 NEXTAUTH_URL="http://localhost:3003"
+APP_URL="http://localhost:3003"
+API_KEY_ENCRYPTION_KEY="..."      # openssl rand -hex 32 (64 hex chars)
 
 # apps/web (Vercel — production)
 DATABASE_URL="postgresql://..."   # Neon or Supabase
+AUTH_SECRET="..."
 NEXTAUTH_SECRET="..."
 NEXTAUTH_URL="https://codeusage.dev"
+APP_URL="https://codeusage.dev"
+API_KEY_ENCRYPTION_KEY="..."
 
 # packages/cli — no env vars
 # All config lives in ~/.codeusage/config.json via conf

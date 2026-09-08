@@ -1,5 +1,9 @@
 # Codeusage
 
+[![npm version](https://img.shields.io/npm/v/codeusage-cli.svg)](https://www.npmjs.com/package/codeusage-cli)
+[![npm downloads](https://img.shields.io/npm/dm/codeusage-cli.svg)](https://www.npmjs.com/package/codeusage-cli)
+[![License: AGPL-3.0](https://img.shields.io/badge/license-AGPL--3.0-blue.svg)](LICENSE)
+
 AI coding tool intelligence platform for engineering teams. Get visibility into how AI coding assistants are used across your organization—who's using them, on which projects, and what it costs.
 
 ## Overview
@@ -9,6 +13,7 @@ Codeusage provides:
 - **Usage tracking** — Automatic capture of token usage, costs, and task metadata
 - **Team dashboard** — Real-time visibility into AI tool usage across developers and projects
 - **Cost analytics** — Track spending by developer, project, and time period
+- **Prompt Guard** — Detects hardcoded credentials (API keys, tokens, DB URLs, private keys) before they reach an AI coding tool
 - **Privacy-first** — Metadata only. No prompts, responses, or code content captured.
 
 ## Architecture
@@ -39,12 +44,20 @@ Codeusage provides:
 
 ### For Developers
 
+The CLI is published on npm as [`codeusage-cli`](https://www.npmjs.com/package/codeusage-cli) (installs a `codeusage` command):
+
 ```bash
-# Install the CLI
-npm install -g codeusage
+# Install the CLI globally
+npm install -g codeusage-cli
 
 # Initialize (one-time setup)
 codeusage init
+```
+
+Or run it without installing, via `npx`:
+
+```bash
+npx codeusage-cli init
 ```
 
 You'll be prompted for:
@@ -57,18 +70,19 @@ That's it. Codeusage now tracks your AI coding tool usage automatically.
 ## Project Structure
 
 ```
-codeusage/
+afterburn/
 ├── apps/
 │   └── web/                 # Next.js dashboard + API
-│       ├── app/
-│       │   ├── (dashboard)/ # Dashboard pages
-│       │   └── api/         # API routes
-│       ├── components/
-│       └── lib/
-│           └── db/          # Drizzle ORM schema & queries
+│       └── src/
+│           ├── app/
+│           │   ├── app/     # Dashboard pages (/app, /app/tasks, /app/guard, ...)
+│           │   └── api/     # API routes
+│           ├── components/
+│           └── lib/
+│               └── db/      # Drizzle ORM schema & queries
 ├── packages/
-│   ├── cli/                 # Developer CLI (npm: codeusage)
-│   └── shared/              # Shared types, schemas, utilities
+│   ├── cli/                 # Developer CLI (npm: codeusage-cli, command: codeusage)
+│   └── shared/              # Shared types, schemas, utilities (@codeusage/shared)
 └── docs/
 ```
 
@@ -84,10 +98,10 @@ codeusage/
 
 ```bash
 # Clone the repository
-git clone https://github.com/flowtrail/codeusage.git
-cd codeusage
+git clone https://github.com/Mhashimea/afterburn.git
+cd afterburn
 
-# Install dependencies
+# Install dependencies (requires Bun: https://bun.sh)
 bun install
 
 # Start the database
@@ -95,7 +109,8 @@ docker-compose up -d
 
 # Set up environment variables
 cp apps/web/.env.example apps/web/.env.local
-# Edit .env.local with your database URL
+# Edit apps/web/.env.local — at minimum, generate values for
+# AUTH_SECRET, NEXTAUTH_SECRET and API_KEY_ENCRYPTION_KEY (see comments in the file)
 
 # Run database migrations
 bun run db:migrate
@@ -103,6 +118,8 @@ bun run db:migrate
 # Start development servers
 bun run dev
 ```
+
+The dashboard runs at [http://localhost:3003](http://localhost:3003). By default, no `RESEND_API_KEY` is required for local dev — login OTP codes are logged to the server console instead of being emailed.
 
 ### Available Scripts
 
@@ -135,8 +152,8 @@ bun run test             # Run tests
 bun run build:cli
 
 # Run commands
-node packages/cli/dist/index.js status
-node packages/cli/dist/index.js hook stop --dry-run
+node packages/cli/dist/index.mjs status
+node packages/cli/dist/index.mjs hook stop --dry-run
 ```
 
 ## Tech Stack
@@ -175,11 +192,18 @@ node packages/cli/dist/index.js hook stop --dry-run
 
 ### Web App (`apps/web/.env.local`)
 
+See [`apps/web/.env.example`](./apps/web/.env.example) for the full list with generation instructions. Required for local dev:
+
 ```bash
-DATABASE_URL="postgresql://postgres:password@localhost:5432/codeusage"
-NEXTAUTH_SECRET="your-secret-here"
+DATABASE_URL="postgresql://postgres:postgres@localhost:5435/afterburn"  # matches docker-compose.yml
+AUTH_SECRET="..."                # openssl rand -base64 32
+NEXTAUTH_SECRET="..."            # openssl rand -base64 32
 NEXTAUTH_URL="http://localhost:3003"
+APP_URL="http://localhost:3003"
+API_KEY_ENCRYPTION_KEY="..."     # openssl rand -hex 32 (64 hex chars)
 ```
+
+Optional: `RESEND_API_KEY` + `EMAIL_FROM` (real emails instead of console-logged OTPs), `GITHUB_CLIENT_ID` + `GITHUB_CLIENT_SECRET` (GitHub OAuth login).
 
 ### CLI
 
@@ -233,13 +257,12 @@ Returns workspace info if key is valid.
 
 | Route | Description |
 |-------|-------------|
-| `/` | Overview with key metrics and recent activity |
-| `/tasks` | Task feed with filtering and export |
-| `/developers` | Developer activity and stats |
-| `/projects` | Project breakdown |
-| `/cost` | Cost analytics (read-only) |
-| `/reports` | Weekly and monthly summaries |
-| `/settings` | API key, workspace config |
+| `/app` | Overview — key metrics, cost breakdown, and recent activity |
+| `/app/tasks` | Task feed with filtering |
+| `/app/developers` | Developer activity and stats |
+| `/app/projects` | Project breakdown |
+| `/app/guard` | Prompt Guard — credential-detection settings |
+| `/app/settings` | API key, workspace and member config |
 
 ## Data Privacy
 
